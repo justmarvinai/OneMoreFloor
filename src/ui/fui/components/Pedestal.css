@@ -1,0 +1,177 @@
+/* Pedestal — the plinth a game stands one thing on so you look at it. */
+
+.fui-plinth {
+  --fui-plinth-h: 260px;
+  --fui-plinth-ink: var(--fui-rarity-common);
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: var(--fui-plinth-h);
+  overflow: hidden;
+  font-family: var(--fui-font-ui);
+}
+
+.fui-plinth[data-rarity='uncommon'] { --fui-plinth-ink: var(--fui-rarity-uncommon); }
+.fui-plinth[data-rarity='rare'] { --fui-plinth-ink: var(--fui-rarity-rare); }
+.fui-plinth[data-rarity='epic'] { --fui-plinth-ink: var(--fui-rarity-epic); }
+.fui-plinth[data-rarity='legendary'] { --fui-plinth-ink: var(--fui-rarity-legendary); }
+.fui-plinth[data-rarity='mythic'] { --fui-plinth-ink: var(--fui-rarity-mythic); }
+
+/* The cone is a clipped gradient rather than a blurred box: a blur that big is
+   the most expensive thing on the screen, and this reads the same. */
+.fui-plinth__cone {
+  position: absolute;
+  left: 50%;
+  top: -6%;
+  width: 150%;
+  height: 96%;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fui-plinth-ink) 34%, transparent),
+    transparent 88%
+  );
+  clip-path: polygon(38% 0, 62% 0, 100% 100%, 0 100%);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.fui-plinth__stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+}
+
+.fui-plinth__art {
+  display: block;
+  width: calc(var(--fui-plinth-h) * 0.62);
+  height: calc(var(--fui-plinth-h) * 0.62);
+  background: center / contain no-repeat;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.75));
+}
+
+/* ── the base ───────────────────────────────────────────────────────────── */
+.fui-plinth__base {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The ground pool is an ellipse under the subject, which is what sells the
+   plinth as standing in a space rather than pasted on a background. */
+.fui-plinth__ring {
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  width: 62%;
+  height: 42px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 50%,
+      color-mix(in srgb, var(--fui-plinth-ink) 55%, transparent) 0%,
+      transparent 68%);
+  box-shadow: 0 0 26px color-mix(in srgb, var(--fui-plinth-ink) 40%, transparent);
+}
+
+.fui-plinth__ring::after {
+  content: '';
+  position: absolute;
+  inset: 14% 18%;
+  border: 1px solid color-mix(in srgb, var(--fui-plinth-ink) 70%, transparent);
+  border-radius: 50%;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.fui-plinth__ring[data-turning='true']::after {
+  animation: fui-plinth-turn 9s linear infinite;
+}
+
+@keyframes fui-plinth-turn {
+  to { transform: rotate(360deg); }
+}
+
+.fui-plinth__block {
+  width: 58%;
+  height: 26px;
+  border-radius: 6px 6px 3px 3px;
+  background:
+    linear-gradient(180deg, #6a6459 0%, #46413a 42%, #2b2823 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 6px 16px rgba(0, 0, 0, 0.65);
+}
+
+.fui-plinth[data-base='arcane'] .fui-plinth__block {
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 40%,
+    color-mix(in srgb, var(--fui-plinth-ink) 70%, transparent),
+    transparent 72%);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--fui-plinth-ink) 55%, transparent);
+}
+
+.fui-plinth__plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-top: 7px;
+  padding: 0 var(--fui-gap-sm);
+  text-align: center;
+}
+
+.fui-plinth__label {
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fui-plinth-ink);
+  text-shadow: 0 2px 8px #000;
+}
+
+.fui-plinth__note {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--fui-ink-faint);
+}
+
+/* ── motes ──────────────────────────────────────────────────────────────── */
+.fui-plinth__motes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fui-plinth__mote {
+  position: absolute;
+  bottom: 12%;
+  width: var(--fui-plinth-mote, 3px);
+  height: var(--fui-plinth-mote, 3px);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--fui-plinth-ink) 80%, #fff);
+  box-shadow: 0 0 6px var(--fui-plinth-ink);
+  opacity: 0;
+  animation: fui-plinth-rise var(--fui-plinth-dur, 4s) linear var(--fui-plinth-delay, 0s) infinite;
+}
+
+/* Opacity is declared at every stop, or a mote fades to nothing at 70% and
+   never comes back under an infinite animation. */
+@keyframes fui-plinth-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  18% { opacity: 0.9; }
+  70% { opacity: 0.55; }
+  100% { transform: translateY(calc(var(--fui-plinth-h) * -0.72)); opacity: 0; }
+}

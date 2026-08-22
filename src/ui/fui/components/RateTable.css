@@ -1,0 +1,227 @@
+/* RateTable — the drop-rate disclosure, read more carefully than any other screen. */
+
+.fui-rates {
+  --fui-rates-rarity: var(--fui-rarity-common);
+  --fui-rates-p: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fui-gap-sm);
+  font-family: var(--fui-font-ui);
+}
+
+.fui-rates__head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fui-rates__title {
+  font-size: 14px;
+}
+
+.fui-rates__subtitle {
+  font-size: 10.5px;
+  color: var(--fui-ink-faint);
+}
+
+.fui-rates__pity {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px var(--fui-gap-sm);
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold) 35%, transparent);
+  border-radius: var(--fui-radius);
+  background: rgba(217, 164, 65, 0.08);
+}
+
+.fui-rates__pity-label {
+  font-size: 10.5px;
+  color: var(--fui-ink-dim);
+}
+
+.fui-rates__pity-count {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fui-gold);
+}
+
+.fui-rates__pity-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.fui-rates__pity-fill {
+  display: block;
+  width: calc(var(--fui-rates-p) * 100%);
+  height: 100%;
+  background: linear-gradient(90deg, var(--fui-gold-soft), var(--fui-gold));
+  transition: width var(--fui-t-slow) var(--fui-ease);
+}
+
+.fui-rates__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fui-rates__group[data-rarity='uncommon'] { --fui-rates-rarity: var(--fui-rarity-uncommon); }
+.fui-rates__group[data-rarity='rare'] { --fui-rates-rarity: var(--fui-rarity-rare); }
+.fui-rates__group[data-rarity='epic'] { --fui-rates-rarity: var(--fui-rarity-epic); }
+.fui-rates__group[data-rarity='legendary'] { --fui-rates-rarity: var(--fui-rarity-legendary); }
+.fui-rates__group[data-rarity='mythic'] { --fui-rates-rarity: var(--fui-rarity-mythic); }
+
+.fui-rates__row {
+  display: grid;
+  grid-template-columns: 26px 1fr 62px 90px 62px;
+  align-items: center;
+  gap: var(--fui-gap-sm);
+  padding: 6px 8px;
+  border-left: 3px solid var(--fui-rates-rarity);
+  border-radius: var(--fui-radius);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.3));
+  cursor: default;
+}
+
+/* A row with sub-rows is a <summary>, and the default marker would push the
+   grid out of alignment with the rows that have none. */
+.fui-rates__details > .fui-rates__row {
+  cursor: pointer;
+  list-style: none;
+}
+
+.fui-rates__details > .fui-rates__row::-webkit-details-marker {
+  display: none;
+}
+
+.fui-rates__details[open] > .fui-rates__row {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.fui-rates__art {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--fui-radius);
+  background: center / cover no-repeat rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 0 1px var(--fui-rates-rarity);
+}
+
+.fui-rates__label {
+  font-size: 12.5px;
+  color: var(--fui-rates-rarity);
+}
+
+ /* Keeps the grid column occupied when a row is not rate-up. */
+.fui-rates__flag-slot {
+  display: block;
+}
+
+.fui-rates__flag {
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--fui-gold) 22%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fui-gold) 50%, transparent);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fui-gold);
+}
+
+.fui-rates__bar {
+  display: block;
+  width: 100%;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.fui-rates__fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--fui-rates-rarity);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--fui-rates-rarity) 55%, transparent);
+}
+
+.fui-rates__rate {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--fui-ink);
+}
+
+.fui-rates__items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px 6px 34px;
+  border-left: 3px solid var(--fui-rates-rarity);
+  border-radius: 0 0 var(--fui-radius) var(--fui-radius);
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.fui-rates__item {
+  display: grid;
+  grid-template-columns: 18px 1fr 62px 62px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.fui-rates__item-art {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  background: center / cover no-repeat rgba(0, 0, 0, 0.5);
+}
+
+.fui-rates__item-label {
+  font-size: 11px;
+  color: var(--fui-ink-dim);
+}
+
+.fui-rates__item-rate {
+  font-size: 11px;
+  text-align: right;
+  color: var(--fui-ink-dim);
+}
+
+.fui-rates__footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fui-rates__total-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.fui-rates__total {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fui-ink);
+}
+
+/* A disclosure that does not add up to 100 says so rather than rounding itself
+   tidy. */
+.fui-rates__total.is-odd {
+  color: var(--fui-warn);
+}
+
+.fui-rates__notes {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--fui-ink-faint);
+}

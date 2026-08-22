@@ -5,6 +5,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning wil
 
 ## [Unreleased]
 
+### Added — M7: the gacha
+
+- **Two banners, and both of them tell the truth** (Brief §16, Q20). The Rite of Embers chases Legendary steel; the Rite of the Fallen Star chases Mythical. Single pulls only, no pity counter, and every pull pays something — the worst night on the common rite is a real bundle of materials at your own tier, and the worst on the rare one is Epic gear.
+- **The odds on screen are the odds that ran.** Weights live in config and the rate table divides them itself, so a balance pass cannot leave a stale percentage printed beside a changed number. Both jackpots are what §16.2 asks for: Legendary at 3%, Mythical at 0.80%.
+- **The summoning rite** (§16.3), which the brief calls a headline feature and asks for real development time on. The game is covered, the chamber goes dark, a summoning circle wakes — and the light climbs and **dies back**, more than once when the rite is bluffing, before the prize lands on a lit plinth. The whole chamber's brightness runs off one number, so the circle, the glow spilling past it and the caption can never disagree about how far along the summoning is.
+- **The fake-out cannot lie about the prize.** How high the build teases is drawn from config and then raised to the outcome's own rarity, so it may over-sell and can never under-sell: a bundle of ore can arrive behind a build that looked Legendary, but a Legendary is never staged like ore. The drawn rank is stored on the pull, which makes the *animation* replayable from a save alongside what it staged — a bug report saying "it staged a Mythical and gave me ore" reproduces exactly.
+- **A pull goes through the same door as every other item source**, which is why §16.2's "all gacha rewards are bracketed by Power Level, no overshooting" needed no gacha-specific guard: the permanent property test simply grew a third sweep, over both banners at every bracket.
+- **The reward is banked before a single frame plays.** Closing the tab mid-rite costs nothing — the animation performs something that already happened, which is the same discipline that makes Skip free in combat.
+- **A full backpack refuses the rite** rather than conjuring something you cannot carry (Q16), and says so on the button instead of failing on the press. The rail's summoning dot lights only when a rite can actually be performed, never when a ticket is merely held.
+- **Verification:** 486 unit tests and 26 Playwright smoke tests. 40,000 pulls per banner are drawn in CI and checked against the printed table; the choreographer's pacing — "a Mythical builds longer than a bundle of ore", "the tease always dies back at least once", "the circle is hotter after every fall-back" — is asserted as properties of a list rather than hoped for in pixels.
+
+### Changed — M7
+
+- **Save schema v5:** characters gained their gacha pull count. It is a *seed input*, not a statistic — each pull draws from a stream named by it, so a save plus a pull number reproduces exactly what came out — and it is emphatically not a pity counter (Q20). Existing saves migrate to zero.
+- **The lobby is composed from parts rather than from FantasyUI's `BannerCarousel`/`SummonScreen`.** Both are built for a unit-collection gacha with ten-pulls and pity, and Q20 gives us neither; rendering a ×10 button we cannot honour would be a shipped placeholder (§2.1), and a pity meter reading nothing would be a lie. Filed as upstream wishes 9 and 10 rather than forked locally.
+- **Banner art is validated like all other content**: key art must be painted and currency marks must be masks, because a painted image under a CSS mask collapses to a silhouette — the mirror of the `glyph-*` mistake M4 found in the effect chips.
+
 ### Added — M6: reasons to come back
 
 - **Daily and weekly quests** (Brief §17, Q21): three of each, one weekly always hard — the slot that pays in tickets. Every card says what it asks for, how far along it is, and exactly what it pays *before* you decide to chase it, with the countdown to reset above each column, because "is it worth starting this now?" is the question a quest board exists to answer.

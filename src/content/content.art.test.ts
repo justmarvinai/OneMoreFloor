@@ -15,6 +15,7 @@ import { CLASSES } from '@/content/classes/index.ts';
 import { FLOOR_BANDS } from '@/content/floors/index.ts';
 import { ITEM_BASES } from '@/content/items/bases.ts';
 import { MATERIALS } from '@/content/items/materials.ts';
+import { BANNERS } from '@/content/balance/gacha.ts';
 
 /** Every art id the game can render, read from the CSS that declares them. */
 const ART_IDS = new Set(
@@ -58,6 +59,20 @@ describe('art bindings', () => {
   it('gives every floor band a backdrop that exists (Q11)', () => {
     for (const band of FLOOR_BANDS) {
       expect(ART_IDS, `${band.id}: no artwork for "${band.backdrop}"`).toContain(band.backdrop);
+    }
+  });
+
+  it('gives every banner painted key art and a real currency glyph (§16)', () => {
+    for (const banner of BANNERS) {
+      expect(ART_IDS, `${banner.id}: no artwork for "${banner.art}"`).toContain(banner.art);
+      expect(isGlyph(banner.art), `${banner.id}: key art must be painted, not a glyph`).toBe(false);
+
+      // The reverse rule for the currency mark: `CostButton` and `StatChip`
+      // *mask* it, and a painted image under a mask resolves to a silhouette.
+      expect(ART_IDS, `${banner.id}: no artwork for "${banner.currencyGlyph}"`).toContain(
+        banner.currencyGlyph,
+      );
+      expect(isGlyph(banner.currencyGlyph), `${banner.id}: currency marks are masked`).toBe(true);
     }
   });
 });

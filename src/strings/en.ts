@@ -15,6 +15,7 @@ export const en = {
   'nav.section.character': 'Character',
   'nav.section.merchants': 'Merchants',
   'nav.section.quests': 'Quests',
+  'nav.section.gacha': 'Summoning',
   'nav.section.upgrades': 'Account',
 
   'save.status.created': 'New save created.',
@@ -547,6 +548,54 @@ export const en = {
   'quest.rewardLucky': 'Lucky Ticket',
   'quest.none': 'No quests on the board yet — clear a floor and come back.',
   'quest.claimedAll': 'Everything here is claimed. New quests arrive at reset.',
+
+  // --- Gacha (Brief §16, Q20) ---
+  'gacha.title': 'The Summoning Circle',
+  'gacha.subtitle': 'Tickets are rare. What they buy is sized to you — never beyond you.',
+  'gacha.banner.ticket.name': 'Rite of Embers',
+  'gacha.banner.ticket.blurb':
+    'The common rite. Legendary steel is the prize, and it seldom answers — but the circle ' +
+    'never sends you away with nothing.',
+  'gacha.banner.lucky.name': 'Rite of the Fallen Star',
+  'gacha.banner.lucky.blurb':
+    'The rite worth saving for. Mythical is what it is chasing, and even a poor night here ' +
+    'ends in Epic.',
+  'gacha.held': 'You hold {count}',
+  'gacha.pull': 'Perform the rite',
+  'gacha.rates.title': 'Odds',
+  'gacha.rates.total': 'Total',
+  'gacha.rates.note.perPull':
+    'Rates are per pull and never change. There is no pity counter — a pull is a pull.',
+  'gacha.rates.note.always': 'Every pull pays something. No outcome here is empty.',
+  'gacha.rates.note.bracket':
+    'Everything the circle gives is sized to your Power Level, so nothing arrives too strong ' +
+    'to have been earned.',
+  'gacha.row.gear': '{rarity} gear',
+  'gacha.row.materials': 'Crafting materials',
+  'gacha.row.gold': 'A purse of gold',
+  'gacha.refuse.noCurrency': 'The circle wants a {currency}. You have none.',
+  'gacha.refuse.backpackFull':
+    'Your backpack is full, and the circle will not conjure something you cannot carry. ' +
+    'Sell or equip a piece first.',
+
+  // The rite itself (§16.3) — one line per beat, spoken by the circle.
+  'gacha.rite.charge': 'The circle wakes…',
+  'gacha.rite.tease': 'Something is coming through.',
+  'gacha.rite.almost': 'Closer…',
+  'gacha.rite.break': 'It holds!',
+  'gacha.rite.reveal.common': 'The circle answers.',
+  'gacha.rite.reveal.rare': 'A worthy answer.',
+  'gacha.rite.reveal.epic': 'The circle burns bright!',
+  'gacha.rite.reveal.legendary': 'LEGENDARY!',
+  'gacha.rite.reveal.mythic': 'MYTHICAL!',
+  'gacha.rite.reveal.gold': 'A purse, heavy with coin.',
+  'gacha.rite.reveal.materials': 'The circle yields its stone.',
+  'gacha.rite.skip': 'Skip',
+  'gacha.rite.again': 'Again',
+  'gacha.rite.done': 'Take it',
+  'gacha.rite.banked': 'Already in your backpack.',
+  'gacha.rite.gold': '{gold} gold',
+  'gacha.rite.materials': '{count} × {name}',
 
   // --- Account upgrades (Brief §15, Q19) ---
   'upgrades.title': 'Account Upgrades',

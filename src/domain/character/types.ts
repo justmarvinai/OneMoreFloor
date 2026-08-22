@@ -118,6 +118,13 @@ export interface Character {
    * veteran's impossible weekly otherwise.
    */
   quests: QuestsState;
+  /**
+   * How many gacha pulls this hero has made (Brief §16). It is a *seed input*,
+   * not a statistic: each pull draws from a stream named by this number, so a
+   * save plus a pull number reproduces exactly what came out (ARCHITECTURE §5).
+   * There is no pity counter in 0.1 (Q20) and this is not one.
+   */
+  gachaPulls: number;
 }
 
 /** Battle Speed tiers (Brief §15.1, shaped by Q19): x1 → x2 → x4 → x8. */

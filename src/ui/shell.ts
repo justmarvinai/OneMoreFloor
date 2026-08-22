@@ -17,16 +17,17 @@ import { CLASSES } from '@/content/classes/index.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import type { AppStore } from '@/app/state.ts';
 import { clock } from '@/app/time.ts';
-import { computeBadges } from '@/ui/badges.ts';
+import { computeBadges, type Badges } from '@/ui/badges.ts';
 import { t } from '@/strings/index.ts';
 
-export type ShellSection = 'tower' | 'character' | 'merchants' | 'quests' | 'upgrades';
+export type ShellSection = 'tower' | 'character' | 'merchants' | 'gacha' | 'quests' | 'upgrades';
 
 /** Rail order, which is also the order the component renders them in. */
 const NAV_ORDER: readonly ShellSection[] = [
   'tower',
   'character',
   'merchants',
+  'gacha',
   'quests',
   'upgrades',
 ];
@@ -59,9 +60,16 @@ export function createShell(options: ShellOptions): Shell {
   const character = store.get().activeCharacter;
   const definition = character ? CLASSES[character.identity.classId] : null;
   // One service decides every dot in the game (§20.5); the rail only renders it.
-  const badges = character
+  const badges: Badges = character
     ? computeBadges(character, clock().now(), store.get().account)
-    : { tower: false, character: false, merchants: false, quests: false, upgrades: false };
+    : {
+        tower: false,
+        character: false,
+        merchants: false,
+        gacha: false,
+        quests: false,
+        upgrades: false,
+      };
 
   const portrait = track(
     new Portrait({
@@ -110,6 +118,12 @@ export function createShell(options: ShellOptions): Shell {
           label: t('nav.section.merchants'),
           glyph: 'glyph-burning-scroll',
           ...(badges.merchants ? { dot: true } : {}),
+        },
+        {
+          id: 'gacha',
+          label: t('nav.section.gacha'),
+          glyph: 'glyph-shooting-stars',
+          ...(badges.gacha ? { dot: true } : {}),
         },
         {
           id: 'quests',

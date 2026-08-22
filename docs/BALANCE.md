@@ -96,6 +96,14 @@ Daily objectives sized to one normal session, weeklies to a normal week, neither
 - **Only hard quests carry ticket odds** (§17), and the roll happens when the board is built rather than when the quest is claimed, so a player can see what a quest pays before deciding to chase it.
 - **Slot 2 costs about a first session.** §15.2 calls the first extra slot cheap, and the first pass at 2,000 gold was roughly forty early floors — several evenings, not "cheap". The second hero is how a player meets the other four classes; pricing that out costs the game more than it earns. Everything above slot 2 stays steep, and Battle Speed keeps its cost concentrated in x8 (Q19).
 
+## 9d. The gacha, as built (M7)
+
+- **The odds in the config are the odds on screen.** Weights are relative, and the lobby's `RateTable` divides them itself — so a balance pass that edits a weight cannot leave a stale percentage printed next to it. Ticket banner: Legendary 3.00%, Epic 14.00%, Rare 33.00%, materials 30.00%, gold 20.00%. Lucky banner: Mythical 0.80%, Legendary 27.20%, Epic 72.00%. Both jackpots satisfy §16.2's "extremely low"; the Lucky one is well under a percent.
+- **No weight is spent on nothing** (Q20). The worst outcome on the Ticket banner is a real bundle of materials at the hero's own tier; the worst on the Lucky banner is Epic gear. A property test draws every entry on every bracket and asserts each pull paid *something*.
+- **Gold payouts are priced in floors' worth of income**, the same unit quests use, so a 26-floor purse still means something on floor 400.
+- **The anti-overshoot guard now sweeps both banners** through the gacha's own code path (§16.2's "no overshooting"). Pulls inherit the guarantee by generating through the same `generateItem` every drop and shelf uses; the sweep proves it rather than trusting it.
+- **The animation's bluff is a balance number, not a hidden one.** How high the reveal teases is drawn from `BLUFF_LADDER` and then raised to the outcome's own rarity — so the build may over-sell and can never under-sell. About a third of pulls stay honest; the full staging is rare enough to still mean something the twentieth time. The drawn rank is stored on the pull result, which makes the *animation* replayable from a save alongside the prize.
+
 ## 9a. First simulator findings (M3)
 
 The harness earned its place on the first run, before any tuning had been attempted. It found:

@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M6 are delivered**; M7 (gacha) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M7 are delivered**; M8 (content fill) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -83,10 +83,14 @@ Daily/weekly engine + board UI (§17; Q10 reset anchors, Q21 3+3 board) incl. ha
 
 **One tuning fix:** slot 2 now costs about a first session rather than forty early floors. §15.2 calls the first extra slot cheap, and the second hero is how a player meets the other four classes.
 
-## M7 — Gacha (M, +set-piece budget)
+## M7 — Gacha (M, +set-piece budget) — ✅ delivered 2026-08-22
 
 Pull resolution through brackets (§16.2; Q20: two banners, single pulls, every pull pays, no pity), banner lobby with honest `RateTable`, ticket faucets wired (§16.1). Then the **§16.3 reveal set-piece** — anticipation build, fake-outs, rarity-escalating light/particle language — built and iterated as its own deliverable (UI_FANTASYUI_MAP §6), reviewed against "feels like a real event", not "transition exists".
 **Exit:** odds conform to config over large simulated pulls; bracket property holds from gacha too; the reveal at every rarity tier passes your review (§16.3 is explicitly a taste gate — you sign it off).
+
+**As built:** a pull goes through the same `generateItem` every drop and shelf uses, which is why §16.2's "no overshooting" needed no gacha-specific guard — the permanent property test simply grew a third sweep. Odds are printed from the weights the draw runs on, so a balance pass cannot leave a stale percentage on screen. 40,000 pulls per banner are drawn in CI and checked against the printed table. The rite is a pure choreographer plus a dumb performer (the M4 split), and the fake-out is a *stored* bluff rank that may over-sell and can never under-sell — so the animation replays from a save alongside the prize it staged.
+
+**Awaiting your sign-off:** the taste gate. The reveal is built and its escalation is wired at every tier, but only Epic and below can be seen without a lucky night — say the word and I will add a developer path to stage a Legendary and a Mythical for review.
 
 ## M8 — Content fill to EA volume (L)
 

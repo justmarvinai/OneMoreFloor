@@ -11,6 +11,7 @@ import { V1_ACCOUNT, V1_CHARACTER, V1_META } from './fixtures/v1.ts';
 import { V2_CHARACTER } from './fixtures/v2.ts';
 import { V3_CHARACTER } from './fixtures/v3.ts';
 import { V4_CHARACTER } from './fixtures/v4.ts';
+import { V5_CHARACTER } from './fixtures/v5.ts';
 
 /**
  * The migration harness (SAVE_SCHEMA §4/§11).
@@ -27,6 +28,7 @@ const FIXTURES = [
   { version: 2, name: 'character', blob: V2_CHARACTER, validate: isCharacterRecord },
   { version: 3, name: 'character', blob: V3_CHARACTER, validate: isCharacterRecord },
   { version: 4, name: 'character', blob: V4_CHARACTER, validate: isCharacterRecord },
+  { version: 5, name: 'character', blob: V5_CHARACTER, validate: isCharacterRecord },
 ] as const;
 
 describe('captured save fixtures', () => {
@@ -51,7 +53,7 @@ describe('captured save fixtures', () => {
     const character = (record as { character: Record<string, unknown> }).character;
     const equipment = character['equipment'] as Record<string, { defId: string }>;
 
-    expect(applied).toEqual([1, 2, 3]);
+    expect(applied).toEqual([1, 2, 3, 4]);
     expect(equipment['mainhand']?.defId).toBe('item.mainhand.warrior-arming-sword');
     expect(equipment['offhand']?.defId).toBe('item.offhand.warrior-warded-shield');
     expect(character['currencies']).toEqual({ gold: 0, tickets: 0, luckyTickets: 0 });
@@ -63,7 +65,7 @@ describe('captured save fixtures', () => {
     expect(first).toEqual(second);
     // And it matches the captured blob for the current version exactly.
     expect(first).toEqual({
-      ...V4_CHARACTER,
+      ...V5_CHARACTER,
       integrity: (first as { integrity: unknown }).integrity,
     });
   });
@@ -73,7 +75,7 @@ describe('captured save fixtures', () => {
     const character = (record as { character: Record<string, unknown> }).character;
     const merchants = character['merchants'] as Record<string, { stockedAt: number }>;
 
-    expect(applied).toEqual([2, 3]);
+    expect(applied).toEqual([2, 3, 4]);
     expect(character['potions']).toEqual({});
     // Stamped at the epoch, so the first visit restocks at the hero's real
     // bracket rather than carrying one guessed at migration time (Q17).

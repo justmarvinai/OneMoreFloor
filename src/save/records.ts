@@ -74,6 +74,7 @@ export function isCharacterRecord(record: StoredRecord): record is StoredRecord 
     isObject(character['materials']) &&
     isObject(character['potions']) &&
     isObject(character['quests']) &&
+    typeof character['gachaPulls'] === 'number' &&
     isObject(merchants) &&
     isObject(merchants['equipment']) &&
     isObject(merchants['magic']) &&

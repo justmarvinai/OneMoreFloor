@@ -534,3 +534,95 @@ test('sells the two account upgrades, and only those two (Brief §15)', async ({
   await expect(select.getByRole('button', { name: 'Empty slot' })).toBeVisible();
   await expect(select.getByRole('button', { name: 'Locked slot' })).toHaveCount(3);
 });
+
+/* --- M7: the gacha (Brief §16) -------------------------------------------- */
+
+test('prints the odds it runs, and refuses a rite it cannot pay for (§16.2)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Summoning');
+
+  const lobby = page.locator('[data-testid="gacha"]');
+  await expect(lobby).toBeVisible();
+  await expect(lobby.getByText('Rite of Embers')).toBeVisible();
+  await expect(lobby.getByText('Rite of the Fallen Star')).toBeVisible();
+
+  // The disclosure is stated once, under both tables, rather than twice.
+  await expect(lobby.locator('.omf-gacha__terms li')).toHaveCount(3);
+
+  // The disclosure is the point of the screen: every row, adding to 100%.
+  const rates = lobby.locator('.fui-rates');
+  await expect(rates).toHaveCount(2);
+  await expect(rates.first().locator('.fui-rates__row')).toHaveCount(5);
+  await expect(rates.first().getByText('100.00%')).toBeVisible();
+
+  // The jackpots are printed as the extremely low numbers §16.2 demands.
+  await expect(rates.first().getByText('Legendary gear')).toBeVisible();
+  await expect(rates.nth(1).getByText('0.80%')).toBeVisible();
+
+  // No tickets yet, so both rites say so rather than failing on the press.
+  await expect(lobby.getByText(/Summon Ticket needed/i).first()).toBeVisible();
+});
+
+test('performs the rite, banks the prize and spends the ticket (§16.3)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+
+  // The tour pays a Lucky Ticket, which is the honest way into the rite.
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await page.getByRole('option', { name: 'Warrior' }).click();
+  await page.getByLabel('Character name').fill('Grimhild');
+  await page.getByRole('button', { name: /Begin the climb/i }).click();
+
+  const advance = page.locator('.fui-tutmask button').last();
+  const reward = page.getByText('Take this with you');
+  for (let step = 0; step < 10; step += 1) {
+    if (await reward.isVisible().catch(() => false)) break;
+    await advance.click();
+  }
+  await page.getByRole('button', { name: /^Take it$/ }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  await goToSection(page, 'Summoning');
+  const lobby = page.locator('[data-testid="gacha"]');
+  const luckyCard = lobby.locator('.fui-panel').nth(1);
+  await expect(luckyCard.locator('.fui-chip__value')).toHaveText('1');
+
+  // Perform the Lucky rite — the second card's pull button.
+  await lobby
+    .locator('.fui-panel')
+    .nth(1)
+    .getByRole('button', { name: /Perform the rite/i })
+    .click();
+
+  // It is a set-piece, not a transition: the chamber covers the game and the
+  // circle speaks before anything is revealed (§16.3).
+  const rite = page.locator('[data-testid="rite"]');
+  await expect(rite).toBeVisible();
+  await expect(rite).toHaveAttribute('data-phase', 'build');
+  await expect(page.locator('[data-testid="rite-caption"]')).not.toBeEmpty();
+
+  // Skipping lands on the same answer the animation was going to give.
+  await rite.getByRole('button', { name: /^Skip$/ }).click();
+  await expect(rite).toHaveAttribute('data-phase', 'reveal');
+  await expect(rite.locator('.omf-rite__prizeName')).toBeVisible();
+
+  await rite.getByRole('button', { name: /^Take it$/ }).click();
+  await expect(rite).toHaveCount(0);
+
+  // The ticket is gone and the rite now refuses, which is the whole loop.
+  await expect(luckyCard.locator('.fui-chip__value')).toHaveText('0');
+  await expect(lobby.getByText(/Lucky Ticket needed/i).first()).toBeVisible();
+});
+
+test('shows no native tooltip in the lobby or the rite either (§20.4)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Summoning');
+
+  await expect(page.locator('[data-testid="gacha"]')).toBeVisible();
+  expect(
+    await page.$$eval('[title]', (nodes) => nodes.map((node) => node.tagName)),
+    'the summoning lobby',
+  ).toEqual([]);
+});

@@ -35,13 +35,16 @@
 @import '../components/OrnateHeader.css';
 @import '../components/Panel.css';
 @import '../components/Paperdoll.css';
+@import '../components/Pedestal.css';
 @import '../components/Portrait.css';
 @import '../components/PowerRating.css';
 @import '../components/ProgressRing.css';
 @import '../components/RankUpPanel.css';
+@import '../components/RateTable.css';
 @import '../components/ResultScreen.css';
 @import '../components/RewardPopup.css';
 @import '../components/Ribbon.css';
+@import '../components/RuneCircle.css';
 @import '../components/SceneBackdrop.css';
 @import '../components/SceneTransition.css';
 @import '../components/ShopPanel.css';

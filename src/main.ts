@@ -36,6 +36,8 @@ import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
 import { createCharacterScreen } from './ui/screens/character.ts';
 import { createMerchantScreen } from './ui/screens/merchant.ts';
+import { createGachaScreen } from './ui/screens/gacha.ts';
+import { startReveal, type RevealDirector } from './ui/gacha/revealDirector.ts';
 import { createQuestScreen } from './ui/screens/quests.ts';
 import { createUpgradesScreen } from './ui/screens/upgrades.ts';
 import { startTutorial, type Tutorial } from './ui/tutorial.ts';
@@ -45,6 +47,7 @@ import { createTowerScreen } from './ui/screens/tower.ts';
 import { openGearDialog, type GearDialog } from './ui/gearDialog.ts';
 import type { ShellSection } from './ui/shell.ts';
 import type { MerchantId } from './domain/merchants/merchants.ts';
+import { canPull, type BannerId } from './domain/gacha/gacha.ts';
 import { clock } from './app/time.ts';
 import type { Character } from './domain/character/types.ts';
 import type { FloorResult, QuickRaidResult } from './domain/tower/run.ts';
@@ -63,6 +66,7 @@ type ScreenId =
   | 'raid'
   | 'character'
   | 'merchant'
+  | 'gacha'
   | 'quests'
   | 'upgrades';
 
@@ -130,6 +134,8 @@ export async function boot(mount: HTMLElement): Promise<void> {
 
     /** Which shop is open; the tabs switch between them without leaving. */
     let openMerchant: MerchantId = 'equipment';
+    /** The summoning set-piece, kept so leaving the screen can tear it down. */
+    let rite: RevealDirector | null = null;
     /** The gear dialog, kept so an action can redraw it instead of closing it. */
     let gearDialog: GearDialog | null = null;
 
@@ -148,12 +154,46 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'character':
           router.go('character');
           return;
+        case 'gacha':
+          router.go('gacha');
+          return;
         case 'upgrades':
           router.go('upgrades');
           return;
         default:
           router.go('tower');
       }
+    };
+
+    /**
+     * Perform one rite (Brief §16.3).
+     *
+     * The pull is resolved and *banked* before a single frame plays, so the
+     * animation is a performance of something that already happened — a closed
+     * tab mid-rite costs the player nothing.
+     */
+    const startRite = (banner: BannerId): void => {
+      void session.pullBanner(banner).then((outcome) => {
+        if (!outcome.ok) {
+          // The lobby already says why, and it is now redrawn saying it again.
+          refreshScreen();
+          return;
+        }
+        rite?.destroy();
+        rite = startReveal({
+          mount,
+          result: outcome.value,
+          canRepeat: canPull(outcome.character, banner) === true,
+          onAgain: () => {
+            rite = null;
+            startRite(banner);
+          },
+          onClose: () => {
+            rite = null;
+            refreshScreen();
+          },
+        });
+      });
     };
 
     /** Re-render the screen the player is on, after something they own changed. */
@@ -280,6 +320,18 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onSelectItem: inspectItem,
               onBuyStat: (stat) => void session.buyStat(stat, 1).then(refreshScreen),
               onAscend: () => void session.ascend().then(refreshScreen),
+            }).el,
+          }),
+
+        gacha: () =>
+          createShell({
+            store,
+            active: 'gacha',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createGachaScreen({
+              character: requireCharacter(),
+              onPull: startRite,
             }).el,
           }),
 

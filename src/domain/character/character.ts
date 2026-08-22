@@ -58,6 +58,7 @@ export function createCharacter(input: CreateCharacterInput): Character {
     // Empty until the first refresh: a board is rolled against the hero's own
     // depth, and at creation they have not climbed anything yet.
     quests: emptyQuests(),
+    gachaPulls: 0,
   };
 }
 

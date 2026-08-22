@@ -857,6 +857,219 @@ body {
   color: var(--fui-gold, #d8b26a);
 }
 
+/* --- Summoning lobby (Brief §16, UI_FANTASYUI_MAP §6) -------------------- */
+
+.omf-gacha {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.omf-gacha__rites {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--omf-gap);
+  align-items: start;
+}
+
+.omf-gacha__key {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  padding-bottom: 12px;
+}
+
+/* The three sentences that are the actual disclosure (§16.2). */
+.omf-gacha__terms {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  opacity: 0.68;
+}
+
+.omf-gacha__blurb {
+  margin: 12px 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  opacity: 0.85;
+}
+
+.omf-gacha .fui-rates {
+  margin-top: 14px;
+}
+
+/* --- The rite: the §16.3 set-piece ---------------------------------------- */
+
+/*
+ * A full cover, not a panel. §16.3 asks for "a real event, not a UI
+ * transition", and the first thing that makes an event is that nothing else is
+ * on screen competing with it.
+ */
+.omf-rite {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  background: #05040a;
+  animation: omf-rite-in 320ms ease-out both;
+}
+
+@keyframes omf-rite-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.omf-rite .fui-scene {
+  flex: 1;
+}
+
+.omf-rite__body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 100%;
+  padding: 24px;
+}
+
+.omf-rite__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 340px;
+  height: 340px;
+}
+
+.omf-rite__stage > * {
+  grid-area: 1 / 1;
+}
+
+.omf-rite__flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * The chamber is lit by the circle and nothing else. Everything here reads the
+ * one `--omf-rite-charge` the director sets per beat, so the glow, its reach
+ * and its bloom can never disagree about how far along the summoning is.
+ */
+.omf-rite__glow {
+  position: absolute;
+  inset: -40%;
+  background: radial-gradient(circle at center, var(--omf-rite-ink, #d8b26a) 0%, transparent 62%);
+  opacity: calc(0.14 + var(--omf-rite-charge, 0) * 0.72);
+  transform: scale(calc(0.55 + var(--omf-rite-charge, 0) * 0.65));
+  filter: blur(22px);
+  mix-blend-mode: screen;
+  transition:
+    opacity 420ms ease-out,
+    transform 520ms ease-out;
+  pointer-events: none;
+}
+
+/*
+ * The circle and the plinth trade places rather than coexisting: the circle is
+ * what the player watches during the build, the plinth is what they look at
+ * afterwards, and cross-fading them is what makes the prize feel like it
+ * *arrived* rather than like a second panel opening.
+ */
+.omf-rite__plinth {
+  opacity: 0;
+  transform: scale(0.86);
+  transition:
+    opacity 360ms ease-out,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+.omf-rite[data-phase='reveal'] .omf-rite__plinth {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.omf-rite[data-phase='reveal'] .fui-runes {
+  opacity: 0.28;
+  transition: opacity 420ms ease-out;
+}
+
+.omf-rite__prize {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.omf-rite__prizeName {
+  margin: 0;
+  font-size: 1.05rem;
+  text-align: center;
+  text-shadow: 0 0 18px var(--omf-rite-ink, #d8b26a);
+}
+
+/*
+ * The caption carries the whole build, so it is sized to be read at a glance
+ * and lit by the rank the light has reached — the "escalating light/colour
+ * language" of §16.3, spoken rather than only shown.
+ */
+.omf-rite__caption {
+  min-height: 2.2rem;
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: var(--omf-rite-ink, #d8b26a);
+  text-shadow: 0 0 22px var(--omf-rite-ink, #d8b26a);
+  transition:
+    opacity 220ms ease-out,
+    font-size 260ms ease-out;
+}
+
+.omf-rite[data-rank='4'] .omf-rite__caption,
+.omf-rite[data-rank='5'] .omf-rite__caption {
+  font-size: 2.1rem;
+  letter-spacing: 0.14em;
+}
+
+.omf-rite[data-rank='5'] .omf-rite__body {
+  animation: omf-rite-shudder 2.4s ease-in-out infinite;
+}
+
+@keyframes omf-rite-shudder {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translate3d(0, -3px, 0);
+  }
+}
+
+.omf-rite__actions {
+  display: flex;
+  gap: 12px;
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omf-rite,
+  .omf-rite__plinth,
+  .omf-rite__caption,
+  .omf-rite[data-rank='5'] .omf-rite__body {
+    animation: none;
+    transition: none;
+  }
+}
+
 /* --- Error surface ------------------------------------------------------- */
 
 .omf-error {

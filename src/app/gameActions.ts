@@ -56,6 +56,13 @@ import {
 import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
+import {
+  canPull,
+  pull,
+  spendCurrency,
+  type BannerId,
+  type PullResult,
+} from '@/domain/gacha/gacha.ts';
 import { TUTORIAL_REWARD } from '@/content/balance/account.ts';
 import { accountLoaded } from './state.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
@@ -75,6 +82,7 @@ export type Refusal =
   | 'soldOut'
   | 'notClaimable'
   | 'maxed'
+  | 'noCurrency'
   | 'noCharacter';
 
 export type Outcome<T = undefined> =
@@ -104,6 +112,14 @@ export interface GameActions {
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
   /** Buy one of the two account upgrades (Brief §15). */
   buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
+
+  /**
+   * Spend one ticket on one pull (Brief §16, Q20).
+   *
+   * The result is banked *before* the reveal plays, deliberately: a player who
+   * closes the tab mid-animation has still had the pull they paid for.
+   */
+  pullBanner(banner: BannerId): Promise<Outcome<PullResult>>;
   /**
    * Close the tutorial. `rewarded` is false when it was skipped: §18 calls the
    * Lucky Ticket a *completion* reward, and paying it for skipping would make
@@ -445,6 +461,38 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       accountLoaded(store, outcome.account);
       const paid = withQuests(outcome.character, [{ kind: 'goldSpent', amount: outcome.cost }]);
       return { ok: true, value: outcome.cost, character: await commit(paid) };
+    },
+
+    async pullBanner(banner) {
+      const character = active();
+      const refusal = canPull(character, banner);
+      if (refusal !== true) {
+        return { ok: false, reason: refusal === 'noCurrency' ? 'noCurrency' : 'backpackFull' };
+      }
+
+      const result = pull({
+        character,
+        banner,
+        bracket: bracketForCharacter(character),
+        // The pull count is the stream name, so it has to be the count *before*
+        // this pull — and it has to move even when the payout was gold, or the
+        // next pull would replay this one (ARCHITECTURE §5).
+        pullNumber: character.gachaPulls,
+      });
+
+      const spent = spendCurrency(character, banner);
+      const granted = grantReward(
+        { ...spent, gachaPulls: spent.gachaPulls + 1 },
+        { ...result.reward, items: result.item ? [result.item] : [] },
+      );
+      const events: QuestEvent[] =
+        result.reward.gold > 0 ? [{ kind: 'goldEarned', amount: result.reward.gold }] : [];
+
+      return {
+        ok: true,
+        value: result,
+        character: await commit(withQuests(granted.character, events)),
+      };
     },
 
     async finishTutorial(rewarded) {

@@ -1,5 +1,5 @@
 {
-  "$comment": "Components vendored from FantasyUI (justmarvinai/fantasyuis). This list is the source of truth for `npm run vendor:fui`; dependencies between components are resolved automatically. Grows per milestone as screens are built \u2014 see docs/UI_FANTASYUI_MAP.md for the screen-by-screen mapping.",
+  "$comment": "Components vendored from FantasyUI (justmarvinai/fantasyuis). This list is the source of truth for `npm run vendor:fui`; dependencies between components are resolved automatically. Grows per milestone as screens are built — see docs/UI_FANTASYUI_MAP.md for the screen-by-screen mapping.",
   "components": [
     "Badge",
     "Banner",
@@ -30,13 +30,16 @@
     "OrnateHeader",
     "Panel",
     "Paperdoll",
+    "Pedestal",
     "Portrait",
     "PowerRating",
     "ProgressRing",
     "RankUpPanel",
+    "RateTable",
     "ResultScreen",
     "RewardPopup",
     "Ribbon",
+    "RuneCircle",
     "SceneBackdrop",
     "SceneTransition",
     "ShopPanel",
