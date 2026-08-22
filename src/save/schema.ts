@@ -13,7 +13,12 @@
 import type { Account, Character, SlotId } from '@/domain/character/types.ts';
 import type { Persisted } from './integrity.ts';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+/**
+ * Version history — every entry has a migration and a captured fixture:
+ *   1. Account and character records (M1).
+ *   2. Characters gained equipment, inventory, currencies and materials (M2).
+ */
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const DATABASE_NAME = 'onemorefloor';
 

@@ -52,6 +52,10 @@ Band-relative factors are the *endless* answer of §3.7: raw stats inflate forev
 - `TowerScore`: from `highestFloorEverCleared` (§13 "tower progress").
 - Weights `W…` in config; PL is displayed on the character screen (players love the number going up — §1) and is **the** input to gating (§6 below).
 
+### Where the numbers actually live (as built, M2)
+
+`src/content/balance/` holds `curves.ts` (the shared shapes), `items.ts` (brackets, rarity positions, affix budget costs, gear upgrade costs), `power.ts` (Power Level weights) and `progression.ts` (ascension table, XP curve, stat-purchase costs). **Per-class stat profiles live with their class definition** in `src/content/classes/`, because a class's base stats are part of its identity rather than a global curve — they are still content, still tunable, and still outside `src/domain/`, which is what §3.7's rule protects.
+
 ## 6. Brackets & the anti-overshoot rule (§13 — the load-bearing section)
 
 **Bracket** = `bracketOf(PL)`: a config table mapping PL ranges → an **item budget window** `[minBudget, maxBudget]` plus allowed material/potion tiers. Every item-emitting system — floor drops (§3.6), Equipment Merchant (§11), Magic Merchant (§12), gacha (§16) — generates items **only inside the requester's current bracket window**:
@@ -60,6 +64,8 @@ Band-relative factors are the *endless* answer of §3.7: raw stats inflate forev
 2. **Rarity never escapes the window.** A Mythical at PL 800 is the best possible ~PL-800-bracket item — dramatically better than its Common neighbor, still a bracket-800 item. Rarity chooses *how good within the bracket*; PL chooses *the bracket*. (Brief's own canonical case: Ascension 0 / Level 12 / Floor 21 can never see a +1000-Strength chest — with bracket windows that item is unconstructible from any source, which is stronger than any per-source cap.)
 3. Enforced by a property test sweeping character states × all sources × thousands of seeds, asserting emitted budgets ⊆ window (ARCHITECTURE §7). This test is part of CI forever.
 4. `ItemInstance.bracketAtDrop` (SAVE_SCHEMA §3) audits the rule across real saves.
+
+**As built (M2).** 40 brackets; a bracket's reference budget grows ×1.42 per bracket, and its window spans 0.55×–2.4× that reference. Rarity occupies a slice of that window (common at the bottom 12%, mythic at the top 12%), so a mythic is worth roughly four times a common *of the same bracket* — rarity matters without escaping the band. One implementation detail turned out to be load-bearing: affix values are whole numbers, so rounding can push what an item actually *gives* past the window even when the rolled budget was inside it. Generation therefore trims affixes until the realised total fits, and **the property test asserts the realised total, not the roll** — otherwise the guarantee would be green and meaningless. The test sweeps every bracket × every base type × every rarity (~13,000 items per run) plus the brief's canonical Level-12/Floor-21 case, and is CI-permanent from M2 onward.
 
 Merchant stock (§11/§12) and gacha (§16.2) call the same `bracketOf` — one function, one truth.
 

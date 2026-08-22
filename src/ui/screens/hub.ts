@@ -21,7 +21,7 @@ import {
 } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
-import { levelCapFor } from '@/domain/character/character.ts';
+import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import type { Screen } from '@/app/router.ts';
 import type { AppStore } from '@/app/state.ts';
 import { t } from '@/strings/index.ts';
@@ -76,9 +76,9 @@ export function createHubScreen(options: HubScreenOptions): Screen {
     new StatBar({
       kind: 'xp',
       value: character?.progression.xp ?? 0,
-      // Until the XP curve lands with progression (M2), the bar shows the level
-      // cap it is climbing towards rather than inventing a per-level requirement.
-      max: character ? levelCapFor(character.progression.ascension) : 100,
+      max: character
+        ? xpToNextLevel(character.progression.level, character.progression.ascension)
+        : 100,
       readout: 'none',
       width: '100%',
     }),
@@ -86,7 +86,9 @@ export function createHubScreen(options: HubScreenOptions): Screen {
 
   const currencies = track(
     new CurrencyBar({
-      currencies: [{ id: 'gold', icon: 'icon-coins', amount: 0, label: 'Gold' }],
+      currencies: [
+        { id: 'gold', icon: 'icon-coins', amount: character?.currencies.gold ?? 0, label: 'Gold' },
+      ],
       format: 'short',
     }),
   );

@@ -5,9 +5,13 @@
  * in the values that come from outside (the creation time, the run seed), which
  * is what lets every rule here be tested by calling it (ARCHITECTURE §3).
  */
+import { createRng } from '@/app/rng.ts';
 import { ASCENSION_STEPS, MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { getClass } from '@/content/classes/index.ts';
-import { toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
+import { equipmentStats } from '../items/derive.ts';
+import { createStartingEquipment } from '../items/starting.ts';
+import type { ItemInstance } from '../items/types.ts';
+import { addStats, toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
 import { normalizeName } from './naming.ts';
 import type { AscensionTier, Character, ClassId, EquipSlotId, SlotId } from './types.ts';
 
@@ -22,12 +26,16 @@ export interface CreateCharacterInput {
 }
 
 /**
- * A brand-new hero: level 1, ascension 0, floor 1, nothing bought.
+ * A brand-new hero: level 1, ascension 0, floor 1, nothing bought, and holding
+ * exactly their class weapon (Brief §5) — every other slot empty, which is the
+ * game's opening question to the player.
  *
- * Starting equipment (Brief §5, Q15) is granted when the item system lands in
- * M2 — a character with no items is not a character with placeholder items.
+ * The starting gear is rolled from the run seed, so re-creating the same hero
+ * produces the same first weapon.
  */
 export function createCharacter(input: CreateCharacterInput): Character {
+  const rng = createRng(`${input.runSeed}/creation`);
+
   return {
     slotId: input.slotId,
     identity: {
@@ -38,7 +46,18 @@ export function createCharacter(input: CreateCharacterInput): Character {
     progression: { level: 1, xp: 0, ascension: 0 },
     purchasedStats: { strength: 0, defense: 0, hp: 0, resource: 0, luck: 0 },
     tower: { currentRunFloor: 1, highestFloorEverCleared: 0, runSeed: input.runSeed },
+    equipment: createStartingEquipment(input.classId, rng),
+    inventory: [],
+    currencies: { gold: 0, tickets: 0, luckyTickets: 0 },
+    materials: {},
   };
+}
+
+/** Everything currently worn, as a flat list. */
+export function equippedItems(character: Character): ItemInstance[] {
+  return Object.values(character.equipment).filter(
+    (item): item is ItemInstance => item !== undefined,
+  );
 }
 
 /** The level cap at an ascension tier. Tier 5 is uncapped (Brief §7). */
@@ -85,6 +104,16 @@ export function baseStatsOf(character: Character): StatBlock {
   }
 
   return toStatBlock(grown);
+}
+
+/**
+ * Everything the hero has: class, levels, purchases *and* gear.
+ *
+ * This is the block combat reads. Speed can only ever be non-zero here because
+ * something is equipped — the type system guarantees no other path exists (§6).
+ */
+export function totalStatsOf(character: Character): StatBlock {
+  return addStats(baseStatsOf(character), equipmentStats(equippedItems(character)));
 }
 
 /** A short "Level 12 Warrior"-style descriptor, as data for the string layer. */

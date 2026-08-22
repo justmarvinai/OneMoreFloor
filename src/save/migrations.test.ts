@@ -53,7 +53,11 @@ describe('migrate', () => {
   });
 
   it('fails loudly when a version has no registered migration', () => {
-    expect(() => migrate({ schemaVersion: 1 }, 2)).toThrow(/No migration registered/);
+    // Migrating to a version beyond the current one has no registered step —
+    // the same failure a schema bump without its migration would produce.
+    expect(() =>
+      migrate({ schemaVersion: CURRENT_SCHEMA_VERSION }, CURRENT_SCHEMA_VERSION + 1),
+    ).toThrow(/No migration registered/);
   });
 
   it('has a migration registered for every version below the current one', () => {

@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0 and M1 are delivered**; M2 is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M2 are delivered**; M3 (combat engine & floor generation) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -32,10 +32,14 @@ Full SAVE_SCHEMA implementation: stores, checksums, generations/backups, recover
 
 **Re-sequenced:** starting equipment (Brief §5, Q15) moves to M2. Class content declares each class's weapon rule, but instantiating a starting weapon needs the item system; building a throwaway version of it here would have meant building it twice. The class definitions are ready for it.
 
-## M2 — Item & stat domain, Power Level, brackets (L)
+## M2 — Item & stat domain, Power Level, brackets (L) — ✅ delivered 2026-08-22
 
 Starting equipment per class (§5, Q15 — carried over from M1). Stats model (§6, Speed gear-only enforced by type — the `UpgradableStatId` type landed in M1), item generation (base types × rarity × affixes per CONTENT_PIPELINE §2, incl. Q5 accessory pools and Q27 icon binding), equip rules (§8.1/§8.2; Q15 weapon-slot semantics), gear leveling + gear ascension (§10; Q3 slot cadence), materials, gold stat upgrades (A2), XP/levels/hero ascension (§7). Power Level formula + `bracketOf` + **the anti-overshoot property test** (BALANCE.md §5–6) — CI-permanent from this milestone on.
 **Exit:** headless: generate/equip/upgrade/ascend across the full range with invariants green; bracket sweep test green; hero ascends 0→5 with caps/slot unlocks per §7 table.
+
+**Delivered:** all of the above, with 283 unit tests. The anti-overshoot guard sweeps ~13,000 generated items per run across every bracket, base type and rarity, and it asserts what an item *actually gives* rather than the budget it rolled — a distinction that turned out to matter, since integer rounding could push a realised item past its window. Starting equipment (carried over from M1) is in: every class begins holding exactly its class weapon and nothing else (§5), rolled through the ordinary generator rather than as a special case.
+
+**Schema v2:** characters gained equipment, inventory, currencies and materials. The migration arms v1 heroes — who predate the item system — with their class loadout, rolled deterministically from their own stored run seed, and ships with a captured fixture as the rules require.
 
 ## M3 — Combat engine & floor generation (L)
 

@@ -66,9 +66,20 @@ export function isCharacterRecord(record: StoredRecord): record is StoredRecord 
   const slotOk = (SLOT_IDS as readonly number[]).includes(character['slotId'] as number);
   const ascension = progression['ascension'];
 
+  const currencies = character['currencies'];
+  const belongingsOk =
+    isObject(character['equipment']) &&
+    Array.isArray(character['inventory']) &&
+    isObject(character['materials']) &&
+    isObject(currencies) &&
+    isNonNegativeInteger(currencies['gold']) &&
+    isNonNegativeInteger(currencies['tickets']) &&
+    isNonNegativeInteger(currencies['luckyTickets']);
+
   return (
     slotOk &&
     classOk &&
+    belongingsOk &&
     typeof identity['name'] === 'string' &&
     identity['name'].length > 0 &&
     isFiniteNumber(identity['createdAt']) &&
