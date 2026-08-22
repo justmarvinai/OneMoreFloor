@@ -15,6 +15,12 @@ import {
   quickRaid,
 } from './run.ts';
 
+/**
+ * A fixed instant. Nothing here drinks potions, and pinning the clock is what
+ * keeps these fights byte-identical between runs (ARCHITECTURE §5).
+ */
+const NOW = 1_700_000_000_000;
+
 function hero(overrides: Partial<Character> = {}): Character {
   const base = createCharacter({
     slotId: 1,
@@ -198,7 +204,7 @@ describe('rewards (Brief §3.6)', () => {
 describe('climbing and death (Brief §3.3)', () => {
   it('banks rewards and advances the run on a clear', () => {
     const before = hero();
-    const result = fightFloor(before, 1);
+    const result = fightFloor(before, 1, NOW);
 
     expect(result.cleared).toBe(true);
     expect(result.character.currencies.gold).toBeGreaterThan(before.currencies.gold);
@@ -217,7 +223,7 @@ describe('climbing and death (Brief §3.3)', () => {
       luckyTickets: 1,
     }).character;
 
-    const result = fightFloor(rich, 60);
+    const result = fightFloor(rich, 60, NOW);
     expect(result.cleared).toBe(false);
 
     const after = result.character;
@@ -299,8 +305,8 @@ describe('Quick-Raid (Brief §3.4, Q8)', () => {
   it('gives a skipped floor exactly the rewards a watched one would', () => {
     // The heart of Q8: skipping skips the animation, not the outcome.
     const character = veteran();
-    const watched = fightFloor(character, 1);
-    const raided = quickRaid(character, 1);
+    const watched = fightFloor(character, 1, NOW);
+    const raided = quickRaid(character, 1, NOW);
 
     expect(raided.floors[0]!.script).toEqual(watched.script);
     expect(raided.reward).toEqual(watched.reward);
@@ -308,7 +314,7 @@ describe('Quick-Raid (Brief §3.4, Q8)', () => {
   });
 
   it('chains through every cleared floor and stops at the ceiling', () => {
-    const result = quickRaid(veteran(), 20);
+    const result = quickRaid(veteran(), 20, NOW);
     expect(result.reachedFloor).toBe(6);
     expect(result.floors).toHaveLength(6);
     expect(result.died).toBe(false);
@@ -316,7 +322,7 @@ describe('Quick-Raid (Brief §3.4, Q8)', () => {
   });
 
   it('aggregates the whole raid into one summary', () => {
-    const result = quickRaid(veteran(), 6);
+    const result = quickRaid(veteran(), 6, NOW);
     const summed = result.floors.reduce((total, floor) => total + (floor.reward?.gold ?? 0), 0);
     expect(result.reward.gold).toBe(summed);
   });
@@ -327,7 +333,7 @@ describe('Quick-Raid (Brief §3.4, Q8)', () => {
       ...hero(),
       tower: { ...hero().tower, currentRunFloor: 1, highestFloorEverCleared: 80 },
     };
-    const result = quickRaid(overreaching, 80);
+    const result = quickRaid(overreaching, 80, NOW);
 
     expect(result.died).toBe(true);
     expect(result.character.tower.currentRunFloor).toBe(1);

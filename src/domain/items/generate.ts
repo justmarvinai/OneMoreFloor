@@ -166,6 +166,38 @@ export function generateItem(input: GenerateItemInput): ItemInstance {
   };
 }
 
+/**
+ * Roll the affix a gear ascension's new slot gets (Brief §10.2, Q3).
+ *
+ * Deliberately *not* held to the drop bracket: an ascended piece has cost gold
+ * and materials the tower only yields deeper down, and the whole point of the
+ * investment is that it beats what drops. Brackets constrain what the game
+ * *hands out*, never what the player *builds* (BALANCE.md §6).
+ *
+ * The new line is worth the average of what the piece already carries, so
+ * ascending a strong item stays proportionally strong and ascending a weak one
+ * does not quietly turn it into a good one.
+ */
+export function rollAscensionAffix(
+  item: Pick<ItemInstance, 'affixes' | 'budget'>,
+  weights: AffixWeights,
+  rng: Rng,
+): Affix | null {
+  const taken = new Set(item.affixes.map((affix) => affix.stat));
+  const available = Object.entries(weights)
+    .filter((entry): entry is [StatId, number] => typeof entry[1] === 'number' && entry[1] > 0)
+    .filter(([stat]) => !taken.has(stat))
+    .map(([stat, weight]) => ({ value: stat, weight }));
+
+  // Every stat in the pool is already on the piece: nothing left to add, and a
+  // duplicate line would read as a bug.
+  if (available.length === 0) return null;
+
+  const share = item.affixes.length > 0 ? item.budget / item.affixes.length : item.budget;
+  const stat = rng.weighted(available);
+  return { stat, value: Math.max(1, Math.round(statPointsFor(stat, share))) };
+}
+
 /** Base types eligible at a bracket, so a rusty dagger stops dropping on floor 400. */
 export function defsForBracket(defs: readonly ItemDef[], bracketIndex: number): ItemDef[] {
   return defs.filter((def) => bracketIndex >= def.brackets[0] && bracketIndex <= def.brackets[1]);

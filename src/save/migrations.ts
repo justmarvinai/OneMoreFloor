@@ -12,6 +12,7 @@
  */
 import { createRng } from '@/app/rng.ts';
 import { createStartingEquipment } from '@/domain/items/starting.ts';
+import { createMerchants } from '@/domain/merchants/merchants.ts';
 import { isClassId } from '@/content/classes/index.ts';
 import { CURRENT_SCHEMA_VERSION, type StoredRecord } from './schema.ts';
 
@@ -52,9 +53,38 @@ const v1ToV2: Migration = (record) => {
   };
 };
 
+/**
+ * v2 → v3: characters gained running potions and each merchant's shelf.
+ *
+ * Neither can be reconstructed from anything a v2 save holds, and neither should
+ * be: a potion the player never drank would be a gift, and a shelf rolled at
+ * migration time would be stale before they opened it. So the potion rack starts
+ * empty and both merchants start with a shelf stamped at the epoch — which reads
+ * as overdue to `needsRestock`, so the first visit fills it at the character's
+ * real bracket rather than a guessed one (Q17).
+ */
+const v2ToV3: Migration = (record) => {
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+
+  const existing = character as Record<string, unknown>;
+  const tower = existing['tower'] as { runSeed?: unknown } | undefined;
+  const runSeed = typeof tower?.runSeed === 'string' ? tower.runSeed : 'legacy';
+
+  return {
+    ...record,
+    character: {
+      ...existing,
+      potions: {},
+      merchants: createMerchants(runSeed, 0),
+    },
+  };
+};
+
 /** Keyed by the version being migrated *from*: `1` upgrades v1 → v2. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: v1ToV2,
+  2: v2ToV3,
 };
 
 export class FutureSaveError extends Error {

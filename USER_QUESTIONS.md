@@ -1,6 +1,6 @@
 # USER_QUESTIONS — OneMoreFloor EA 0.1 (decision ledger)
 
-> **Status: Q1–Q27 resolved (owner, 2026-08-22); Q28 open — filed during M4 and waiting on you.** Development is approved and underway — see `ROADMAP.md`.
+> **Status: Q1–Q27 resolved (owner, 2026-08-22); Q28 and Q29 open — filed during M4 and M5 and waiting on you.** Development is approved and underway — see `ROADMAP.md`.
 >
 > This file is now the **decision ledger**: every answered question is recorded below with its decision and the doc section where the decision is specified. The full original question texts (context, options, trade-offs) are preserved in git history (first commit of this file). Per `CLAUDE.md`, any **new** ambiguity found during development is filed under *Open questions* below and taken to the owner — never guessed.
 
@@ -21,6 +21,19 @@
 Answering this also tells me whether the missing three are worth a note in the M8 content plan, or whether your art lands before then.
 
 *Nothing is blocked on this — the game plays either way, and switching is a one-line change per enemy.*
+
+### Q29 — Are potions stockpiled, or drunk at the counter? (found in M5, 2026-08-22)
+
+**Context.** §12 says the Magic Merchant sells potions and that each boosts one stat for one hour. Q18 settled concurrency (one per stat, re-drinking restarts the hour). Neither says whether a bought potion goes *into* something first. Q16 defines the backpack as gear — "sell unwanted gear to any merchant" — and no line in the brief describes a potion inventory, a potion count, or drinking as a separate action.
+
+**What is in the build now (documented assumption, per CLAUDE.md).** **Buying a potion drinks it.** The Magic Merchant's draught rows read "Drink" and the hour starts on the spot. That is the simplest reading that satisfies every line we have, and it closes a loophole for free: potions cannot be stockpiled cheaply at a low bracket and drunk later at a high one, which would be the §13 overshoot problem wearing a different hat.
+
+**The question.** Is that right, or do you want potions to be *items* you buy, carry and drink later?
+
+- **A — Keep it as built** *(my recommendation)*: buying is drinking. No potion inventory, no stockpiling, one fewer screen.
+- **B — Potions are carried**: they occupy backpack slots (or their own small pouch), and drinking is a separate click. More faithful to some RPGs, at the cost of inventory pressure on a bag Q16 already sized for gear, plus a rule to stop cheap low-bracket stockpiling.
+
+*Nothing is blocked on this — the shop and the buff system both work either way, and B is additive rather than a rewrite.*
 
 ---
 

@@ -5,6 +5,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning wil
 
 ## [Unreleased]
 
+### Added — M5: somewhere for the gold to go
+
+- **The character screen** (Brief §6/§7/§9/§10): the paperdoll with armour down one side and the ascension trinkets down the other, the weapon row beneath, and the backpack alongside. Every stat row says *what the number does* — "31% of damage turned away", "9% double attacks" — computed from the same config the fight reads, so a player can tell whether the next point is worth buying without running an experiment. A locked slot names the ascension that opens it rather than going quiet (§20.5).
+- **Both upgrade tracks are playable** (§10). Gold buys gear levels 0–15; materials found deeper in the tower buy stars, and a star that opens an affix slot fills it, so ascending always shows its work. They are separate panels on purpose: merging them into one button would hide which resource is actually short.
+- **Gold stat upgrades and hero ascension** (§6, §7) run through the same screen, with the level cap and the slot each tier unlocks stated up front.
+- **Both merchants** (§11/§12): bracketed stock, prices, rarity frames, sold-out states, and — the part that matters — the free restock countdown sitting *beside* the paid reroll rather than instead of it (Q17). A shop that hides the free path is selling impatience dishonestly.
+- **Potions** (§12, Q9/Q18): one draught per stat a potion may raise, brewed per bracket, running for an hour of real time that burns down while the game is closed. One active per stat, and re-drinking restarts the hour — enforced by the shape of the data rather than by a rule someone has to remember. Speed has no draught and cannot have one: the type that keys the rack excludes it (§6).
+- **The backpack is finite** (Q16). A full pack refuses a drop rather than swallowing it, selling pays the configured fraction, and a swap that has nowhere to put what comes off is refused with a reason — losing a piece silently would be the worst bug in the game.
+- **Red-dot truth** (§20.5): one service decides every notification dot, from one rule — a dot means something the player can do *right now*. Not something new, not something unread. Dots that lie are dots players stop reading.
+- **Merchant stock is derived, not stored.** A shop's save state is a seed, a timestamp, the bracket it was rolled for and what has been bought; the shelf regenerates from that. The save stays small, a shop is reproducible in a bug report the way a fight already is, and stock cannot drift out of agreement with the rules that made it.
+- **The anti-overshoot guard now sweeps both shelves** through the shop's own code path (Brief §13). Merchants inherit the guarantee by generating through the same door as drops, and this proves it rather than trusting it.
+- **Verification:** 415 unit tests and 19 Playwright smoke tests, the last of which closes the milestone's loop in a browser — climb, buy a piece, wear it, watch Power Level rise.
+
+### Changed — M5
+
+- **Save schema v3:** characters gained their running potions and each merchant's shelf. A migrated save starts with an empty potion rack and two shelves stamped at the epoch, so the first visit stocks them at the hero's real bracket instead of one guessed at migration time.
+- **Potions never move Power Level.** They raise what the hero *fights with*, never what the game thinks they are worth — a drinkable bracket jump would let a player potion up, pull loot they cannot hold and let the buff lapse, which is the overshoot §13 exists to prevent.
+- **A merchant restocks when the hero changes bracket**, on top of Q17's six-hour clock and best-floor milestone. Goods rolled for a weaker hero are not merely stale; they are visibly unbuyable, and leaving them there makes the shop look broken rather than patient.
+- **⧗Q29 filed:** buying a draught drinks it. The brief never describes a potion inventory, Q16 sized the backpack for gear, and stockpiling cheap draughts to drink at a deeper bracket would be the overshoot problem in another costume. The owner has the question; nothing is blocked on it.
+
 ### Added — M4: the game becomes visible
 
 - **The loop is playable.** Climb, fight, loot, level, die, Quick-Raid back up — end to end, with real drops, in a browser. Entering a hero now lands on the tower rather than a placeholder, and the placeholder screen is gone rather than replaced.

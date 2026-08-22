@@ -280,6 +280,202 @@ body {
   opacity: 1;
 }
 
+/* --- Character screen (Brief §6/§9/§10, UI_FANTASYUI_MAP §4) -------------- */
+
+.omf-character {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--omf-gap);
+  height: 100%;
+  min-height: 0;
+}
+
+.omf-character__main > .fui-doll {
+  align-self: center;
+}
+
+.omf-character__main,
+.omf-character__side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.omf-character__side > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.omf-character__identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.omf-character__level {
+  margin: 8px 0 4px;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.omf-character__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 16px;
+}
+
+.omf-character__stat {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 22%);
+}
+
+.omf-character__stat-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.omf-character__stat-name {
+  font-family: var(--fui-font-ui, sans-serif);
+  font-size: 0.9rem;
+}
+
+.omf-character__stat-hint {
+  font-size: 0.75rem;
+  opacity: 0.62;
+}
+
+.omf-character__stat-value {
+  font-size: 1.05rem;
+}
+
+.omf-character__stat.is-locked {
+  opacity: 0.75;
+}
+
+.omf-character__stat-locked {
+  font-size: 0.72rem;
+  max-width: 12ch;
+  text-align: right;
+  opacity: 0.7;
+}
+
+.omf-character__potions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.omf-character__potion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 30%, transparent);
+  border-radius: 4px;
+  background: rgb(0 0 0 / 32%);
+  font-size: 0.8rem;
+}
+
+.omf-character__potion-icon {
+  width: 22px;
+  height: 22px;
+  background: center / contain no-repeat;
+}
+
+.omf-character__potions-empty,
+.omf-character__empty {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+/* --- Gear detail (Brief §10) --------------------------------------------- */
+
+.omf-gear {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.omf-gear__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+}
+
+.omf-gear__stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.omf-gear__pane {
+  min-height: 220px;
+}
+
+.omf-gear__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* --- Merchants (Brief §11/§12, UI_FANTASYUI_MAP §5) ----------------------- */
+
+.omf-shop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--omf-gap);
+  height: 100%;
+  min-height: 0;
+}
+
+.omf-shop__main,
+.omf-shop__side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.omf-shop__main > :last-child,
+.omf-shop__side > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* The shelf takes the column it was given rather than its own default width. */
+.omf-shop__panel {
+  width: 100% !important;
+  max-width: none;
+}
+
+.omf-shop__restock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.omf-shop__empty,
+.omf-shop__running {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
 /* --- The fight (Brief §4.1, COMBAT.md §7) -------------------------------- */
 
 .omf-fight {

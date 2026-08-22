@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M4 are delivered**; M5 (character screen, inventory, merchants) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M5 are delivered**; M6 (quests, tutorial, account upgrades) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -61,10 +61,16 @@ The game becomes visible and playable: tower screen (`StageTrail` treatment, flo
 
 **Open question:** ⧗Q28 asks the owner how enemies should look until their own art arrives; ten of thirteen now wear fitting FantasyUI art, three keep the silhouette. Nothing is blocked on the answer.
 
-## M5 — Character screen, inventory, merchants (L)
+## M5 — Character screen, inventory, merchants (L) — ✅ delivered 2026-08-22
 
 Character screen per reference (UI_FANTASYUI_MAP §4): paperdoll + locked ascension slots, stat rows with gold upgrades, PL display, ascension-stars, gear detail (level/ascend with materials), potion buffs. Inventory (Q16: finite backpack, sell-to-merchant, full-drop dialog). Both merchants (§11/§12): bracketed stock, Q17 restock/reroll, potions per Q9/Q18, buy/sell.
 **Exit:** every §6/§10 progression action doable through UI with full tooltips (§20.4) and red-dot truth (§20.5); merchant stock provably bracket-bound; buy→equip→stronger-fight loop closes.
+
+**Delivered:** the gold the tower pays out now has somewhere to go — 415 unit tests and 19 Playwright smoke tests, the last of which closes the milestone's own loop in a browser: climb, buy a piece, wear it, watch Power Level rise. Merchant stock is *derived from a seed* rather than stored, which keeps the save small and makes a shop reproducible in a bug report the way a fight already is. The anti-overshoot property test now sweeps both shelves through the shop's own code path, so Brief §13's guarantee is proven for merchants rather than assumed from shared plumbing.
+
+Two decisions worth recording. **Potions do not count toward Power Level** — a drinkable bracket jump would let a player potion up, pull loot they cannot hold, and let the buff lapse, which is §13's overshoot wearing a different hat. And **a shelf restocks when the hero changes bracket**, on top of Q17's clock and floor milestone: goods rolled for a weaker hero are not merely stale, they are visibly unbuyable.
+
+**Open question:** ⧗Q29 asks whether potions should be carried and drunk later; the build buys-and-drinks, which is the simplest reading that satisfies every line of §12 and closes the stockpiling loophole. Nothing is blocked on the answer.
 
 ## M6 — Quests, tutorial, account upgrades (M)
 

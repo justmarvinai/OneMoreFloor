@@ -16,6 +16,8 @@ import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import type { AppStore } from '@/app/state.ts';
+import { clock } from '@/app/time.ts';
+import { computeBadges } from '@/ui/badges.ts';
 import { t } from '@/strings/index.ts';
 
 export type ShellSection = 'tower' | 'character' | 'merchants' | 'quests';
@@ -28,6 +30,8 @@ export interface ShellOptions {
   main: HTMLElement;
   /** Leave this character and go back to the select screen (Q2). */
   onSwitch: () => void;
+  /** Move to another destination. */
+  onNavigate: (section: ShellSection) => void;
 }
 
 export interface Shell {
@@ -36,7 +40,7 @@ export interface Shell {
 }
 
 export function createShell(options: ShellOptions): Shell {
-  const { store, active, main, onSwitch } = options;
+  const { store, active, main, onSwitch, onNavigate } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -45,6 +49,10 @@ export function createShell(options: ShellOptions): Shell {
 
   const character = store.get().activeCharacter;
   const definition = character ? CLASSES[character.identity.classId] : null;
+  // One service decides every dot in the game (§20.5); the rail only renders it.
+  const badges = character
+    ? computeBadges(character, clock().now())
+    : { tower: false, character: false, merchants: false, quests: false };
 
   const portrait = track(
     new Portrait({
@@ -86,13 +94,13 @@ export function createShell(options: ShellOptions): Shell {
           id: 'character',
           label: t('nav.section.character'),
           glyph: 'glyph-cloaked-figure',
-          disabled: true,
+          ...(badges.character ? { dot: true } : {}),
         },
         {
           id: 'merchants',
           label: t('nav.section.merchants'),
           glyph: 'glyph-burning-scroll',
-          disabled: true,
+          ...(badges.merchants ? { dot: true } : {}),
         },
         {
           id: 'quests',
@@ -106,6 +114,11 @@ export function createShell(options: ShellOptions): Shell {
       fill: true,
     }),
   );
+
+  // `SideNav` emits the id itself, not an object wrapping it.
+  nav.on<string>('nav:change', (id) => {
+    if (id !== active) onNavigate(id as ShellSection);
+  });
 
   const switchButton = track(new Button({ label: t('select.switch'), variant: 'ghost' }));
   switchButton.on('click', () => onSwitch());

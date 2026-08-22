@@ -11,6 +11,8 @@ import { getClass } from '@/content/classes/index.ts';
 import { equipmentStats } from '../items/derive.ts';
 import { createStartingEquipment } from '../items/starting.ts';
 import type { ItemInstance } from '../items/types.ts';
+import { createMerchants } from '../merchants/merchants.ts';
+import { potionBonus } from '../potions/potions.ts';
 import { addStats, toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
 import { normalizeName } from './naming.ts';
 import type { AscensionTier, Character, ClassId, EquipSlotId, SlotId } from './types.ts';
@@ -50,6 +52,8 @@ export function createCharacter(input: CreateCharacterInput): Character {
     inventory: [],
     currencies: { gold: 0, tickets: 0, luckyTickets: 0 },
     materials: {},
+    potions: {},
+    merchants: createMerchants(input.runSeed, input.createdAt),
   };
 }
 
@@ -107,13 +111,30 @@ export function baseStatsOf(character: Character): StatBlock {
 }
 
 /**
- * Everything the hero has: class, levels, purchases *and* gear.
+ * Everything the hero durably has: class, levels, purchases *and* gear.
  *
- * This is the block combat reads. Speed can only ever be non-zero here because
- * something is equipped — the type system guarantees no other path exists (§6).
+ * Speed can only ever be non-zero here because something is equipped — the type
+ * system guarantees no other path exists (§6).
+ *
+ * Potions are deliberately absent. This block feeds Power Level, and a drinkable
+ * bracket jump would let a player potion up, pull better loot and let the potion
+ * lapse — the overshoot §13 exists to prevent. What the hero *fights* with is
+ * `combatStatsOf`.
  */
 export function totalStatsOf(character: Character): StatBlock {
   return addStats(baseStatsOf(character), equipmentStats(equippedItems(character)));
+}
+
+/**
+ * What the hero swings with right now: everything durable, plus whatever
+ * potions are still running at `now` (Brief §12, Q9).
+ *
+ * The time comes from the caller — the clock service, never `Date.now()` — so a
+ * fight resolved from a save replays exactly (ARCHITECTURE §5).
+ */
+export function combatStatsOf(character: Character, now: number): StatBlock {
+  const durable = totalStatsOf(character);
+  return addStats(durable, potionBonus(durable, character.potions, now));
 }
 
 /** A short "Level 12 Warrior"-style descriptor, as data for the string layer. */

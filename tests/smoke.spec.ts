@@ -275,3 +275,139 @@ test('never shows a native browser tooltip anywhere (Brief §20.4)', async ({ pa
   await fightAndSkip(page);
   expect(await titles(), 'a fight and its result').toEqual([]);
 });
+
+/**
+ * Clear floors until the hero has gold to spend, and always finish standing in
+ * the tower — a death mid-climb is an ordinary outcome, not a broken test.
+ */
+async function climb(page: Page, floors: number): Promise<void> {
+  for (let index = 0; index < floors; index += 1) {
+    await startFight(page);
+    await skipToVerdict(page);
+    await expect(page.locator('.omf-combat__aftermath > *')).toBeVisible();
+
+    const levelUp = page.getByRole('button', { name: /^Continue$/ });
+    if (await levelUp.isVisible().catch(() => false)) await levelUp.click();
+
+    const back = page.getByRole('button', { name: /Back to the Spire/i });
+    if (await back.isVisible().catch(() => false)) {
+      await back.click();
+      await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+      continue;
+    }
+
+    // The spire won. Take the way back up it offers and stop climbing. That
+    // route goes through the raid summary when there are floors to raid, and
+    // straight to the tower when there are not.
+    await page
+      .getByRole('button', { name: /Quick-Raid back to Floor|Return to the Spire/i })
+      .click();
+
+    const raid = page.locator('[data-testid="raid"]');
+    const tower = page.locator('[data-testid="tower"]');
+    await expect(raid.or(tower).first()).toBeVisible();
+    if (await raid.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: /^Continue$/ }).click();
+    }
+    await expect(tower).toBeVisible();
+    return;
+  }
+}
+
+async function goToSection(page: Page, label: string): Promise<void> {
+  await page.locator('.fui-sidenav__item', { hasText: label }).click();
+}
+
+test('shows what every stat does, not just what it is (Brief §6)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Character');
+
+  const screen = page.locator('[data-testid="character"]');
+  await expect(screen).toBeVisible();
+  await expect(screen.getByText(/damage a strike/)).toBeVisible();
+  await expect(screen.getByText(/of damage turned away/)).toBeVisible();
+  await expect(screen.getByText(/critical hits/)).toBeVisible();
+
+  // Speed is on the list and explicitly unbuyable — the §6 exception, visible.
+  await expect(screen.getByText('Speed comes only from gear')).toBeVisible();
+});
+
+test('spends gold on a stat and the number moves (Brief §6)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 6);
+  await goToSection(page, 'Character');
+
+  const row = page.locator('[data-stat="hp"]');
+  const before = Number(await row.locator('.omf-character__stat-value').innerText());
+  await row.getByRole('button', { name: /Buy/i }).click();
+
+  await expect
+    .poll(async () => Number(await row.locator('.omf-character__stat-value').innerText()))
+    .toBeGreaterThan(before);
+});
+
+test('sells what the merchant stocks, at the hero’s own power (Brief §11, §13)', async ({
+  page,
+}) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 6);
+  await goToSection(page, 'Merchants');
+
+  const shop = page.locator('[data-testid="merchant"]');
+  await expect(shop).toBeVisible();
+  await expect(shop.getByText('Equipment Merchant')).toBeVisible();
+  // The free wait is on screen beside the paid restock — never only the paid one.
+  await expect(shop.getByText(/New goods in/)).toBeVisible();
+  await expect(shop.getByRole('button', { name: /Restock now/i })).toBeVisible();
+
+  // The Magic Merchant is one tab away, and sells draughts by the hour (§12).
+  await shop.getByRole('tab', { name: 'Magic' }).click();
+  await expect(page.getByText(/for one hour/).first()).toBeVisible();
+});
+
+test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Floor payouts and shelf prices are both rolled, so the test earns until the
+  // shop is affordable rather than assuming a fixed number of floors covers it.
+  const buyButtons = page
+    .locator('[data-testid="merchant"] .fui-itemcard')
+    .getByRole('button', { name: 'Buy', exact: true })
+    .and(page.locator('button:not([disabled])'));
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await climb(page, 5);
+    await goToSection(page, 'Merchants');
+    if ((await buyButtons.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await buyButtons.count(), 'nothing on the shelf was ever affordable').toBeGreaterThan(0);
+
+  await goToSection(page, 'Character');
+  const power = page.locator('[data-testid="character"] .fui-power__value');
+  const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
+
+  await goToSection(page, 'Merchants');
+  await buyButtons.first().click();
+
+  // The piece is in the backpack; wearing it is the point of buying it.
+  await goToSection(page, 'Character');
+  // The purchase lands at the end of the pack, behind whatever the climb dropped.
+  await page
+    .locator('[data-testid="character"] .fui-inv .fui-slot:not(.fui-slot--empty)')
+    .last()
+    .click();
+  await expect(page.locator('[data-testid="gear-dialog"]')).toBeVisible();
+  await page.getByRole('button', { name: /^Equip$/ }).click();
+
+  await expect
+    .poll(async () => Number((await power.innerText()).replace(/[^\d]/g, '')))
+    .toBeGreaterThan(before);
+});

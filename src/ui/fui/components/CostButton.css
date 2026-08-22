@@ -1,0 +1,167 @@
+/* CostButton — the purchase button, with the arithmetic already done. */
+
+.fui-costbtn {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-height: var(--fui-btn-min-h, 48px);
+  padding: 7px 20px;
+  border: 0;
+  background: none;
+  color: var(--fui-btn-ink, #eaf6f3);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    filter var(--fui-t-fast, 120ms) var(--fui-ease, ease-out),
+    transform var(--fui-t-fast, 120ms) var(--fui-ease, ease-out);
+}
+
+.fui-costbtn--block { display: flex; width: 100%; }
+
+.fui-costbtn[data-size='sm'] { min-height: 36px; padding: 4px 12px; }
+.fui-costbtn[data-size='lg'] { min-height: 60px; padding: 9px 28px; }
+
+.fui-costbtn__art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--fui-btn-bw);
+  border-image-source: var(--fui-btn-src);
+  border-image-slice: var(--fui-btn-sl) fill;
+  border-image-repeat: stretch;
+}
+
+.fui-costbtn__face {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.fui-costbtn__label {
+  font-family: var(--fui-font-display, system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.fui-costbtn[data-size='sm'] .fui-costbtn__label { font-size: 11px; }
+.fui-costbtn[data-size='lg'] .fui-costbtn__label { font-size: 16px; }
+
+.fui-costbtn__price {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fui-costbtn__was {
+  font-size: 10px;
+  text-decoration: line-through;
+  color: color-mix(in srgb, var(--fui-btn-ink, #eaf6f3) 45%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+
+.fui-costbtn__coin {
+  width: 14px;
+  height: 14px;
+  background-color: var(--fui-gold, #e0b04a);
+  mask: var(--fui-cost-glyph, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-cost-glyph, var(--fui-mask-none)) center / contain no-repeat;
+}
+
+.fui-costbtn__num {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fui-gold, #e0b04a);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+.fui-costbtn[data-state='free'] .fui-costbtn__num {
+  color: var(--fui-success, #7fb069);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Shortfall ──────────────────────────────────────────────────────────── */
+
+/* A dead button with no explanation reads as a broken game, so the price turns
+   red and the exact shortfall is printed rather than the whole control fading.
+   The number takes `color` and the coin takes `background-color`, kept in
+   separate rules on purpose: the coin is a mask over a painted box, so giving
+   the number a background as well paints a solid red block behind the digits. */
+.fui-costbtn[data-state='short'] .fui-costbtn__num {
+  color: var(--fui-danger, #d8543f);
+}
+
+.fui-costbtn[data-state='short'] .fui-costbtn__coin {
+  background-color: var(--fui-danger, #d8543f);
+}
+
+.fui-costbtn[data-state='short'] .fui-costbtn__art { filter: saturate(0.55) brightness(0.82); }
+
+.fui-costbtn__short {
+  position: relative;
+  z-index: 1;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fui-danger, #d8543f);
+  pointer-events: none;
+}
+
+.fui-costbtn__short[data-empty='on'] { display: none; }
+
+.fui-costbtn__tag {
+  position: absolute;
+  z-index: 2;
+  right: -4px;
+  top: -7px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--fui-danger, #d8543f);
+  border: 1px solid color-mix(in srgb, #000 45%, transparent);
+  color: #fff;
+  font: 700 9px/14px var(--fui-font-ui, system-ui, sans-serif);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ── States ─────────────────────────────────────────────────────────────── */
+
+.fui-costbtn:hover:not(:disabled) { filter: var(--fui-btn-hover-filter, brightness(1.14)); }
+.fui-costbtn:active:not(:disabled) { transform: translateY(1px); }
+
+.fui-costbtn[data-refused='on'] { animation: fui-cost-nope 240ms var(--fui-ease, ease-out); }
+
+.fui-costbtn:disabled { cursor: not-allowed; filter: grayscale(0.8) brightness(0.6); }
+
+.fui-costbtn:focus-visible {
+  outline: 2px solid var(--fui-accent, #d8c9a6);
+  outline-offset: 3px;
+}
+
+@keyframes fui-cost-nope {
+  0%, 100% { transform: none; }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fui-costbtn { transition: none; }
+  .fui-costbtn[data-refused='on'] { animation: none; }
+  .fui-costbtn:active:not(:disabled) { transform: none; }
+}

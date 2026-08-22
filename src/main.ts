@@ -26,7 +26,7 @@ import { createAppStore, saveLoaded, type AppStore } from './app/state.ts';
 import { createClock, setClock } from './app/time.ts';
 import { acquireSessionLock } from './save/sessionLock.ts';
 import { openSave } from './save/saveLayer.ts';
-import type { SlotId } from './domain/character/types.ts';
+import type { EquipSlotId, SlotId } from './domain/character/types.ts';
 import { renderErrorPanel, renderLockGate } from './ui/errorPanel.ts';
 import { openResetDialog } from './ui/resetDialog.ts';
 import { installTooltipService } from './ui/tooltips.ts';
@@ -34,9 +34,15 @@ import { createShell } from './ui/shell.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
+import { createCharacterScreen } from './ui/screens/character.ts';
+import { createMerchantScreen } from './ui/screens/merchant.ts';
 import { createRaidScreen } from './ui/screens/raid.ts';
 import { createTitleScreen } from './ui/screens/title.ts';
 import { createTowerScreen } from './ui/screens/tower.ts';
+import { openGearDialog, type GearDialog } from './ui/gearDialog.ts';
+import type { ShellSection } from './ui/shell.ts';
+import type { MerchantId } from './domain/merchants/merchants.ts';
+import { clock } from './app/time.ts';
 import type { Character } from './domain/character/types.ts';
 import type { FloorResult, QuickRaidResult } from './domain/tower/run.ts';
 
@@ -45,7 +51,8 @@ const ASSET_BASE = '/fui';
 
 const BUILD_VERSION = '0.1.0-dev';
 
-type ScreenId = 'title' | 'select' | 'create' | 'tower' | 'combat' | 'raid';
+type ScreenId =
+  'title' | 'select' | 'create' | 'tower' | 'combat' | 'raid' | 'character' | 'merchant';
 
 export async function boot(mount: HTMLElement): Promise<void> {
   setAssetBase(ASSET_BASE);
@@ -109,6 +116,63 @@ export async function boot(mount: HTMLElement): Promise<void> {
       });
     };
 
+    /** Which shop is open; the tabs switch between them without leaving. */
+    let openMerchant: MerchantId = 'equipment';
+    /** The gear dialog, kept so an action can redraw it instead of closing it. */
+    let gearDialog: GearDialog | null = null;
+
+    const goTo = (section: ShellSection): void => {
+      if (section === 'merchants') {
+        // Walking in is what ages the shelf out, so the restock happens on the
+        // way rather than the player finding yesterday's goods (Q17).
+        void session.visitMerchant(openMerchant).then(() => router.go('merchant'));
+      } else if (section === 'character') {
+        router.go('character');
+      } else {
+        router.go('tower');
+      }
+    };
+
+    /** Re-render the screen the player is on, after something they own changed. */
+    const refreshScreen = (): void => {
+      const id = router.current();
+      if (id) router.go(id);
+      gearDialog?.update(requireCharacter());
+    };
+
+    const inspectItem = (uid: string): void => {
+      gearDialog?.close();
+      gearDialog = openGearDialog({
+        character: requireCharacter(),
+        uid,
+        onClose: () => {
+          gearDialog = null;
+        },
+        actions: {
+          equip: (id) => void session.equip(id).then(refreshScreen),
+          unequip: (id) => {
+            const character = requireCharacter();
+            const slot = Object.entries(character.equipment).find(
+              ([, item]) => item?.uid === id,
+            )?.[0];
+            if (slot) void session.unequipSlot(slot as EquipSlotId).then(refreshScreen);
+          },
+          sell: (id) =>
+            void session.sell(id).then(() => {
+              gearDialog?.close();
+              gearDialog = null;
+              refreshScreen();
+            }),
+          upgrade: (id) => void session.upgradeGear(id).then(refreshScreen),
+          ascend: (id) => void session.ascendGearPiece(id).then(refreshScreen),
+        },
+      });
+    };
+
+    const leaveCharacter = (): void => {
+      void session.leave().then(() => router.go('select'));
+    };
+
     const router: Router<ScreenId> = createRouter<ScreenId>({
       mount,
       routes: {
@@ -155,13 +219,49 @@ export async function boot(mount: HTMLElement): Promise<void> {
           createShell({
             store,
             active: 'tower',
-            onSwitch: () => {
-              void session.leave().then(() => router.go('select'));
-            },
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
             main: createTowerScreen({
               character: requireCharacter(),
               onFight: startFight,
               onRaid: startRaid,
+            }).el,
+          }),
+
+        character: () =>
+          createShell({
+            store,
+            active: 'character',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createCharacterScreen({
+              character: requireCharacter(),
+              now: clock().now(),
+              onSelectItem: inspectItem,
+              onBuyStat: (stat) => void session.buyStat(stat, 1).then(refreshScreen),
+              onAscend: () => void session.ascend().then(refreshScreen),
+            }).el,
+          }),
+
+        merchant: () =>
+          createShell({
+            store,
+            active: 'merchants',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createMerchantScreen({
+              character: requireCharacter(),
+              merchantId: openMerchant,
+              now: clock().now(),
+              onSwitchMerchant: (id) => {
+                openMerchant = id;
+                void session.visitMerchant(id).then(refreshScreen);
+              },
+              onBuy: (index) =>
+                void session.buyFromMerchant(openMerchant, index).then(refreshScreen),
+              onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
+              onReroll: () => void session.rerollMerchant(openMerchant).then(refreshScreen),
+              onSelectItem: inspectItem,
             }).el,
           }),
 

@@ -59,6 +59,8 @@ Game art lives in `assets/` (art) and binds by id from content; FantasyUI art by
 
 ## 4. Authoring workflow (the recurring job, post-0.1)
 
+**Potions are generated, not authored (M5).** One draught per stat a potion may raise, brewed per bracket: magnitude and price come from curves, so the shelf keeps up with an endless tower without anyone maintaining a table. Speed has no draught and cannot have one — `UpgradableStatId` excludes it, so a Speed potion is not expressible (Brief §6).
+
 "Add 10 floors of content" = extend a band or add one, add enemies/materials to pools, rerun `content:validate` + balance simulator (BALANCE.md §10), eyeball the sim deltas, done — no engine work. This workflow is the definition of done for the content milestone: we will demonstrate it by adding a throwaway enemy + quest template end-to-end in review.
 
 ## 5. Localization posture (Q24: English-only in 0.1)

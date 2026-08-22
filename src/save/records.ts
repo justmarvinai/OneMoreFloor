@@ -67,10 +67,15 @@ export function isCharacterRecord(record: StoredRecord): record is StoredRecord 
   const ascension = progression['ascension'];
 
   const currencies = character['currencies'];
+  const merchants = character['merchants'];
   const belongingsOk =
     isObject(character['equipment']) &&
     Array.isArray(character['inventory']) &&
     isObject(character['materials']) &&
+    isObject(character['potions']) &&
+    isObject(merchants) &&
+    isObject(merchants['equipment']) &&
+    isObject(merchants['magic']) &&
     isObject(currencies) &&
     isNonNegativeInteger(currencies['gold']) &&
     isNonNegativeInteger(currencies['tickets']) &&

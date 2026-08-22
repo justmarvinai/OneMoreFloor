@@ -81,6 +81,14 @@ Two banners, single pulls only, every pull pays something, no pity counter — a
 
 Daily objectives sized to one normal session, weeklies to a normal week, neither trivial (§17) — objective magnitudes scale from the character's own trailing activity (floors/day average) so "one day of normal play" stays true at every depth. Rewards: meaningful gold/material/XP boosts (config), hard weekly carries the Ticket odds (§17). Potions (§12): real-time one-hour buffs (Q9), one active per stat with re-drinking replacing the buff (Q18 — five potionable stats; Speed has none per §6); one tier per bracket window, magnitude a % of the stat (flat numbers die with inflation), priced so always-on-everything potioning is a genuine gold decision (§14 pressure).
 
+## 9b. The economy, as built (M5)
+
+- **Potions are percentages, never flat points.** A "+40 Strength" draught is a gift on floor 10 and a rounding error on floor 1000, and the tower is endless (§3.7). Magnitude creeps up with the bracket so a deeper draught earns its higher price, and it is capped so no stack of potions ever rivals gear.
+- **Potions do not count toward Power Level.** If they did, a player could potion up, pull loot from a bracket they cannot hold, and let the buff lapse — §13's overshoot in another costume. They raise what the hero *hits with* (`combatStatsOf`), never what the game thinks they are worth (`totalStatsOf`).
+- **Merchant stock ages out three ways** (Q17): the six-hour clock, a new best-floor milestone every ten floors, and — added here — a change of bracket. A shelf rolled for a weaker hero is not merely stale, it is visibly unbuyable, and leaving it there would make the shop feel broken rather than patient.
+- **Buy and sell are one ratio.** `BUY_PRICE_FRACTION` and `SELL_VALUE_FRACTION` are the two halves of a single knob: a piece sells for roughly a fifth of what it costs, which keeps the backpack a decision rather than a gold faucet (Q16).
+- **Upgrades are outside the bracket rule, on purpose.** Gold and materials spent on a piece *should* push it past what drops — that investment is what raises Power Level, which raises the bracket, which raises the next drop. The property test therefore sweeps generated items and merchant shelves, never upgraded ones.
+
 ## 9a. First simulator findings (M3)
 
 The harness earned its place on the first run, before any tuning had been attempted. It found:

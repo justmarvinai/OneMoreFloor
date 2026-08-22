@@ -60,6 +60,8 @@
 | Hero ascension moment (§7) | `RankUpPanel` + celebratory `SceneTransition` |
 | Reset character (§19) | `Modal` + `ConfirmSlider` |
 
+**As built (M5):** the layout follows `character_screen.png` — paperdoll in the middle with armour down one side and the ascension trinkets down the other, the weapon row beneath, stat rows under that, and the backpack down the right. Every stat row states *what the number does* ("31% of damage turned away"), computed from the same config the fight reads, so the screen cannot quietly disagree with combat. Speed appears in the list with the others and says plainly that gear is its only source, rather than being omitted and leaving the player to wonder (§6). Gear detail is a dialog rather than an inline panel: two `UpgradePanel`s behind `Tabs`, one per upgrade track, because gold and materials are different resources and one merged button would hide which is short.
+
 ## 5. Merchants — SV (references: both merchant screens; three-column: sidebar / character panel / shop)
 
 | Element | FantasyUI |
@@ -69,6 +71,8 @@
 | Potion stock w/ stat + duration tooltips (§12) | same grid; `Icon` potion art |
 | Sell/dispose flow (Q16: sell for a fraction of value at any merchant) | `InventoryGrid` + confirm `Modal` |
 | Merchant NPC presence (reference shows illustrated scenes) | `SceneBackdrop` + FantasyUI theme art only in 0.1 (Q11); owner backdrops may replace later by asset id |
+
+**As built (M5):** both merchants are one screen with different stock, because they are the same shop with different stock — separate implementations would mean fixing every bug twice. The free restock countdown sits beside the paid reroll, never the paid option alone: a shop that hides the free path is a shop that is selling impatience dishonestly (Q17). Selling goes through the same gear dialog the character screen uses, so a sale is always two deliberate clicks rather than one misclick in a grid. Buying a draught drinks it (⧗Q29).
 
 ## 6. Gacha — DE for the reveal, SV for the banner lobby (§16)
 
@@ -105,7 +109,7 @@ Planned custom inventory — each built strictly from FantasyUI tokens/semantic 
 1. `CombatStage` — combat choreography director (composition + WAAPI timelines; no new visual language, only arrangement/motion of FantasyUI parts).
 2. `GachaRevealDirector` — the §16.3 set-piece sequencer (same nature: direction, not new chrome).
 3. `TowerTrail` — *only if* `StageTrail`'s options can't be configured into a convincing upward tower; first attempt is configuration/skin, not a new component.
-4. `ItemView` — the §9 standardization wrapper.
+4. `ItemView` — the §9 standardization wrapper. **Built in M5** as `src/ui/itemView.ts`: the single mapping from our item data to FantasyUI's slot, card and tooltip shapes, so a sword reads identically in the backpack, on the paperdoll, in a shop row and in a loot window.
 
 Anything beyond this list needs a written justification in this file before it's built (§20.2 discipline).
 
