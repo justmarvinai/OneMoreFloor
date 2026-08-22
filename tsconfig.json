@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+
+    "strict": true,
+    // Deliberately off, matching the setting FantasyUI is written against.
+    // Vendored components are compiled as part of our program (TypeScript has no
+    // per-directory flags), and the alternative — editing vendored source to
+    // satisfy a stricter flag — is exactly the silent fork CLAUDE.md forbids.
+    // Indexing safety in our own code is carried by explicit fallbacks and tests.
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "tools", "tests", "*.config.ts"]
+}

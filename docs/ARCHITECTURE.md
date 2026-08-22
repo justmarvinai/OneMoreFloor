@@ -94,6 +94,17 @@ What we do *now* so the later wrap is a packaging task, not a port: relative ass
 
 `typecheck` → `lint` (incl. import boundaries, no-`Date.now()`, no-`title`-attr rules) → `test` (domain units, migration fixtures, balance invariants incl. the §13 anti-overshoot property test) → `content:validate` (schema-check all content/balance data) → `build` → Playwright smoke (boot to hero creation, create hero, clear floor 1, open every screen, die, verify reset per §3.3). The anti-overshoot property test is non-negotiable: for a sweep of character states, **no source (drop/merchant/gacha) may ever emit an item outside the state's bracket** (§13).
 
+## 7a. As-built notes from M0
+
+The stack above is now standing; these are the decisions that only surfaced once it was:
+
+- **Versions in play:** Vite 8, TypeScript 6, Vitest 4, ESLint 10 (flat config) + typescript-eslint 8, Prettier 3, Playwright 1.62, `idb` 8. Production dependencies remain exactly one (`idb`) plus vendored FantasyUI.
+- **`noUncheckedIndexedAccess` is off**, matching the setting FantasyUI is authored against. Vendored components compile as part of our program (TypeScript has no per-directory flags, and their `.ts`-extension imports rule out a project-reference boundary), so the alternative was editing vendored source — the silent fork CLAUDE.md forbids. Every other strict flag is on; indexing safety in our own code rides on explicit fallbacks and tests.
+- **Asset paths came out better than planned.** With `base: './'`, Vite rewrites FantasyUI's `/fui/...` art URLs to `../fui/...` relative to the emitted stylesheet, so the built game is location-independent — no re-pointing step needed for the later Electron wrap.
+- **Vendoring is a script, not a ritual:** `tools/vendor-fui.mjs` reads `fui.components.json`, closes the component dependency graph by following `./X.ts` imports, copies `core/` + `components/` + theme styles, regenerates the barrel and a stylesheet covering exactly what was vendored, and copies the art packs. The vendored output is committed, so CI and Vercel build without needing the FantasyUI clone.
+- **Playwright browser resolution:** the config uses an already-installed Chromium when one is present (`PLAYWRIGHT_CHROMIUM_PATH`, default `/opt/pw-browsers/chromium`) and otherwise falls back to Playwright's managed browser, so the same config works in the dev container and in CI.
+- **Lint rules that encode the brief** are live: native `title` in all three shapes it could reach the DOM, `Math.random()`/`Date.now()`/`new Date()` outside `app/rng.ts` and `app/time.ts`, and the `domain`/`content` → `ui`/`save` import boundary.
+
 ## 8. Resolution log
 
 Everything that fed this document is resolved (2026-08-22, `USER_QUESTIONS.md` ledger): the A1 stack posture stands ratified with the plan answers; Q14 confirmed portrait-card combat, so DOM/WAAPI is sufficient and the no-engine call is final for 0.1; Q24 fixed English-only 0.1 on the i18n-ready strings module; Q13 cleared FantasyUI art commercially. The one remaining gate is Phase 3 approval, after which M0 begins.

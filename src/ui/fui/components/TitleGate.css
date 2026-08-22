@@ -1,0 +1,205 @@
+/* TitleGate — key art, a server to pick, and one button through. */
+
+.fui-gate {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 420px;
+  border-radius: var(--fui-radius);
+  background: #07070c;
+  overflow: hidden;
+}
+
+.fui-gate__art {
+  position: absolute;
+  inset: 0;
+  background: var(--fui-gate-art, none) center / cover no-repeat;
+  filter: brightness(1.15);
+}
+
+.fui-gate__art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(110% 90% at 30% 50%, transparent 20%, rgba(4, 4, 9, 0.82) 100%),
+    linear-gradient(90deg, rgba(4, 4, 9, 0.9) 8%, transparent 62%);
+}
+
+/* Key art bleeds off the far edge behind the panel, so the figure frames the
+   copy instead of competing with it. */
+.fui-gate__figure {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 46%;
+  background: var(--fui-gate-figure, none) center bottom / contain no-repeat;
+  filter: drop-shadow(0 0 30px rgba(0, 0, 0, 0.8));
+  opacity: 0.9;
+}
+
+.fui-gate[data-figure='right'] .fui-gate__figure { right: 0; }
+.fui-gate[data-figure='left'] .fui-gate__figure { left: 0; }
+.fui-gate[data-figure='left'] .fui-gate__panel { margin-left: auto; }
+
+.fui-gate__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--fui-gap-sm);
+  width: min(340px, 62%);
+  margin: var(--fui-gap-lg);
+}
+
+.fui-gate__title {
+  font-size: 42px;
+  line-height: 1;
+  color: var(--fui-gold-soft);
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.9);
+}
+
+.fui-gate__tagline {
+  font-family: var(--fui-font-body);
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--fui-ink-dim);
+}
+
+.fui-gate__label {
+  margin-top: var(--fui-gap-sm);
+  font-size: 10px;
+}
+
+.fui-gate__servers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* Four realms is the common case and should never need a scroll; past that
+     the list caps and scrolls rather than pushing the button off the screen. */
+  max-height: 192px;
+  padding-right: 2px;
+}
+
+/* `flex: none` is load-bearing: in a capped-height column the rows would
+   otherwise compress to fit and squeeze out each server's region/ping line
+   rather than letting the list scroll. */
+.fui-gate__server {
+  --fui-gate-ink: var(--fui-success);
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--fui-gap-sm);
+  padding: 7px 10px;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: var(--fui-radius);
+  background: rgba(0, 0, 0, 0.5);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--fui-t-fast) var(--fui-ease), background var(--fui-t-fast) var(--fui-ease);
+}
+
+.fui-gate__server[data-load='busy'] { --fui-gate-ink: var(--fui-warn); }
+.fui-gate__server[data-load='full'] { --fui-gate-ink: var(--fui-danger); }
+.fui-gate__server[data-load='down'] { --fui-gate-ink: var(--fui-ink-faint); }
+
+.fui-gate__server:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.fui-gate__server.is-on {
+  border-color: var(--fui-gold);
+  background: rgba(217, 164, 65, 0.16);
+}
+
+.fui-gate__server:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fui-gate__dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--fui-gate-ink);
+  box-shadow: 0 0 6px var(--fui-gate-ink);
+}
+
+.fui-gate__server-names {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.fui-gate__server-name {
+  font-size: 13px;
+  color: var(--fui-ink);
+}
+
+.fui-gate__server-meta {
+  display: flex;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--fui-ink-faint);
+}
+
+.fui-gate__flag {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 9px;
+  background: rgba(111, 179, 168, 0.2);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fui-accent-soft);
+}
+
+.fui-gate__flag--rec {
+  background: rgba(217, 164, 65, 0.2);
+  color: var(--fui-gold-soft);
+}
+
+.fui-gate__extra {
+  display: flex;
+  flex-direction: column;
+  gap: var(--fui-gap-sm);
+  margin-top: var(--fui-gap-sm);
+}
+
+.fui-gate__enter {
+  margin-top: var(--fui-gap-sm);
+  padding: 13px;
+  border: 1px solid var(--fui-gold);
+  border-radius: var(--fui-radius);
+  background: linear-gradient(180deg, rgba(217, 164, 65, 0.48), rgba(217, 164, 65, 0.16));
+  color: var(--fui-gold-soft);
+  font-family: var(--fui-font-display);
+  font-size: 15px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter var(--fui-t-fast) var(--fui-ease);
+}
+
+.fui-gate__enter:hover:not(:disabled) {
+  filter: brightness(1.28);
+}
+
+.fui-gate__enter:disabled {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--fui-ink-faint);
+  cursor: not-allowed;
+}
+
+.fui-gate__footnote {
+  font-size: 10.5px;
+  text-align: center;
+  color: var(--fui-ink-faint);
+}

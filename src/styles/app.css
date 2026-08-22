@@ -1,0 +1,140 @@
+/**
+ * Game-level layout. Everything that *looks* like something comes from FantasyUI's
+ * tokens and art; this file only arranges those pieces (UI_FANTASYUI_MAP §11).
+ *
+ * Desktop-first per Brief §20.6: fluid between a small laptop and 2K, art-directed
+ * at 1080p. No mobile layout in 0.1 — below the minimum width the game says so in
+ * its own voice instead of collapsing into something broken.
+ */
+
+:root {
+  /* FantasyUI's density dial. Slightly chunkier at 2K so the framing keeps its
+     hand-made weight on large glass. */
+  --fui-ui-scale: 0.5;
+  --omf-rail-width: 264px;
+  --omf-gap: 16px;
+  --omf-min-width: 1280px;
+}
+
+@media (min-width: 2200px) {
+  :root {
+    --fui-ui-scale: 0.62;
+    --omf-rail-width: 300px;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--fui-bg, #10131a);
+  color: var(--fui-text, #e8e2d4);
+  font-family: var(--fui-font-body, system-ui, sans-serif);
+}
+
+#app {
+  height: 100vh;
+  width: 100vw;
+}
+
+/* --- The hub shell ------------------------------------------------------- */
+
+.omf-shell {
+  display: grid;
+  grid-template-columns: var(--omf-rail-width) minmax(0, 1fr);
+  gap: var(--omf-gap);
+  height: 100%;
+  padding: var(--omf-gap);
+  box-sizing: border-box;
+}
+
+.omf-shell__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--omf-gap);
+  min-height: 0;
+}
+
+.omf-shell__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.omf-shell__rail > :last-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.omf-shell__main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.omf-shell__main > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.omf-save-status {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+/* --- Error surface ------------------------------------------------------- */
+
+.omf-error {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--omf-gap);
+  box-sizing: border-box;
+}
+
+.omf-error__detail {
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+  word-break: break-word;
+}
+
+/* --- Minimum-size gate (Brief §20.6, assumption A7) ---------------------- */
+
+.omf-too-small {
+  display: none;
+  height: 100%;
+  place-items: center;
+  padding: 24px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+@media (max-width: 1279px) {
+  #app {
+    display: none;
+  }
+
+  .omf-too-small {
+    display: grid;
+  }
+}
+
+.omf-too-small h1 {
+  font-family: var(--fui-font-display, serif);
+  font-size: 1.5rem;
+  margin: 0 0 8px;
+}
+
+.omf-too-small p {
+  margin: 0;
+  max-width: 46ch;
+  opacity: 0.8;
+}

@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–2 complete (all questions answered 2026-08-22, decisions folded into the docs) — development NOT started.** Per Brief §22, Phase 3 = the owner's explicit approval to start development; only then does M0 begin. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0 is delivered**; M1 is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -12,14 +12,16 @@ Sizing: S / M / L / XL (relative effort, not dates — dates would be fiction be
 
 - [x] **P1 — Planning package** (this repo state): brief archived, questions filed, architecture/save/balance/combat/UI/content docs written.
 - [x] **P2 — Questions answered** (2026-08-22): all of Q1–Q27 answered; decisions folded back into the docs and recorded in the `USER_QUESTIONS.md` ledger.
-- [ ] **P3 — Development approval** — your explicit go. **Nothing below starts before this.**
+- [x] **P3 — Development approval** (2026-08-22): granted.
 
 ---
 
-## M0 — Foundation & walking skeleton (M)
+## M0 — Foundation & walking skeleton (M) — ✅ delivered 2026-08-22
 
 Repo scaffolding: Vite + strict TS, ESLint/Prettier with the custom rules (import boundaries, `Date.now()` ban, `title`-attribute ban — ARCHITECTURE §5/§7), Vitest + Playwright wiring, CI pipeline (ARCHITECTURE §7), Vercel project (static). Vendor FantasyUI (components used first + art packs, `setAssetBase('/fui')` — ARCHITECTURE §2). Store, router, `time.ts`, seeded RNG streams. A walking skeleton boots: title gate → empty shell with sidebar in `stone-vine`, one placeholder screen, save layer round-trips a trivial record.
 **Exit:** CI green on all checks; skeleton deploys to Vercel; FantasyUI renders offline (no CDN calls — verified by a network-blocked Playwright run).
+
+**Delivered:** all of the above, with 64 unit tests and 7 Playwright smoke tests green. The offline guarantee is stronger than planned — Vite rewrites FantasyUI's art URLs to fully relative paths at build time, so the packaged game needs no re-pointing step for Electron later. A repeatable `npm run vendor:fui` resolves component dependencies and regenerates the barrel/stylesheet, so growing the UI is a one-line manifest edit. Vercel deployment itself is the owner's to trigger (repo → project link); `vercel.json` is committed and the static build is verified locally.
 
 ## M1 — Save layer & character lifecycle (M)
 

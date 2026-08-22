@@ -1,0 +1,95 @@
+/* SceneBackdrop — layered painted art with optional pointer parallax. */
+
+.fui-scene {
+  --fui-scene-x: 0;
+  --fui-scene-y: 0;
+  --fui-scene-scrim: 0;
+  --fui-scene-vignette: 0.5;
+  --fui-scene-travel: 26px;
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: var(--fui-radius);
+  background: #07070c;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.fui-scene__layer {
+  position: absolute;
+  /* Overscanned so a parallax shift never exposes the edge of the art. */
+  inset: -6%;
+  background: var(--fui-scene-art) center / cover no-repeat;
+  will-change: transform;
+}
+
+.fui-scene__layer[data-fit='contain'] {
+  background-size: contain;
+  background-position: center bottom;
+}
+
+.fui-scene__layer[data-fit='tile'] {
+  background-size: auto;
+  background-repeat: repeat;
+}
+
+/* Each layer multiplies the shared pointer offset by its own depth, so one
+   listener drives any number of layers and none of it touches JavaScript. */
+.fui-scene.is-parallax .fui-scene__layer {
+  transform: translate3d(
+    calc(var(--fui-scene-x) * var(--fui-scene-depth) * var(--fui-scene-travel) * -1),
+    calc(var(--fui-scene-y) * var(--fui-scene-depth) * var(--fui-scene-travel) * -1),
+    0
+  );
+  transition: transform 240ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Drift and parallax both animate `transform`, so the last one to apply would
+   silently win. Parallax is the deliberate choice when both are set — it
+   responds to the player — and drift only runs without it. */
+.fui-scene--drift:not(.is-parallax) .fui-scene__layer {
+  animation: fui-scene-drift 22s ease-in-out infinite alternate;
+  animation-delay: var(--fui-scene-phase, 0s);
+}
+
+.fui-scene__scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 90% at 50% 42%,
+      transparent 35%,
+      rgba(4, 4, 9, calc(var(--fui-scene-vignette) * 0.9)) 100%
+    ),
+    rgba(4, 4, 9, var(--fui-scene-scrim));
+}
+
+.fui-scene--fade .fui-scene__scrim::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  background: linear-gradient(180deg, transparent, #07070c);
+}
+
+.fui-scene__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: var(--fui-gap-lg);
+}
+
+@keyframes fui-scene-drift {
+  from {
+    transform: translate3d(calc(var(--fui-scene-depth) * -8px), 0, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(calc(var(--fui-scene-depth) * 8px), calc(var(--fui-scene-depth) * -4px), 0) scale(1.02);
+  }
+}
