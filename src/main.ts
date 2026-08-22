@@ -29,20 +29,30 @@ import { openSave } from './save/saveLayer.ts';
 import type { SlotId } from './domain/character/types.ts';
 import { renderErrorPanel, renderLockGate } from './ui/errorPanel.ts';
 import { openResetDialog } from './ui/resetDialog.ts';
+import { installTooltipService } from './ui/tooltips.ts';
+import { createShell } from './ui/shell.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
+import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
-import { createHubScreen } from './ui/screens/hub.ts';
+import { createRaidScreen } from './ui/screens/raid.ts';
 import { createTitleScreen } from './ui/screens/title.ts';
+import { createTowerScreen } from './ui/screens/tower.ts';
+import type { Character } from './domain/character/types.ts';
+import type { FloorResult, QuickRaidResult } from './domain/tower/run.ts';
 
 /** Where the vendored FantasyUI art lives in our own build. */
 const ASSET_BASE = '/fui';
 
 const BUILD_VERSION = '0.1.0-dev';
 
-type ScreenId = 'title' | 'select' | 'create' | 'hub';
+type ScreenId = 'title' | 'select' | 'create' | 'tower' | 'combat' | 'raid';
 
 export async function boot(mount: HTMLElement): Promise<void> {
   setAssetBase(ASSET_BASE);
+  // Native browser tooltips are banned game-wide (§20.4). Installing the service
+  // before the first screen means vendored components never get a chance to show
+  // one, whatever they put in the DOM.
+  const tooltips = installTooltipService(mount);
 
   try {
     const lock = await acquireSessionLock();
@@ -69,6 +79,35 @@ export async function boot(mount: HTMLElement): Promise<void> {
 
     /** Which empty slot the creation screen is filling. */
     let creatingSlot: SlotId = 1;
+    /** The fight the combat screen performs, and the hero as they walked into it. */
+    let pendingFight: { hero: Character; result: FloorResult } | null = null;
+    /** The raid the summary screen reports. */
+    let pendingRaid: QuickRaidResult | null = null;
+
+    const requireCharacter = (): Character => {
+      const character = store.get().activeCharacter;
+      if (!character) throw new Error('[boot] no active character');
+      return character;
+    };
+
+    /**
+     * Fight one floor. Resolution and its save happen before the screen swaps,
+     * so the combat screen is handed a decided fight to perform (COMBAT.md §1).
+     */
+    const startFight = (floor: number): void => {
+      const hero = requireCharacter();
+      void session.fight(floor).then((result) => {
+        pendingFight = { hero, result };
+        router.go('combat');
+      });
+    };
+
+    const startRaid = (throughFloor: number): void => {
+      void session.raid(throughFloor).then((result) => {
+        pendingRaid = result;
+        router.go('raid');
+      });
+    };
 
     const router: Router<ScreenId> = createRouter<ScreenId>({
       mount,
@@ -83,7 +122,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
           createCharacterSelectScreen({
             store,
             onPlay: (slotId) => {
-              void session.play(slotId).then((entered) => router.go(entered ? 'hub' : 'select'));
+              void session.play(slotId).then((entered) => router.go(entered ? 'tower' : 'select'));
             },
             onCreate: (slotId) => {
               creatingSlot = slotId;
@@ -106,19 +145,44 @@ export async function boot(mount: HTMLElement): Promise<void> {
             store,
             onCreate: ({ name, classId }) => {
               void session.createHero({ slotId: creatingSlot, name, classId }).then((result) => {
-                if (result.ok) router.go('hub');
+                if (result.ok) router.go('tower');
               });
             },
             onCancel: () => router.go('select'),
           }),
 
-        hub: () =>
-          createHubScreen({
+        tower: () =>
+          createShell({
             store,
+            active: 'tower',
             onSwitch: () => {
               void session.leave().then(() => router.go('select'));
             },
+            main: createTowerScreen({
+              character: requireCharacter(),
+              onFight: startFight,
+              onRaid: startRaid,
+            }).el,
           }),
+
+        combat: () => {
+          const pending = pendingFight;
+          if (!pending) throw new Error('[boot] the combat screen needs a resolved fight');
+          return createCombatScreen({
+            hero: pending.hero,
+            result: pending.result,
+            speedTier: store.get().account?.battleSpeedTier ?? 0,
+            onNextFloor: startFight,
+            onRaid: startRaid,
+            onBackToTower: () => router.go('tower'),
+          });
+        },
+
+        raid: () => {
+          const pending = pendingRaid;
+          if (!pending) throw new Error('[boot] the raid screen needs a resolved raid');
+          return createRaidScreen({ result: pending, onContinue: () => router.go('tower') });
+        },
       },
       onError: (error) => renderErrorPanel({ mount, error, onReload: reload }),
     });
@@ -128,6 +192,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
     window.addEventListener(
       'pagehide',
       () => {
+        tooltips.destroy();
         save.close();
         lock.release();
       },

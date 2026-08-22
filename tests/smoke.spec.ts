@@ -1,10 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Exit criteria as executable checks (ROADMAP M0/M1): the game boots, a hero can
- * be created, played, switched and reset, the save survives a reload, and the
- * whole thing never touches the network — which is what makes it deployable to
- * Vercel *and* wrappable in Electron later (ARCHITECTURE §6).
+ * Exit criteria as executable checks (ROADMAP M0/M1/M4): the game boots, a hero
+ * can be created, played, switched and reset, the save survives a reload, the
+ * tower can be climbed until it kills you and re-climbed after, no native
+ * browser tooltip ever reaches the screen (Brief §20.4), and the whole thing
+ * never touches the network — which is what makes it deployable to Vercel *and*
+ * wrappable in Electron later (ARCHITECTURE §6).
  */
 
 async function enterSelect(page: Page): Promise<void> {
@@ -39,13 +41,18 @@ test('offers five slots, one open and four locked (§15.2)', async ({ page }) =>
   await expect(select.getByRole('button', { name: 'Locked slot' })).toHaveCount(4);
 });
 
-test('creates a hero and enters the hub with them', async ({ page }) => {
+test('creates a hero and enters the tower with them', async ({ page }) => {
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Mage');
 
   const hub = page.locator('[data-testid="hub"]');
-  await expect(hub.getByText('Grimhild').first()).toBeVisible();
-  await expect(hub.getByText('Patience, then ruin.')).toBeVisible();
+  await expect(hub.locator('[data-testid="hero-name"]')).toHaveText('Grimhild');
+  await expect(hub.getByText('Mage').first()).toBeVisible();
+
+  // The tower is the hero's home screen: where they are, and what is next.
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+  await expect(page.locator('[data-testid="floor-preview"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Fight Floor 1/i })).toBeVisible();
 });
 
 test('refuses a name that breaks the rules, without leaving the screen (Q25)', async ({ page }) => {
@@ -168,4 +175,103 @@ test('reports no console errors through the whole lifecycle', async ({ page }) =
   await expect(page.locator('[data-testid="character-select"]')).toBeVisible();
 
   expect(errors).toEqual([]);
+});
+
+/** Start the floor the hero is standing on, from the tower. */
+async function startFight(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /Fight Floor|Face the Boss/i }).click();
+  await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+}
+
+/** Jump a running fight straight to its verdict (Brief §3.4). */
+async function skipToVerdict(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Skip$/ }).click();
+}
+
+async function fightAndSkip(page: Page): Promise<void> {
+  await startFight(page);
+  await skipToVerdict(page);
+}
+
+test('clears a floor, banks what it gave and offers one more (Brief §3.6)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  await expect(page.locator('[data-testid="combat-card-hero"]')).toHaveCount(0);
+  await fightAndSkip(page);
+
+  await expect(page.getByText('Floor 1 Cleared')).toBeVisible();
+  await expect(page.getByRole('button', { name: /One More Floor/i })).toBeVisible();
+
+  await page.getByRole('button', { name: /Back to the Spire/i }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Fight Floor 2/i })).toBeVisible();
+});
+
+test('climbs floor after floor without returning to the tower (§1)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  await fightAndSkip(page);
+  await page.getByRole('button', { name: /One More Floor/i }).click();
+
+  await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+  await page.getByRole('button', { name: /^Skip$/ }).click();
+  await expect(page.getByText(/Floor 2 Cleared|The Spire Takes You/)).toBeVisible();
+});
+
+test('a death keeps everything and offers the way back up (Brief §3.3/§3.4)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  // The Swashbuckler is the shallowest death in the balance sim, which is what
+  // makes her the right hero for a test that has to actually die.
+  await createHero(page, 'Grimhild', 'Swashbuckler');
+
+  const death = page.getByText('The Spire Takes You');
+  const oneMore = page.getByRole('button', { name: /One More Floor/i });
+
+  await startFight(page);
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await skipToVerdict(page);
+    // The aftermath holds exactly one thing at a time: the level-up celebration
+    // first when there is one, then the verdict.
+    const aftermath = page.locator('.omf-combat__aftermath > *');
+    await expect(aftermath).toBeVisible();
+
+    const levelUp = page.getByRole('button', { name: /^Continue$/ });
+    if (await levelUp.isVisible().catch(() => false)) {
+      await levelUp.click();
+      await expect(aftermath).toBeVisible();
+    }
+
+    if (await death.isVisible().catch(() => false)) break;
+    // "One More Floor" walks straight into the next fight — no tower in between.
+    await oneMore.click();
+    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+  }
+
+  await expect(death).toBeVisible();
+  await expect(page.getByText('Nothing you own was lost')).toBeVisible();
+
+  // Death resets the climb and nothing else, so the way back up is a Quick-Raid.
+  await page.getByRole('button', { name: /Quick-Raid back to Floor/i }).click();
+  await expect(page.locator('[data-testid="raid"]')).toBeVisible();
+
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+});
+
+test('never shows a native browser tooltip anywhere (Brief §20.4)', async ({ page }) => {
+  await enterSelect(page);
+  const titles = async (): Promise<string[]> =>
+    page.$$eval('[title]', (nodes) =>
+      nodes.map((node) => `${node.tagName}.${node.className}[title]`),
+    );
+
+  expect(await titles(), 'character select').toEqual([]);
+  await createHero(page, 'Grimhild', 'Hunter');
+  expect(await titles(), 'the tower').toEqual([]);
+
+  await fightAndSkip(page);
+  expect(await titles(), 'a fight and its result').toEqual([]);
 });

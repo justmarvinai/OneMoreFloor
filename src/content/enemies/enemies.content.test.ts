@@ -1,6 +1,7 @@
 /**
  * Enemy and floor content validation — part of `npm run content:validate`.
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { EffectDef } from '@/domain/combat/types.ts';
 import { en } from '@/strings/en.ts';
@@ -12,6 +13,11 @@ import { ENEMY_MODIFIERS, applyModifier } from './modifiers.ts';
 
 const ALL = [...ENEMIES, ...BOSSES];
 
+/** Every art id the game can actually render, read from the CSS that declares them. */
+const ART_IDS = ['src/ui/fui/styles/assets.css', 'src/styles/art.css'].flatMap((file) =>
+  [...readFileSync(file, 'utf8').matchAll(/--fui-img-([a-z0-9-]+)\s*:/g)].map((match) => match[1]!),
+);
+
 describe('bestiary', () => {
   it('gives every enemy a unique id and a real name', () => {
     const ids = ALL.map((enemy) => enemy.id);
@@ -21,13 +27,19 @@ describe('bestiary', () => {
     }
   });
 
-  it('binds an avatar for every enemy, falling back to the silhouette (Brief §4.3)', () => {
+  it('binds every avatar to art that actually exists (Brief §4.3)', () => {
+    // The dangling-reference check CONTENT_PIPELINE §4 asks for: an avatar id
+    // with no artwork behind it renders as an empty frame in a real fight, and
+    // a typo is exactly how that happens. The stylesheets are read as files
+    // rather than imported, because content must never import ui/.
     for (const enemy of ALL) {
       expect(enemy.avatar, enemy.id).toBeTruthy();
-      // Until the owner supplies real portraits, every enemy uses the library's
-      // silhouette — and swapping one is this single field.
-      expect(enemy.avatar).toBe('silhouette-warrior-m');
+      expect(ART_IDS, `${enemy.id}: no artwork for "${enemy.avatar}"`).toContain(enemy.avatar);
     }
+  });
+
+  it('keeps the silhouette reachable as the documented fallback (Brief §4.3)', () => {
+    expect(ART_IDS).toContain('silhouette-warrior-m');
   });
 
   it('uses only real stats in its profiles, with positive multipliers', () => {

@@ -28,6 +28,8 @@
 | Highest-ever marker, run info | `Ribbon`, `StatChip` |
 | Death aftermath | `DeathScreen` (kept-vs-lost summary + Quick-Raid call-to-action, COMBAT.md §8) |
 
+**As built (M4):** the trail draws the climb **ahead of the hero only** — Q23 makes the tower strictly upward, so the floors behind are history rather than destinations, and every node on screen is actionable: the current floor fights, floors already conquered in an earlier run Quick-Raid to that exact depth, and new ground is not clickable because climbing is the only way to reach it. Bands paint their own stretch of wall from a `backdrop` art id (Q11), which is also what the combat scene uses, so a band reads as one place across both screens. `StageTrail`'s star meter is suppressed (§10, wish 6) and its `energy` and `chest` features go unused: the tower has neither.
+
 ## 3. Combat screen — DE (full spec: COMBAT.md §7)
 
 | Element | FantasyUI |
@@ -40,6 +42,8 @@
 | Skip control + speed indicator (§3.4/§3.5) | `Button`, `StatChip` |
 | Victory/defeat + loot reveal | `ResultScreen`, `LootWindow` |
 | Choreography (lunges, clashes, signature set-pieces) | our `custom/CombatStage` (see §10) orchestrating the above via WAAPI |
+
+**As built (M4):** the fight is full-bleed, with both portrait cards pinned high and wide apart over the band's arena — the arrangement in `combat_example.gif` (§20.3) — and a stat block under each card, because a player who loses has to be able to see *why* from the cards alone (COMBAT.md §9). `UnitFrame` is turned upright and its target-side mirroring undone by layout alone; no vendored rule is restyled. The fight log is a drawer rather than a column, which is what "collapsible" in COMBAT.md §7 buys: the arena keeps the whole screen and the log is one click away. A level-up plays as its own beat *before* the result rather than over it — a celebration layered on the result screen swallows the click the player already aimed at "One More Floor".
 
 ## 4. Character screen — SV (reference: `character_screen.png`)
 
@@ -109,6 +113,19 @@ Anything beyond this list needs a written justification in this file before it's
 1. `CharacterSelect` takes a single static `confirmLabel`, so a slot picker cannot say "Play" over a hero and "Create" over an empty slot. We ship one honest label ("Continue") until the component can vary it per selection.
 2. `Panel` exposes `setTitle` but no `setSubtitle`, so a subtitle that tracks state has to be rendered as body content.
 3. `ButtonVariant` has no destructive/danger option; reset actions are tinted locally via `.omf-danger` using theme tokens.
+4. **Native `title` attributes** are set by `Portrait`, `BuffBar`, `BossHealthBar`, `ResultScreen`, `PowerRating` and `StageTrail`'s locked difficulty tabs. Brief §20.4 bans browser tooltips outright, so `src/ui/tooltips.ts` adopts every `title` the app produces into a FantasyUI `Tooltip` at runtime (see §12). A `tooltip?: false` escape or a `Tooltip`-based default upstream would remove the need.
+5. `BuffBar` counts durations in **seconds** (`duration()` renders `3` as `3.0s`). Round-based combat has no seconds, so our chips state their duration in the tooltip and pass no `remaining`. An explicit unit or formatter option would let the sweep and the countdown work for turn-based games.
+6. `StageTrail` always renders its **star meter**, so a campaign without star ratings shows `★ 0 / 0`. Ours is hidden with one local rule; a `stars: false` option would be cleaner.
+7. `Portrait` has no `setLevel`, so a level-up cannot update the badge in place. Our rail refreshes it on the next screen build.
+
+## 12. The tooltip service (Brief §20.4)
+
+The brief's ban on native tooltips is enforced twice, because our own source is only half the surface:
+
+- **In our code**, by lint: three `no-restricted-syntax` selectors cover every shape a `title` could reach the DOM through.
+- **In the running game**, by `src/ui/tooltips.ts`: one `MutationObserver` on the app root moves any `title` attribute — including the ones vendored components set — into `data-omf-tip`, and a single delegated listener set serves them through one shared FantasyUI `Tooltip`. Delegation matters: a fight that builds and discards hundreds of effect chips must not accumulate listeners.
+
+A Playwright test asserts `document.querySelectorAll('[title]')` is empty across the whole flow, so §20.4 is a property of the shipped game rather than of our source alone.
 
 ## 11. Resolution & scaling strategy (§20.6)
 

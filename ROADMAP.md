@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M3 are delivered**; M4 (tower & combat presentation) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M4 are delivered**; M5 (character screen, inventory, merchants) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -50,10 +50,16 @@ Combat resolution → CombatScript (COMBAT.md §1–6): rounds, Speed double-att
 
 **Left for M9 as designed:** the *ClimberNoShop* archetype plateaus at a boss floor and the class spread is far too wide. Both are artefacts of a game that has no merchants, gear upgrades or ascension yet (M5/M6), so tuning now would be tuning against the wrong game.
 
-## M4 — Tower & combat presentation (XL)
+## M4 — Tower & combat presentation (XL) — ✅ delivered 2026-08-22
 
 The game becomes visible and playable: tower screen (`StageTrail` treatment, floor preview, one-more-floor button, Quick-Raid UI — UI_FANTASYUI_MAP §2), **combat screen with the full choreography vocabulary** (COMBAT.md §7) including signature set-pieces, x1–x8 playback (§3.5), skip; death screen + reset flow (§3.3, COMBAT.md §8); loot/result windows.
 **Exit:** COMBAT.md §9 acceptance criteria, including the 60 fps @2K budget and the "legible at x8" review; climb → die → reset → quick-raid loop plays end-to-end with real drops.
+
+**Delivered:** the loop is playable end-to-end — climb, fight, loot, level, die, Quick-Raid back up — with 371 unit tests and 15 Playwright smoke tests, four of them walking that whole loop in a browser until the tower actually kills the hero. Two things came out stronger than planned. The performer is split into a *pure* choreographer (script → timed beats, no DOM, no clock) and a dumb stage that plays it, which turns pacing into unit tests rather than eyeball checks — including the "legible at x8" rule, now an assertion instead of an opinion. And Brief §20.4's ban on native tooltips became a property of the shipped game rather than of our source: a runtime service adopts every `title` the vendored components emit into a FantasyUI `Tooltip`, and a smoke test asserts the document never contains one.
+
+**Deferred by design:** Battle Speed above x1 needs the account upgrade that M6 builds, so the x2/x4/x8 review happens there (the tiers are wired and tested; only the shop is missing). The hub's other destinations stay disabled until their milestones — each says what it is rather than going quiet (§20.5).
+
+**Open question:** ⧗Q28 asks the owner how enemies should look until their own art arrives; ten of thirteen now wear fitting FantasyUI art, three keep the silhouette. Nothing is blocked on the answer.
 
 ## M5 — Character screen, inventory, merchants (L)
 

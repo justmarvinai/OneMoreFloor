@@ -1,0 +1,66 @@
+/* DamageVignette — the screen-edge wash that says it happened to you. */
+
+.fui-vig {
+  --fui-vig-level: 0;
+  --fui-vig-spread: 34%;
+  --fui-vig-ms: 420ms;
+  --fui-vig-ink: var(--fui-danger);
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  opacity: var(--fui-vig-level);
+  /* Never intercepts input: this is a read-out, not a surface. */
+  pointer-events: none;
+  transition: opacity var(--fui-vig-ms) var(--fui-ease);
+}
+
+.fui-vig[data-full='true'] {
+  position: fixed;
+}
+
+.fui-vig[data-tone='damage'] { --fui-vig-ink: var(--fui-danger); }
+.fui-vig[data-tone='low'] { --fui-vig-ink: #b8231a; }
+.fui-vig[data-tone='heal'] { --fui-vig-ink: var(--fui-success); }
+.fui-vig[data-tone='poison'] { --fui-vig-ink: #7fbf3f; }
+.fui-vig[data-tone='freeze'] { --fui-vig-ink: #63b8e8; }
+.fui-vig[data-tone='shield'] { --fui-vig-ink: var(--fui-gold); }
+
+/* Two layers: a soft radial wash for the body of the effect and a hard inner
+   rim so the edge stays crisp at low opacity, where a single gradient turns to
+   grey mush. */
+.fui-vig::before,
+.fui-vig::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.fui-vig::before {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent calc(100% - var(--fui-vig-spread) - 22%),
+    color-mix(in srgb, var(--fui-vig-ink) 70%, transparent) 100%
+  );
+}
+
+.fui-vig::after {
+  box-shadow: inset 0 0 26px 4px color-mix(in srgb, var(--fui-vig-ink) 55%, transparent);
+}
+
+/* A flash arrives instantly and fades out — easing it in would make the hit
+   land after the number does. */
+.fui-vig[data-flash='true'] {
+  transition: none;
+}
+
+.fui-vig[data-pulse='true'] {
+  animation: fui-vig-beat 1.5s var(--fui-ease) infinite;
+}
+
+@keyframes fui-vig-beat {
+  0%,
+  100% { opacity: calc(var(--fui-vig-level) * 0.55); }
+  18% { opacity: var(--fui-vig-level); }
+  36% { opacity: calc(var(--fui-vig-level) * 0.65); }
+  52% { opacity: calc(var(--fui-vig-level) * 0.92); }
+}

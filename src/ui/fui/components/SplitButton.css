@@ -1,0 +1,195 @@
+/* SplitButton — the common action on the left, its variants behind a caret. */
+
+.fui-splitbtn {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.fui-splitbtn--block { display: flex; width: 100%; }
+
+.fui-splitbtn__main,
+.fui-splitbtn__caret {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--fui-btn-min-h, 48px);
+  border: 0;
+  background: none;
+  color: var(--fui-btn-ink, #eaf6f3);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: filter var(--fui-t-fast, 120ms) var(--fui-ease, ease-out);
+}
+
+.fui-splitbtn__main { flex: 1; padding: var(--fui-btn-pad, 8px 20px); }
+.fui-splitbtn__caret { flex: none; width: 38px; padding: 0; }
+
+.fui-splitbtn__art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--fui-btn-bw);
+  border-image-source: var(--fui-btn-src);
+  border-image-slice: var(--fui-btn-sl) fill;
+  border-image-repeat: stretch;
+}
+
+.fui-splitbtn__face {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.fui-splitbtn__glyph {
+  width: 16px;
+  height: 16px;
+  background-color: currentColor;
+  mask: var(--fui-split-glyph, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-split-glyph, var(--fui-mask-none)) center / contain no-repeat;
+}
+
+.fui-splitbtn__label {
+  font-family: var(--fui-font-display, system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+/* A CSS triangle rather than a glyph asset: a caret is the one piece of
+   furniture that must never wait on a network fetch. */
+.fui-splitbtn__chevron {
+  position: relative;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-top-color: currentColor;
+  margin-top: 4px;
+  pointer-events: none;
+  transition: transform var(--fui-t-fast, 120ms) var(--fui-ease, ease-out);
+}
+
+.fui-splitbtn[data-open='on'] .fui-splitbtn__chevron {
+  transform: rotate(180deg);
+  margin-top: -4px;
+}
+
+.fui-splitbtn__main:hover:not(:disabled),
+.fui-splitbtn__caret:hover:not(:disabled) { filter: var(--fui-btn-hover-filter, brightness(1.14)); }
+
+.fui-splitbtn__main:active:not(:disabled),
+.fui-splitbtn__caret:active:not(:disabled) { filter: var(--fui-btn-active-filter, brightness(0.9)); }
+
+.fui-splitbtn__main:disabled,
+.fui-splitbtn__caret:disabled { cursor: not-allowed; filter: grayscale(0.8) brightness(0.6); }
+
+.fui-splitbtn__main:focus-visible,
+.fui-splitbtn__caret:focus-visible {
+  outline: 2px solid var(--fui-accent, #d8c9a6);
+  outline-offset: 2px;
+}
+
+/* ── Menu ───────────────────────────────────────────────────────────────── */
+
+.fui-splitbtn__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  min-width: 100%;
+  display: none;
+  padding: 4px;
+  border-radius: 4px;
+  background: var(--fui-panel-fill-src, none) center / 100% 100%;
+  background-color: color-mix(in srgb, var(--fui-panel-ink, #14100c) 96%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fui-accent, #d8c9a6) 35%, transparent);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+}
+
+.fui-splitbtn[data-open='on'] .fui-splitbtn__menu {
+  display: grid;
+  gap: 1px;
+  animation: fui-split-in 140ms var(--fui-ease, ease-out) both;
+}
+
+.fui-splitbtn[data-align='left'] .fui-splitbtn__menu { left: 0; }
+.fui-splitbtn[data-align='right'] .fui-splitbtn__menu { right: 0; }
+
+.fui-splitbtn[data-up='on'] .fui-splitbtn__menu {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.fui-splitbtn__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--fui-text, #e8e0cd);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fui-splitbtn__item:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--fui-accent, #d8c9a6) 18%, transparent);
+}
+
+.fui-splitbtn__item:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.fui-splitbtn__item:focus-visible {
+  outline: 2px solid var(--fui-accent, #d8c9a6);
+  outline-offset: -2px;
+}
+
+.fui-splitbtn__itemglyph {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  background-color: color-mix(in srgb, var(--fui-accent, #d8c9a6) 90%, transparent);
+  mask: var(--fui-split-glyph, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-split-glyph, var(--fui-mask-none)) center / contain no-repeat;
+}
+
+.fui-splitbtn__itemstack { display: grid; gap: 0; min-width: 0; }
+
+.fui-splitbtn__itemlabel {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.fui-splitbtn__itemnote {
+  font-size: 10px;
+  color: color-mix(in srgb, var(--fui-text, #e8e0cd) 55%, transparent);
+  white-space: nowrap;
+}
+
+@keyframes fui-split-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fui-splitbtn__chevron,
+  .fui-splitbtn__main,
+  .fui-splitbtn__caret { transition: none; }
+  .fui-splitbtn[data-open='on'] .fui-splitbtn__menu { animation: none; }
+}

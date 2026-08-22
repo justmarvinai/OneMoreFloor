@@ -9,6 +9,8 @@
 3. **Stable string ids, namespaced** (`enemy.rotling`, `item.base.chest_scale`, `affix.atk_flat`, `quest.daily.clear_floors`). Ids are save-referenced (SAVE_SCHEMA §3) → **never renamed/reused**; removal goes through the deprecation map (SAVE_SCHEMA §4).
 4. **Validation is CI** (`content:validate`, ARCHITECTURE §7): schema conformance, id uniqueness, dangling-reference checks (enemy → avatar asset, drop table → item defs), curve sanity (monotonicity where required), and the §13 bracket property test over generated items.
 
+   *As built (M4):* art bindings are checked against the CSS that declares them, so a mistyped asset id fails the build instead of rendering as an empty frame. The check also rejects a `glyph-*` id in any painted-icon slot: FantasyUI's glyph set is `fill="currentColor"` SVG meant to be used as a CSS mask, and painted as a background image it resolves to black and disappears. Floor bands carry a `backdrop` art id (Q11) validated the same way.
+
 ## 2. Content types & draft shapes
 
 ### Classes (§8) — `content/classes/`

@@ -86,6 +86,19 @@ The engine is implemented as specified above, with three details worth recording
 - **A death advances the run seed.** Floors are stable *within* a run — re-entering floor 41 meets the same enemy — but the next climb is a new tower rather than a replay of the one that just killed you. The new seed is derived deterministically from the old, so a save still replays exactly.
 - **Every blow does at least one point.** A hit that rounds to zero reads as a bug to a player, whatever the arithmetic says.
 
+## 7b. As-built presentation notes (M4)
+
+The performer is split in two, and the seam is the point:
+
+- **`ui/combat/choreography.ts` is pure.** `choreograph(script) → Beat[]` turns the engine's events into a timed schedule with no DOM and no clock, so the pacing questions are unit tests rather than eyeball checks: a signature holds longer than a strike, a crit holds longer than a graze, beats never run backwards, and the same script always schedules identically.
+- **`ui/combat/combatStage.ts` performs.** One timer walks the schedule; each beat starts WAAPI animations whose `playbackRate` is the Battle Speed multiplier. Changing speed mid-fight rescales the animations *and* the remaining wait, so x1 → x8 takes effect on the very next beat.
+- **Two events, one motion.** An `action` is the wind-up and the `hit` that follows is the impact, so a strike reads as one movement instead of two disconnected flashes.
+- **Damage numbers have a floor on their life.** At x8 everything is eight times faster; the numbers are not, because "legible at x8" is an acceptance criterion (§7). `floatLifeFor(crit, rate)` never returns less than the configured minimum.
+- **Skip applies every remaining beat with its animations suppressed**, so the frame a skipped fight ends on is exactly the frame a watched one does — the same guarantee the loot already had (§3.4).
+- **Battle Speed is the account's tier, not a per-fight choice.** §3.5 says the upgrade raises the speed; it does not offer a selector, so the game does not invent one. The in-fight indicator shows the current multiplier and, until the upgrade is bought (M6), says what would raise it (§20.5).
+
+Effects are drawn as chips that **state their duration rather than counting it down**. The script says exactly when an effect ends, so a chip that guessed at a remaining round count could only ever be wrong.
+
 ## 8. Death & aftermath (§3.3)
 
 Hero HP → 0: death sequence (dark-ember `DeathScreen` treatment), then the reset contract verbatim from §3.3 — tower run to Floor 1; hero keeps level/XP/ascension/currencies/materials/equipment/upgrades/quest progress/account upgrades; `highestFloorEverCleared` untouched (§3.4). The death screen leads with what was **kept** and the Quick-Raid invitation ("Skip back through 41 cleared floors") — death should feel like a launchpad, not a slap (§1's "re-climb faster" loop).

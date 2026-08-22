@@ -1,0 +1,428 @@
+/* StageTrail — the campaign as a path you scroll down. */
+
+.fui-trail {
+  --fui-trail-row: 96px;
+  --fui-trail-chapter: 56px;
+  --fui-trail-height: 0px;
+  --fui-trail-lane: 50%;
+  --fui-trail-p: 0;
+  --fui-trail-ink: var(--fui-accent);
+  display: flex;
+  flex-direction: column;
+  gap: var(--fui-gap-sm);
+  font-family: var(--fui-font-ui);
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+.fui-trail__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--fui-gap-sm) var(--fui-gap);
+}
+
+.fui-trail__title {
+  flex: 1;
+  min-width: 140px;
+  font-size: 17px;
+}
+
+.fui-trail__meter {
+  display: flex;
+  align-items: center;
+  gap: var(--fui-gap-sm);
+}
+
+.fui-trail__stars {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--fui-gold);
+}
+
+.fui-trail__bar {
+  display: block;
+  width: 110px;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.fui-trail__bar-fill {
+  display: block;
+  width: calc(var(--fui-trail-p) * 100%);
+  height: 100%;
+  background: linear-gradient(90deg, var(--fui-gold), var(--fui-gold-soft));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--fui-gold) 55%, transparent);
+  transition: width var(--fui-t-slow) var(--fui-ease);
+}
+
+.fui-trail__energy {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--fui-stamina);
+}
+
+/* ── difficulty tabs ────────────────────────────────────────────────────── */
+.fui-trail__tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.fui-trail__tab {
+  padding: 5px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--fui-radius);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--fui-ink-dim);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color var(--fui-t-fast) var(--fui-ease),
+    background var(--fui-t-fast) var(--fui-ease);
+}
+
+.fui-trail__tab.is-on {
+  border-color: var(--fui-trail-ink);
+  background: color-mix(in srgb, var(--fui-trail-ink) 22%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--fui-trail-ink) 35%, transparent);
+  color: var(--fui-ink);
+}
+
+.fui-trail__tab.is-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* A padlock drawn from a border and a block, so no glyph has to load. */
+.fui-trail__tab.is-locked::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 5px;
+  margin-right: 5px;
+  border: 1px solid currentColor;
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  box-shadow: 0 5px 0 -1px currentColor;
+  vertical-align: 1px;
+}
+
+/* ── the scrolling trail ────────────────────────────────────────────────── */
+.fui-trail__scroller {
+  position: relative;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--fui-radius);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.55));
+}
+
+.fui-trail__body {
+  position: relative;
+  padding: var(--fui-gap-sm) 0;
+}
+
+/* The path spans every row at once, so its viewBox maps one row to 100 units
+   and a node's lane maps straight onto the x axis. */
+.fui-trail__path {
+  position: absolute;
+  left: 0;
+  top: var(--fui-gap-sm);
+  width: 100%;
+  height: var(--fui-trail-height);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.fui-trail__route {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 2 10;
+  vector-effect: non-scaling-stroke;
+}
+
+.fui-trail__route--walked {
+  stroke: var(--fui-trail-ink);
+  stroke-width: 5;
+  stroke-dasharray: none;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--fui-trail-ink) 60%, transparent));
+}
+
+/* ── chapter dividers ───────────────────────────────────────────────────── */
+.fui-trail__chapter {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  height: var(--fui-trail-chapter);
+  justify-content: center;
+  padding: 0 var(--fui-gap);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.72) 18% 82%, transparent);
+  text-align: center;
+}
+
+/* Chapter art washes across the divider and fades at both ends, so the trail
+   reads as continuous rather than as a stack of separate cards. */
+.fui-trail__chapter::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--fui-trail-art, none) center / cover no-repeat;
+  opacity: 0.4;
+  mask: linear-gradient(90deg, transparent, #000 22% 78%, transparent);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 22% 78%, transparent);
+}
+
+.fui-trail__chapter-title {
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fui-gold);
+  text-shadow: 0 2px 6px #000;
+}
+
+.fui-trail__chapter-sub {
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--fui-ink-dim);
+  text-shadow: 0 1px 4px #000;
+}
+
+/* ── stops on the trail ─────────────────────────────────────────────────── */
+.fui-trail__row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: var(--fui-trail-row);
+  align-items: center;
+}
+
+ /* The disc, not the whole node, is what sits on the lane — the path is drawn
+   through these centres, so anything else here would pull the two apart. */
+.fui-trail__node {
+  position: absolute;
+  left: var(--fui-trail-lane);
+  top: 50%;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform var(--fui-t) var(--fui-ease);
+}
+
+.fui-trail__node:not([data-state='locked']):hover {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.fui-trail__node[data-state='locked'] {
+  cursor: default;
+}
+
+.fui-trail__disc {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--fui-trail-ink);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.16), transparent 60%),
+    rgba(0, 0, 0, 0.72);
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.7),
+    inset 0 0 12px rgba(0, 0, 0, 0.6);
+}
+
+.fui-trail__disc.has-art {
+  background: center / cover no-repeat rgba(0, 0, 0, 0.6);
+}
+
+.fui-trail__num {
+  font-family: var(--fui-font-display);
+  font-size: 21px;
+  color: var(--fui-ink);
+  text-shadow: 0 2px 4px #000;
+}
+
+.fui-trail__glyph {
+  width: 55%;
+  height: 55%;
+  background-color: var(--fui-trail-ink);
+  mask: var(--fui-glyph-src, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-glyph-src, var(--fui-mask-none)) center / contain no-repeat;
+}
+
+/* ── node states ────────────────────────────────────────────────────────── */
+.fui-trail__node[data-state='cleared'] { --fui-trail-ink: var(--fui-success); }
+.fui-trail__node[data-state='open'] { --fui-trail-ink: var(--fui-accent); }
+.fui-trail__node[data-state='current'] { --fui-trail-ink: var(--fui-gold); }
+
+.fui-trail__node[data-state='locked'] {
+  --fui-trail-ink: var(--fui-ink-faint);
+}
+
+.fui-trail__node[data-state='locked'] .fui-trail__disc {
+  filter: grayscale(0.8) brightness(0.6);
+}
+
+/* The one node the player is meant to press pulses; nothing else does, or the
+   trail turns into a Christmas tree and the cue stops meaning anything. */
+.fui-trail__node[data-state='current'] .fui-trail__disc {
+  box-shadow:
+    0 3px 10px rgba(0, 0, 0, 0.7),
+    0 0 0 4px color-mix(in srgb, var(--fui-gold) 30%, transparent),
+    0 0 20px color-mix(in srgb, var(--fui-gold) 55%, transparent);
+  animation: fui-trail-beat 1.9s var(--fui-ease) infinite;
+}
+
+@keyframes fui-trail-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+.fui-trail__node[data-state='cleared'] .fui-trail__disc::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fui-success);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+  clip-path: polygon(14% 52%, 40% 76%, 86% 24%, 94% 34%, 42% 90%, 6% 60%);
+}
+
+/* ── node kinds ─────────────────────────────────────────────────────────── */
+.fui-trail__node[data-kind='elite'] .fui-trail__disc {
+  width: 60px;
+  height: 60px;
+  border-radius: 22% 6% 22% 6%;
+}
+
+.fui-trail__node[data-kind='boss'] .fui-trail__disc {
+  width: 72px;
+  height: 72px;
+  border-width: 4px;
+  border-color: var(--fui-danger);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.75),
+    0 0 22px color-mix(in srgb, var(--fui-danger) 50%, transparent);
+}
+
+.fui-trail__node[data-kind='boss'] .fui-trail__num {
+  font-size: 26px;
+}
+
+.fui-trail__node[data-kind='event'] .fui-trail__disc {
+  border-color: var(--fui-xp);
+  border-style: dashed;
+}
+
+.fui-trail__node[data-kind='rest'] .fui-trail__disc {
+  width: 44px;
+  height: 44px;
+  border-color: var(--fui-info);
+}
+
+/* A chest is a reward, not a fight, so it is a box rather than a disc. */
+.fui-trail__node[data-kind='chest'] .fui-trail__disc {
+  width: 50px;
+  height: 44px;
+  border-radius: 6px;
+  border-color: var(--fui-gold);
+  background:
+    linear-gradient(180deg, rgba(217, 164, 65, 0.28), rgba(0, 0, 0, 0.75));
+}
+
+.fui-trail__node[data-kind='chest'][data-state='current'] .fui-trail__disc {
+  animation: fui-trail-beat 1.4s var(--fui-ease) infinite;
+}
+
+.fui-trail__node[data-kind='chest'][data-state='cleared'] .fui-trail__disc {
+  opacity: 0.5;
+  border-color: var(--fui-ink-faint);
+}
+
+/* ── the label beside a node ──────────────────────────────────────────────
+   Pinned to the disc rather than sharing a flex row with it, so the disc alone
+   lands on the lane the path runs through. */
+.fui-trail__info {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  display: flex;
+  width: 152px;
+  flex-direction: column;
+  gap: 2px;
+  transform: translateY(-50%);
+  text-align: left;
+}
+
+/* Past the middle of the trail the label hangs to the left, so it never runs
+   off the edge on a narrow screen. */
+.fui-trail__row[data-side='left'] .fui-trail__info {
+  left: auto;
+  right: calc(100% + 10px);
+  align-items: flex-end;
+  text-align: right;
+}
+
+.fui-trail__name {
+  font-size: 12.5px;
+  line-height: 1.2;
+  color: var(--fui-ink);
+  text-shadow: 0 1px 4px #000;
+}
+
+.fui-trail__node[data-state='locked'] .fui-trail__name {
+  color: var(--fui-ink-faint);
+}
+
+.fui-trail__note {
+  font-size: 10px;
+  color: var(--fui-ink-dim);
+  text-shadow: 0 1px 3px #000;
+  white-space: nowrap;
+}
+
+/* A stage the player cannot afford still opens — it just says the cost in the
+   colour that means "not right now". */
+.fui-trail__node.is-poor .fui-trail__note {
+  color: var(--fui-danger);
+}
+
+.fui-trail__stars-row {
+  display: flex;
+  gap: 2px;
+}
+
+.fui-trail__star {
+  width: 11px;
+  height: 11px;
+  background: rgba(255, 255, 255, 0.18);
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.fui-trail__star.is-on {
+  background: var(--fui-gold);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--fui-gold) 60%, transparent));
+}

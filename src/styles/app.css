@@ -82,6 +82,19 @@ body {
   min-width: 0;
 }
 
+.omf-shell__name {
+  margin: 0;
+  font-size: 1.05rem;
+  text-align: center;
+}
+
+.omf-shell__class {
+  margin: -4px 0 2px;
+  font-size: 0.85rem;
+  opacity: 0.72;
+  text-align: center;
+}
+
 .omf-save-status {
   margin: 12px 0 0;
   text-align: center;
@@ -178,6 +191,365 @@ body {
 .omf-danger {
   --fui-btn-tint: var(--fui-danger, #a8331f);
   filter: hue-rotate(-18deg) saturate(1.25);
+}
+
+/* --- The tower (Brief §3.1, UI_FANTASYUI_MAP §2) -------------------------- */
+
+.omf-tower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: var(--omf-gap);
+  height: 100%;
+  min-height: 0;
+}
+
+.omf-tower__path,
+.omf-tower__side {
+  min-height: 0;
+  display: flex;
+}
+
+.omf-tower__path > *,
+.omf-tower__side > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/**
+ * The trail is a campaign path by origin, and a campaign counts stars. The tower
+ * does not (a floor is cleared or it is not), so its meter is suppressed rather
+ * than shown reading 0 / 0 — an upstream wish is recorded in
+ * UI_FANTASYUI_MAP §10.
+ */
+.omf-tower__trail .fui-trail__meter {
+  display: none;
+}
+
+/* The preview sits in the middle of its panel rather than clinging to the top. */
+.omf-tower__side .fui-panel__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/**
+ * The trail's own stretch of wall, from the band's backdrop art. Without it the
+ * path floats in an empty box; with it the climb reads as happening somewhere.
+ */
+.omf-tower__trail .fui-trail__scroller {
+  background:
+    linear-gradient(rgb(10 12 16 / 82%), rgb(10 12 16 / 92%)),
+    var(--fui-tower-art, none) center / 520px repeat;
+}
+
+.omf-tower__record {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.omf-tower__preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.omf-tower__preview-title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.omf-tower__stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.omf-tower__modifier,
+.omf-tower__effects-label {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.omf-tower__modifier {
+  color: var(--fui-gold, #d8b26a);
+  opacity: 1;
+}
+
+/* --- The fight (Brief §4.1, COMBAT.md §7) -------------------------------- */
+
+.omf-fight {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.omf-fight__main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+}
+
+.omf-fight__log {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 64px;
+  width: 360px;
+  display: flex;
+  z-index: 20;
+  transform: translateX(calc(100% + 12px));
+  transition: transform 220ms var(--fui-ease, ease);
+}
+
+.omf-fight__log[data-open='true'] {
+  transform: translateX(0);
+}
+
+.omf-fight__log > * {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.omf-fight__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.omf-combat {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.omf-combat__scene {
+  position: absolute;
+  inset: 0;
+}
+
+/* Damage numbers have to stay legible at x8, so they are sized for the room. */
+.omf-combat .fui-float__item {
+  font-size: 1.6rem;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 85%);
+}
+
+.omf-combat .fui-float__item[data-kind='crit'] {
+  font-size: 2.3rem;
+}
+
+/**
+ * The reference layout (§20.3): both cards pinned high and wide apart, the arena
+ * filling everything between and behind them. Centring the cards was the first
+ * attempt and it read as two small panels adrift in a dark room.
+ */
+.omf-combat__field {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
+  align-items: start;
+  justify-items: center;
+  gap: 10px 24px;
+  height: 100%;
+  padding: 16px 28px 20px;
+  box-sizing: border-box;
+}
+
+.omf-combat__banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--fui-font-display, serif);
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fui-gold, #d8b26a);
+  text-shadow: 0 2px 8px rgb(0 0 0 / 70%);
+}
+
+/**
+ * The portrait card (Q14): FantasyUI's unit frame turned upright so the avatar
+ * carries the card and the bars sit beneath it, which is the reference gif's
+ * arrangement. Nothing here restyles the frame — it only changes its axis.
+ */
+.omf-combat__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  will-change: transform;
+}
+
+/* The effect strip reads as one row rather than a pair of stray tiles. */
+.omf-combat__card .fui-buffs:not(:empty) {
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 42%);
+}
+
+.omf-combat__stats {
+  width: 330px;
+  box-sizing: border-box;
+  padding: 10px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 22%, transparent);
+  border-radius: 4px;
+  background: rgb(0 0 0 / 46%);
+  font-size: 0.85rem;
+}
+
+.omf-combat__stat {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  opacity: 0.82;
+}
+
+.omf-combat__card .fui-unit,
+.omf-combat__card .fui-unit[data-kind='target'],
+.omf-combat__card .fui-unit[data-kind='boss'] {
+  flex-direction: column;
+  width: 330px;
+  padding: 16px 18px 14px;
+  text-align: center;
+}
+
+.omf-combat__card .fui-unit__stack {
+  width: 100%;
+}
+
+/* Upright cards face the player, so the target frame's mirroring is undone. */
+.omf-combat__card .fui-unit[data-kind='target'] .fui-unit__namerow,
+.omf-combat__card .fui-unit[data-kind='boss'] .fui-unit__namerow {
+  flex-direction: row;
+  justify-content: center;
+}
+
+.omf-combat__card .fui-unit__namerow {
+  justify-content: center;
+}
+
+.omf-combat__card .fui-unit[data-kind='target'] .fui-unit__name,
+.omf-combat__card .fui-unit__name {
+  font-size: 17px;
+  text-align: center;
+}
+
+.omf-combat__card[data-unit='enemy'] {
+  order: 3;
+}
+
+.omf-combat__card.is-charged .fui-unit {
+  animation: omf-charged 900ms ease-in-out infinite;
+}
+
+.omf-combat__card.is-defeated {
+  filter: saturate(0.15) brightness(0.6);
+  opacity: 0.55;
+  transform: translateY(22px) rotate(-5deg);
+  transition:
+    filter 320ms ease,
+    opacity 320ms ease,
+    transform 320ms ease;
+}
+
+@keyframes omf-charged {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+.omf-combat__round {
+  align-self: center;
+  font-family: var(--fui-font-display, serif);
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
+  opacity: 0.55;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 80%);
+}
+
+/** The signature set-piece: the world leans in for a beat (COMBAT.md §7). */
+.omf-combat.is-signature .omf-combat__scene {
+  transform: scale(1.03);
+  transition: transform 180ms ease-out;
+}
+
+.omf-combat.is-signature .omf-combat__round {
+  opacity: 0.25;
+}
+
+/* --- Aftermath: result, loot, death (COMBAT.md §8) ----------------------- */
+
+.omf-combat__aftermath:empty {
+  display: none;
+}
+
+.omf-combat__aftermath {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--fui-bg, #10131a) 68%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.omf-fight.is-over .omf-fight__controls {
+  opacity: 0.4;
+}
+
+.omf-result {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--omf-gap);
+  max-width: 100%;
+  padding: var(--omf-gap);
+  box-sizing: border-box;
+}
+
+.omf-raid {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 0;
+}
+
+.omf-death__kept {
+  margin: 12px 0 4px;
+  color: var(--fui-gold, #d8b26a);
+}
+
+.omf-death__detail {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omf-combat__card.is-charged .fui-unit {
+    animation: none;
+  }
 }
 
 /* --- Error surface ------------------------------------------------------- */
