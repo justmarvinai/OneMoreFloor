@@ -26,7 +26,9 @@ One shared library of named curve shapes — `linear`, `polynomial(k)`, `exponen
 | `statUpgradeCost(statId, n)` | Gold cost of the *n*-th purchased point (§6) | exponential; per-stat multiplier | Unbounded S&F-style sink (USER_QUESTIONS A2); always *a* next point in reach |
 | `gearLevelCost(level, itemBracket, rarity)` | §10.1 track | piecewise: gentle polynomial 1→10, steep exponential 11→15 | Exactly the brief's two-phase feel |
 | `gearAscensionCost(stars, itemBracket)` | Materials mix per star (§10.2) | rising counts across ≥2 material types, higher-tier materials from deeper floor bands | Ties gear ascension to *climbing*, not idling |
-| `accountUpgradeCost(tier)` | §15 | Battle Speed: brutal exponential across tiers (⧗Q19); Slot 2 cheap, 3–5 steep (§15.2) | "Insanely expensive" lives here |
+| `accountUpgradeCost(tier)` | §15 | Battle Speed: three sequential Gold tiers x2→x4→x8 (Q19), brutal exponential between them; Slot 2 cheap, 3–5 steep (§15.2) | "Insanely expensive" lives here, concentrated in x8 |
+| `merchantRerollCost(PL)` | Instant "new goods" reroll (Q17) | rises with Power Level | Impatience is a gold sink; the free 6h restock stays the default path |
+| `sellValue(item)` | Selling unwanted gear to merchants (Q16) | small config fraction of the item's budget | Minor faucet; keeps backpack pressure honest without denting §14 scarcity |
 
 Boss floors additionally attach buff/debuff kits (COMBAT.md §4) whose magnitudes scale on their own documented sub-curve — bosses get *mechanically* nastier with depth, not just statistically bigger.
 
@@ -36,7 +38,7 @@ Boss floors additionally attach buff/debuff kits (COMBAT.md §4) whose magnitude
 - **Mitigation:** `taken = dmg · DEF_factor` where `DEF_factor = K / (K + DEF)` with `K` scaling per floor bracket — diminishing returns, never immunity (COMBAT.md §2), and enemy DEF keeps mattering at any depth because `K` grows with the band.
 - **Crit:** `critChance = luckFactor(LUCK, floorBand)` — Luck is *relative to the band* (like the reference game's level-relative crit), so crit% is a live stat forever, not a solved checkbox. Cap below 100% (config, default 60%).
 - **Speed double-attack:** `chance = speedFactor(SPEED, floorBand)`, cap (default 50%). Same band-relative treatment; enemy Speed uses the same function (§4.2 symmetry).
-- **Signature move scaling** (⧗Q6/Q26): `power = f(resourcePool)` per class, documented per class in the config.
+- **Signature move scaling** (Q6/Q26, design of record in COMBAT.md §5): `power = f(resourcePool)` per class, documented per class in the config.
 
 Band-relative factors are the *endless* answer of §3.7: raw stats inflate forever, effective percentages stay in tuned windows.
 
@@ -54,7 +56,7 @@ Band-relative factors are the *endless* answer of §3.7: raw stats inflate forev
 
 **Bracket** = `bracketOf(PL)`: a config table mapping PL ranges → an **item budget window** `[minBudget, maxBudget]` plus allowed material/potion tiers. Every item-emitting system — floor drops (§3.6), Equipment Merchant (§11), Magic Merchant (§12), gacha (§16) — generates items **only inside the requester's current bracket window**:
 
-1. Generation order: bracket → budget roll within window → rarity roll → the rarity's *within-window* budget position and affix-count tendencies (§10.2 table) → affix distribution.
+1. Generation order: bracket → budget roll within window → rarity roll → the rarity's *within-window* budget position and affix-count tendencies → affix distribution. Affix slots follow the §10.2 table as resolved by Q3: an item rolls 1–2 slots at gear-ascension 0 (higher rarity → more likely 2), then the cadence 2 / 2 / 3 / 4 / 5 across ascensions 1–5.
 2. **Rarity never escapes the window.** A Mythical at PL 800 is the best possible ~PL-800-bracket item — dramatically better than its Common neighbor, still a bracket-800 item. Rarity chooses *how good within the bracket*; PL chooses *the bracket*. (Brief's own canonical case: Ascension 0 / Level 12 / Floor 21 can never see a +1000-Strength chest — with bracket windows that item is unconstructible from any source, which is stronger than any per-source cap.)
 3. Enforced by a property test sweeping character states × all sources × thousands of seeds, asserting emitted budgets ⊆ window (ARCHITECTURE §7). This test is part of CI forever.
 4. `ItemInstance.bracketAtDrop` (SAVE_SCHEMA §3) audits the rule across real saves.
@@ -63,15 +65,15 @@ Merchant stock (§11/§12) and gacha (§16.2) call the same `bracketOf` — one 
 
 ## 7. Drop system (§3.6)
 
-Per floor clear: guaranteed Gold + XP (curve §3), then weighted rolls from the floor band's **loot table** (content data): equipment (slot-weighted), materials (tiered by band), potions? (no — potions are merchant-only per §12), Tickets/Lucky Tickets at very low weights (§16.1), relics/artifacts per Q22's answer. Boss floors: multiplied payout + improved rarity weights + a guaranteed "boss chest" roll (§3.2 "extra rewards"). Rarity weights per band implement §9.2's arc (early tables simply carry ~0 Legendary/Mythical weight; deeper bands introduce Legendary; Mythical weight stays vanishingly small everywhere — event-rare, and *never* bracket-breaking per §6 above).
+Per floor clear: guaranteed Gold + XP (curve §3), then weighted rolls from the floor band's **loot table** (content data): equipment (slot-weighted), materials (tiered by band), potions? (no — potions are merchant-only per §12), Tickets/Lucky Tickets at very low weights (§16.1), and relic/artifact items only for characters whose corresponding slot is already unlocked (Q22: gated on hero ascension 4/5 — the same gate applies to merchant stock). Boss floors: multiplied payout + improved rarity weights + a guaranteed "boss chest" roll (§3.2 "extra rewards"). Rarity weights per band implement §9.2's arc (early tables simply carry ~0 Legendary/Mythical weight; deeper bands introduce Legendary; Mythical weight stays vanishingly small everywhere — event-rare, and *never* bracket-breaking per §6 above).
 
 ## 8. Gacha odds (§16)
 
-Two banners (⧗Q20). Provisional shape, tuned in M9: Ticket banner — jackpot (Legendary-at-bracket) low single-digit %; the rest of the table pays Rare/Epic gear and material/gold bundles (every pull pays something; the *animation* sells the near-miss, §16.3). Lucky banner — Mythical jackpot ≪1%; floor of the table is Epic/Legendary. No pity in 0.1 (⧗Q20.3). Ticket faucets (rare drops §16.1 + hard quests §17 + tutorial's single Lucky Ticket §18) are throttled so pulls are *events* — provisional target: a Ticket every day-or-two of normal play, Lucky Tickets ~weekly from the hard weekly (⧗Q21).
+Two banners, single pulls only, every pull pays something, no pity counter — all confirmed by Q20. Provisional shape, tuned in M9: Ticket banner — jackpot (Legendary-at-bracket) low single-digit %; the rest of the table pays Rare/Epic gear and material/gold bundles (the *animation* sells the near-miss, §16.3). Lucky banner — Mythical jackpot ≪1%; floor of the table is Epic/Legendary. Ticket faucets (rare drops §16.1 + hard quests §17 + tutorial's single Lucky Ticket §18) are throttled so pulls are *events* — provisional target: a Ticket every day-or-two of normal play, Lucky Tickets ~weekly from the hard weekly (Q21's guaranteed hard slot).
 
 ## 9. Quests & potions economy
 
-Daily objectives sized to one normal session, weeklies to a normal week, neither trivial (§17) — objective magnitudes scale from the character's own trailing activity (floors/day average) so "one day of normal play" stays true at every depth. Rewards: meaningful gold/material/XP boosts (config), hard weekly carries the Ticket odds (§17). Potions (§12): one tier per bracket window, magnitude a % of the stat (flat numbers die with inflation), price high enough that always-on-everything potioning is a genuine gold decision (§14 pressure).
+Daily objectives sized to one normal session, weeklies to a normal week, neither trivial (§17) — objective magnitudes scale from the character's own trailing activity (floors/day average) so "one day of normal play" stays true at every depth. Rewards: meaningful gold/material/XP boosts (config), hard weekly carries the Ticket odds (§17). Potions (§12): real-time one-hour buffs (Q9), one active per stat with re-drinking replacing the buff (Q18 — five potionable stats; Speed has none per §6); one tier per bracket window, magnitude a % of the stat (flat numbers die with inflation), priced so always-on-everything potioning is a genuine gold decision (§14 pressure).
 
 ## 10. The balance simulator (how we tune honestly)
 

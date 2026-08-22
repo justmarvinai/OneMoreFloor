@@ -24,7 +24,7 @@
 | Vertical floor path: cleared / current / upcoming, boss floors every 10th flagged (§3.1) | `StageTrail` (full-screen scrolling path w/ milestone markers) — the closest existing metaphor to a tower; oriented/beskinned upward within its design language |
 | Current-floor enemy preview (name, avatar, stat hints, floor modifiers w/ tooltips) | `ItemCard`-style panel from `Panel` + `Portrait` + `StatChip` + `BuffBar` |
 | "One more floor" fight button | `Button` (hero-sized), `CostButton` unneeded (fights are free) |
-| Quick-Raid: per-floor skip + "raid to Floor N" (⧗Q8) | `SplitButton` (fight / skip-to), aggregate results in `LootWindow` |
+| Quick-Raid: per-floor skip + "raid to Floor N" chain (Q8 confirmed) | `SplitButton` (fight / skip-to), aggregate results in `LootWindow` |
 | Highest-ever marker, run info | `Ribbon`, `StatChip` |
 | Death aftermath | `DeathScreen` (kept-vs-lost summary + Quick-Raid call-to-action, COMBAT.md §8) |
 
@@ -50,7 +50,7 @@
 | Level + XP bar, Power Level display (§13) | `StatBar (xp)`, `PowerRating` |
 | Stat rows with derived values + gold-upgrade buttons (§6; reference shows +buttons) | `StatsPanel` / `StatBlock` rows + `CostButton` (self-disables when short — exactly §20.5) |
 | Active potion buffs with timers (§12) | `BuffBar` + `CountdownTimer` |
-| Inventory grid (capacity ⧗Q16) | `InventoryGrid` (real drag-and-drop onto Paperdoll) |
+| Inventory grid (Q16: finite S&F-style backpack; full-drop resolution dialog) | `InventoryGrid` (real drag-and-drop onto Paperdoll) |
 | Item inspect/compare on hover (slot vs candidate) | `Tooltip` + `CompareStats` + `ItemCard` |
 | Gear detail: level 0–15 track, ascension stars, affixes (§10) | `UpgradePanel` (levels) + `RankUpPanel` (gear ascension w/ material `Slot`s) + `StarRating` |
 | Hero ascension moment (§7) | `RankUpPanel` + celebratory `SceneTransition` |
@@ -61,10 +61,10 @@
 | Element | FantasyUI |
 |---|---|
 | Shop stock grid w/ prices, rarity frames, sold-out states (§11/§12) | `ShopPanel` + `ItemCard` in `TintFrame` (rarity tint) + `CostButton` |
-| Restock timer + paid reroll (⧗Q17) | `CountdownTimer` + `CostButton` |
+| Restock timer + paid reroll (Q17: ~6h auto-restock, milestone restock, PL-scaled Gold reroll) | `CountdownTimer` + `CostButton` |
 | Potion stock w/ stat + duration tooltips (§12) | same grid; `Icon` potion art |
-| Sell/dispose flow (⧗Q16) | `InventoryGrid` + confirm `Modal` |
-| Merchant NPC presence (reference shows illustrated scenes) | `SceneBackdrop` + supplied art (⧗Q11.3) |
+| Sell/dispose flow (Q16: sell for a fraction of value at any merchant) | `InventoryGrid` + confirm `Modal` |
+| Merchant NPC presence (reference shows illustrated scenes) | `SceneBackdrop` + FantasyUI theme art only in 0.1 (Q11); owner backdrops may replace later by asset id |
 
 ## 6. Gacha — DE for the reveal, SV for the banner lobby (§16)
 
@@ -76,15 +76,15 @@
 
 ## 7. Quests — SV (§17)
 
-`QuestBoard` (active dailies/weeklies, claim states, full-board labeling), `QuestTracker` (shell-level pinned objectives), `ProgressRing`/`StatBar` per objective, `RewardPopup` on claim, `CountdownTimer` to reset (⧗Q10/Q21).
+`QuestBoard` (active dailies/weeklies, claim states, full-board labeling), `QuestTracker` (shell-level pinned objectives), `ProgressRing`/`StatBar` per objective, `RewardPopup` on claim, `CountdownTimer` to reset (Q10: local midnight / Monday 00:00; Q21: 3 dailies + 3 weeklies, one hard weekly, no rerolls).
 
 ## 8. Meta screens
 
 | Screen | FantasyUI |
 |---|---|
 | Title / first load | `TitleGate`, `LoadingScreen` |
-| Character select (5 slots, occupied/empty/locked w/ unlock prices §15.2/⧗Q2) | `CharacterSelect` + `Portrait` + `StarRating` + `CostButton` |
-| Hero creation (name + class pick + class preview, §5) | `CharacterCreator` + `TextInput` + class `ChampionCard`-style preview panels (⧗Q25 rules) |
+| Character select (5 slots, occupied/empty/locked w/ unlock prices §15.2; Q2: the one place characters are switched) | `CharacterSelect` + `Portrait` + `StarRating` + `CostButton` |
+| Hero creation (name + class pick + class preview, §5) | `CharacterCreator` + `TextInput` + class `ChampionCard`-style preview panels (Q25: 3–16 chars, unique per account, no rename) |
 | Account upgrades (Battle Speed tiers, slots — §15) | `UpgradePanel` + `CostButton` + `TierBadge` |
 | Tutorial (§18) | `TutorialMask` + `TutorialTip` sequence; completion via `RewardPopup` (Lucky Ticket moment) |
 | Settings (minimal: no audio §2.2) | `SettingsScreen` (pruned) |
@@ -92,7 +92,7 @@
 
 ## 9. Item rendering standard (game-wide)
 
-Every item everywhere = `TintFrame` (rarity tint per FantasyUI's six-tier rarity) + item icon (⧗Q27 source) + `Badge` (gear level) + `StarRating` (gear ascension) + `Tooltip` (full stat block, affix list, compare). One `custom/ItemView` wrapper standardizes this so an item looks identical in inventory, paperdoll, shop, loot, and gacha contexts.
+Every item everywhere = `TintFrame` (rarity tint per FantasyUI's six-tier rarity) + item icon (Q27: curated FantasyUI icons in 0.1, id-bound for real art later — CONTENT_PIPELINE.md §2–3) + `Badge` (gear level) + `StarRating` (gear ascension) + `Tooltip` (full stat block, affix list, compare). One `custom/ItemView` wrapper standardizes this so an item looks identical in inventory, paperdoll, shop, loot, and gacha contexts.
 
 ## 10. Custom components (§20.2 — "only when a feature genuinely requires it")
 

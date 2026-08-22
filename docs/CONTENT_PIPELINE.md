@@ -13,8 +13,9 @@
 
 ### Classes (§8) — `content/classes/`
 ```ts
-{ id, name, resource: { kind: 'rage'|'mana'|'focus', fillRules, signatureMove },   // ⧗Q6/Q26
-  weaponRule: 'two_handed'|'one_hand_shield_or_two_handed'|'dual_one_handed',      // §8.1 (⧗Q15)
+{ id, name, resource: { kind: 'rage'|'mana'|'focus', fillRules, signatureMove },   // Q6/Q26 approved design — COMBAT.md §5
+  weaponRule: 'two_handed'|'one_hand_shield_or_two_handed'|'dual_one_handed',      // §8.1; Q15: 2H blocks Offhand visually
+  startingLoadout: ItemDefId[],   // Q15: Warrior = plain 1H + Shield; Swashbuckler = both 1H; others = class 2H
   baseStats, statGrowthPerLevel, avatar: 'assets/class_avatars/…',
   flavor: { title, description } }
 ```
@@ -27,7 +28,7 @@ Five entries in 0.1 (§8); a sixth class later = one new entry + weapon pool + a
   effectKit?: EffectRef[],                              // normal-floor debuffs: weaker class (§3.2)
   bands: [minFloor, maxFloor?], weight }
 ```
-Hand-authored volume per Q12's answer; beyond the authored range the floor generator composes `base enemy × scaling × modifier affixes` (e.g., `modifier.frenzied`: +ATK −DEF), all defined here too.
+Hand-authored volume per Q12: **~30 enemy types across ~8 thematic families for floors 1–100 (~3 per 10-floor band) and 10 bosses (floors 10–100)**; beyond the authored range the floor generator composes `base enemy × scaling × modifier affixes` (e.g., `modifier.frenzied`: +ATK −DEF), all defined here too.
 
 ### Bosses (§3.2) — `content/enemies/bosses/`
 Enemy shape + `bossKit`: player-debuff + self-buff sets (COMBAT.md §4) with per-depth magnitude curves, extra-reward table ref, and (later) dedicated avatar ids.
@@ -36,28 +37,28 @@ Enemy shape + `bossKit`: player-debuff + self-buff sets (COMBAT.md §4) with per
 No per-floor hand tables (endless, §3.1): floors are **generated** from `floorRules` — band themes (backdrop, enemy family pool, material tier), the every-10th-boss rule (§3.1), reward table refs, and named exceptions list (floor 1 tutorial pacing). The generator is seeded per run (ARCHITECTURE §5) with one hard invariant: **a floor, once generated for a character's run, is stable** (re-fighting after a loss re-faces the same enemy).
 
 ### Items (§9/§10) — `content/items/`
-- **Base types**: per equip slot × class-restriction (weapons class-exclusive, armor universal — §8.2) × visual tier (icon binding ⧗Q27); e.g., `item.base.warrior_2h_greatsword`.
-- **Affix pool** (§10.2's `+ATK/+DEF/+SPEED/+HP/+RESOURCE/+LUCK`): magnitude ranges expressed as *fractions of bracket budget* (BALANCE.md §6), slot-permission rules (Speed rolls gear-only by §6 — trivially true; whether Speed is weapon-biased is a balance choice), rarity → affix-count tendencies (§10.2 table, ⧗Q3).
+- **Base types**: per equip slot × class-restriction (weapons class-exclusive, armor universal — §8.2) × visual tier; e.g., `item.base.warrior_2h_greatsword`. Icon binding per Q27: each base type carries one `icon` field mapped to a curated FantasyUI icon (spell-icons / line-glyphs / generic icons) rendered in a rarity `TintFrame`; target ~3 icon variants per slot family across depth bands (weapons ≥3 per class) so shops and drops don't look repetitive. Real item art later = changing the `icon`/`art` field, exactly like enemy avatars (§4.3).
+- **Affix pool** (§10.2's `+ATK/+DEF/+SPEED/+HP/+RESOURCE/+LUCK`): magnitude ranges expressed as *fractions of bracket budget* (BALANCE.md §6), slot-permission rules (Speed rolls gear-only by §6 — trivially true; whether Speed is weapon-biased is a balance choice), rarity → affix-count tendencies at drop (Q3-resolved §10.2 cadence: 1–2 slots at gear-ascension 0, then 2 / 2 / 3 / 4 / 5). Accessory niches per Q5: Necklace affixes bias offense (ATK/Luck/Speed), Amulet affixes bias defense/sustain (HP/DEF/Resource) — two pools, same framework.
 - **Materials** (§10.2): tiered by floor band, referenced by `gearAscensionCost`.
 - Potions (§12): stat × tier, merchant-only.
 
 ### Quests (§17) — `content/quests/`
-Template pool: `{ id, cadence: daily|weekly, difficulty: normal|hard, objective: { kind, target: scalingRef }, rewards: RewardTableRef }` — objective kinds are a fixed engine vocabulary (clear-floors, defeat-boss, spend-gold, upgrade-gear, win-without-X…); templates are data (⧗Q21 counts).
+Template pool: `{ id, cadence: daily|weekly, difficulty: normal|hard, objective: { kind, target: scalingRef }, rewards: RewardTableRef }` — objective kinds are a fixed engine vocabulary (clear-floors, defeat-boss, spend-gold, upgrade-gear, win-without-X…); templates are data. Board per Q21: 3 dailies + 3 weeklies active, one weekly always hard (Ticket/Lucky-Ticket eligible), no rerolls in 0.1.
 
 ### Tutorial (§18) — `content/tutorial/`
 Ordered step data: `{ anchor: uiAnchorId, text: stringRef, advanceOn: eventRef, mask }` driving `TutorialMask/TutorialTip` — reorderable/extendable without code.
 
 ### Reward tables — `content/rewards/`
-Shared weighted-table format used by floors, bosses, quests, gacha (rolls resolve through the bracket function, BALANCE.md §6–7). `rewardType` is an open union (tomes slot in later if Q7 says cut-now).
+Shared weighted-table format used by floors, bosses, quests, gacha (rolls resolve through the bracket function, BALANCE.md §6–7). `rewardType` is an open union — skill/ability tomes are **cut from 0.1 per Q7** (an owner-approved deviation from Brief §3.6) and can slot back in later without schema surgery.
 
 ## 3. Asset binding
 
-Game art lives in `assets/` (art) and binds by id from content; FantasyUI art by FUI asset id (`silhouette-warrior-m`). Adding a real enemy avatar later = drop file, change the enemy's `avatar` field — the §4.3 requirement verbatim. Item icons per Q27's answer follow the same id-binding pattern. A CI check fails on ids referencing missing files (never a broken image at runtime).
+Game art lives in `assets/` (art) and binds by id from content; FantasyUI art by FUI asset id (`silhouette-warrior-m`). Adding a real enemy avatar later = drop file, change the enemy's `avatar` field — the §4.3 requirement verbatim (owner supplies enemy avatars in the same 2048×2048 bust-portrait format/aspect as the class avatars, per Q11). Item icons follow the same id-binding pattern (Q27, see §2). Backdrops in 0.1 compose from FantasyUI theme art only (Q11); owner-painted backdrops may bind in later the same way. A CI check fails on ids referencing missing files (never a broken image at runtime).
 
 ## 4. Authoring workflow (the recurring job, post-0.1)
 
 "Add 10 floors of content" = extend a band or add one, add enemies/materials to pools, rerun `content:validate` + balance simulator (BALANCE.md §10), eyeball the sim deltas, done — no engine work. This workflow is the definition of done for the content milestone: we will demonstrate it by adding a throwaway enemy + quest template end-to-end in review.
 
-## 5. Localization posture (⧗Q24)
+## 5. Localization posture (Q24: English-only in 0.1)
 
 Content carries `stringRef`s into `src/strings/` (single English table in 0.1); no player-facing literal strings inside content or logic — the lint rule that makes later localization a translation task, not a refactor.
