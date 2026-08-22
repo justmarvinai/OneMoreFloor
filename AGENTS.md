@@ -4,7 +4,7 @@ Instructions for any AI agent (or human) picking up tasks in this repo. **`CLAUD
 
 ## Phase gate (mirrors CLAUDE.md — currently binding)
 
-Planning is delivered; the owner has **not** yet answered `USER_QUESTIONS.md` or approved development (Brief §22). Until then: documentation work only. **No game code.**
+Planning is delivered and every question is answered (`USER_QUESTIONS.md` is the decision ledger, resolved 2026-08-22), but the owner has **not yet given the explicit Phase 3 "start development" go** (Brief §22). Until then: documentation work only. **No game code.**
 
 ## Work lanes
 
@@ -23,7 +23,7 @@ Cross-lane contracts (store shape, CombatScript, content schemas, bracket functi
 ## Task protocol
 
 1. **Slice vertically inside a milestone** (`ROADMAP.md` order is binding): a task delivers a testable behavior ("gear ascension consumes materials and adds a stat slot"), not a layer ("write the item types").
-2. **Before coding:** read the milestone's exit criteria + the sections of the docs your task cites; check `USER_QUESTIONS.md` — if your task touches an unanswered `⧗Qn` without a documented assumption (A1–A15), **stop and raise it**, don't guess (§0.3).
+2. **Before coding:** read the milestone's exit criteria + the sections of the docs your task cites; check `USER_QUESTIONS.md` — decisions there are binding; if your task hits an ambiguity the ledger doesn't cover, **file a new question and raise it**, don't guess (§0.3).
 3. **Definition of done for every task:** behavior implemented per doc; tests for it (domain work = unit tests; save work = fixture tests; UI work = smoke coverage); full verification suite green (`CLAUDE.md` list); `CHANGELOG.md` entry; affected docs updated in the same change; no balance literals outside config; no new dependencies (ARCHITECTURE §2 policy) without prior sign-off.
 4. **Review posture:** re-read your diff against the Hard Rules list in `CLAUDE.md` before handing off — those are the defects that are cheap now and brutal in six months.
 

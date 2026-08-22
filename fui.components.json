@@ -1,0 +1,24 @@
+{
+  "$comment": "Components vendored from FantasyUI (justmarvinai/fantasyuis). This list is the source of truth for `npm run vendor:fui`; dependencies between components are resolved automatically. Grows per milestone as screens are built — see docs/UI_FANTASYUI_MAP.md for the screen-by-screen mapping.",
+  "components": [
+    "Badge",
+    "Banner",
+    "Button",
+    "CurrencyBar",
+    "Divider",
+    "EmptyState",
+    "Icon",
+    "LoadingScreen",
+    "MenuButton",
+    "Modal",
+    "OrnateHeader",
+    "Panel",
+    "Portrait",
+    "SceneBackdrop",
+    "SideNav",
+    "StatBar",
+    "TitleGate",
+    "ToastStack",
+    "Tooltip"
+  ]
+}

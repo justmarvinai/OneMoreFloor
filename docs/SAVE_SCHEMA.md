@@ -1,6 +1,6 @@
 # OneMoreFloor — Save Layer & Data Model (EA 0.1)
 
-> Status: **planning**. Schema sketches below are *design*, not source; several shapes have fields that depend on open questions (marked `⧗Qn`). Brief cited as §n. The save layer is required by §21 to handle versioning + migrations and corruption recovery **from day one**; this is that design.
+> Status: **planning — all feeding questions resolved** (decisions cited as `Qn`, see the `USER_QUESTIONS.md` ledger). Schema sketches below are *design*, not source. Brief cited as §n. The save layer is required by §21 to handle versioning + migrations and corruption recovery **from day one**; this is that design.
 
 ## 1. Principles
 
@@ -29,36 +29,36 @@ Illustrative TypeScript; final field lists follow the question answers.
 ```ts
 interface AccountRecord {
   schemaVersion: number;
-  accountUpgrades: {                    // ⧗Q4: assumed account-wide
-    battleSpeedTier: 0 | 1 | 2 | 3;     // x1 x2 x4 x8 — ⧗Q19 tier model
+  accountUpgrades: {                    // Q4: account-wide, survive character resets
+    battleSpeedTier: 0 | 1 | 2 | 3;     // x1 x2 x4 x8 — Q19: three sequential tiers
     characterSlotsUnlocked: 1 | 2 | 3 | 4 | 5;   // §15.2
   };
-  activeSlotId: SlotId | null;          // ⧗Q2: one active character
+  activeSlotId: SlotId | null;          // Q2: exactly one active character at a time
   tutorialCompleted: boolean;           // §18 reward is per first completion
 }
 
 interface CharacterRecord {
   schemaVersion: number;
   slotId: SlotId;
-  identity: { name: string; classId: ClassId; createdAt: number };  // §5, ⧗Q25
+  identity: { name: string; classId: ClassId; createdAt: number };  // §5; Q25 name rules, no rename
   progression: {
     level: number; xp: number;
     ascension: 0 | 1 | 2 | 3 | 4 | 5;   // §7
   };
   stats: Record<UpgradableStatId, { base: number; goldUpgrades: number }>; // §6; Speed excluded by type
-  currencies: { gold: number; tickets: number; luckyTickets: number };     // §14/§16, ⧗Q1
+  currencies: { gold: number; tickets: number; luckyTickets: number };     // §14/§16; Q1: Gold is the only currency
   materials: Record<MaterialId, number>;                                   // §10.2
   equipment: Partial<Record<EquipSlotId, ItemInstance>>;                   // §9.1
-  inventory: ItemInstance[];            // capacity ⧗Q16
+  inventory: ItemInstance[];            // Q16: finite backpack (size is a balance value)
   tower: {
     currentRunFloor: number;            // resets to 1 on death (§3.3)
     highestFloorEverCleared: number;    // persistent record (§3.4)
     runSeed: string;                    // deterministic run (ARCHITECTURE §5)
   };
-  quests: QuestPeriodState;             // period keys + progress (§17, ⧗Q10/Q21)
-  buffs: ActivePotionBuff[];            // { statId, magnitude, expiresAtWallClock } ⧗Q9/Q18
-  merchants: MerchantState;             // current stock rolls + restock anchors ⧗Q17
-  pity?: never;                         // ⧗Q20: no pity counter planned in 0.1
+  quests: QuestPeriodState;             // §17; Q10 date-keyed periods; Q21 3+3 board
+  buffs: ActivePotionBuff[];            // { statId, magnitude, expiresAtWallClock } — Q9 real time; Q18 one per stat
+  merchants: MerchantState;             // stock rolls + restock/reroll anchors (Q17)
+  pity?: never;                         // Q20: no pity counter in 0.1
   badges: BadgeMemory;                  // which red-dots were seen (§20.5)
 }
 
@@ -68,7 +68,7 @@ interface ItemInstance {
   rarity: Rarity;                       // §9.2 (six tiers)
   level: 0..15;                         // §10.1
   ascension: 0..5;                      // §10.2
-  affixes: Affix[];                     // rolled stat slots (§10.2 table, ⧗Q3)
+  affixes: Affix[];                     // rolled stat slots (§10.2 table; Q3: asc 2 stays at 2 slots)
   bracketAtDrop: number;                // Power-Level bracket stamped at creation (§13 audit trail)
 }
 ```
@@ -96,7 +96,7 @@ Layered, per §21's explicit requirement:
 4. **Quarantine, never delete:** corrupted blobs are moved to a quarantine key (they may be manually recoverable); the game never silently discards player data.
 5. **Torn multi-record states:** account and character records are versioned by `gen` so a crash between "gold spent" (character) and "battle speed bought" (account) can be detected; cross-record purchases are therefore written **in one transaction spanning both stores** — the rule is: one user action = one transaction.
 
-## 7. Time & tamper damping (feeds Q9/Q10 policies)
+## 7. Time & tamper damping (implements the Q9/Q10 decisions: real-time potions; local-midnight dailies, Monday-00:00 weeklies)
 
 All wall-clock reads flow through `time.ts` (ARCHITECTURE §5): on boot and periodically, `lastKnownWallClock` is persisted; if the clock reads **earlier** than last-known (rollback), the service reports a clamped "no earlier than last-known" now — so potion buffs (§12) can't be frozen forever and completed quest periods (keyed by date-string, §17) never re-grant. Forward jumps are honored (skipping ahead only expires your own buffs and skips quest days — self-cheating we accept per §1's single-player philosophy). No network time checks — the game must run fully offline (ARCHITECTURE §6).
 
@@ -104,9 +104,9 @@ All wall-clock reads flow through `time.ts` (ARCHITECTURE §5): on boot and peri
 
 One writer at a time: on boot the game takes a `sessionLock` via the Web Locks API (fallback: heartbeat timestamp in `meta`); a second tab sees the lock and shows a styled "OneMoreFloor is already open in another window" gate instead of racing the save. (Also Electron-relevant later: second app instance.)
 
-## 9. Reset & slot lifecycle (⧗Q4)
+## 9. Reset & slot lifecycle (Q4)
 
-Assuming Q4(a): **character reset** deletes exactly that `characters[slotId]` record (through the same backup path — an accidental reset is recoverable from `saveBackups` within the retention window, though the UI treats reset as final per §19); the account record is untouched. **Account slots** unlock via `accountUpgrades.characterSlotsUnlocked`; an empty unlocked slot simply has no character record.
+Per Q4: **character reset** deletes exactly that `characters[slotId]` record (through the same backup path — an accidental reset is recoverable from `saveBackups` within the retention window, though the UI treats reset as final per §19); the account record is untouched. **Account slots** unlock via `accountUpgrades.characterSlotsUnlocked`; an empty unlocked slot simply has no character record.
 
 ## 10. Export / import (later per §21 — designed now)
 

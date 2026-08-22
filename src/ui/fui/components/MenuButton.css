@@ -1,0 +1,174 @@
+/* MenuButton — one row of a hub menu: emblem, destination, what is waiting. */
+
+.fui-menubtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 62px;
+  padding: 10px 16px;
+  border: 0;
+  background: none;
+  color: var(--fui-btn-ink, #eaf6f3);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    filter var(--fui-t-fast, 120ms) var(--fui-ease, ease-out),
+    transform var(--fui-t-fast, 120ms) var(--fui-ease, ease-out);
+}
+
+.fui-menubtn__art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--fui-btn-long-bw, var(--fui-btn-bw));
+  border-image-source: var(--fui-btn-long-src, var(--fui-btn-src));
+  border-image-slice: var(--fui-btn-long-sl, var(--fui-btn-sl)) fill;
+  border-image-repeat: stretch;
+}
+
+.fui-menubtn:hover:not([data-locked='on']) .fui-menubtn__art {
+  border-image-source: var(--fui-btn-long-hover-src, var(--fui-btn-hover-src));
+}
+
+/* ── Emblem ─────────────────────────────────────────────────────────────── */
+
+.fui-menubtn__emblem {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  /* A diamond, so a menu emblem never reads as an item slot. */
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: color-mix(in srgb, var(--fui-accent, #d8c9a6) 22%, transparent);
+}
+
+.fui-menubtn__glyph {
+  width: 20px;
+  height: 20px;
+  background-color: var(--fui-accent, #d8c9a6);
+  mask: var(--fui-menu-glyph, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-menu-glyph, var(--fui-mask-none)) center / contain no-repeat;
+}
+
+.fui-menubtn__icon {
+  width: 24px;
+  height: 24px;
+  background: var(--fui-menu-art, none) center / contain no-repeat;
+}
+
+/* ── Text ───────────────────────────────────────────────────────────────── */
+
+.fui-menubtn__stack {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fui-menubtn__label {
+  font-family: var(--fui-font-display, system-ui, sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fui-menubtn__note {
+  font-size: 11px;
+  color: color-mix(in srgb, var(--fui-btn-ink, #eaf6f3) 68%, transparent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fui-menubtn__badge {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--fui-danger, #d8543f);
+  color: #fff;
+  font: 700 11px/20px var(--fui-font-ui, system-ui, sans-serif);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.fui-menubtn__badge[data-dot='on'] {
+  min-width: 0;
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.fui-menubtn__chevron {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  opacity: 0.55;
+  transition: transform var(--fui-t-fast, 120ms) var(--fui-ease, ease-out);
+}
+
+/* ── States ─────────────────────────────────────────────────────────────── */
+
+.fui-menubtn:hover:not([data-locked='on']) { filter: brightness(1.12); }
+.fui-menubtn:hover:not([data-locked='on']) .fui-menubtn__chevron { transform: rotate(-45deg) translate(2px, 2px); }
+.fui-menubtn:active:not([data-locked='on']) { transform: translateY(1px); }
+
+.fui-menubtn[data-current='on'] .fui-menubtn__emblem {
+  background: var(--fui-gold, #e0b04a);
+}
+
+.fui-menubtn[data-current='on'] .fui-menubtn__glyph { background-color: #1a1408; }
+
+.fui-menubtn[data-current='on'] .fui-menubtn__label { color: var(--fui-gold, #e0b04a); }
+
+/* Locked rows stay in the menu and keep their shape — a hub that hides what you
+   have not unlocked gives a new player nothing to aim at. */
+.fui-menubtn[data-locked='on'] {
+  cursor: not-allowed;
+  filter: grayscale(0.75) brightness(0.68);
+}
+
+.fui-menubtn[data-locked='on'] .fui-menubtn__note {
+  color: var(--fui-danger, #d8543f);
+  font-weight: 600;
+}
+
+.fui-menubtn[data-locked='on'] .fui-menubtn__chevron { opacity: 0.2; }
+
+.fui-menubtn:focus-visible {
+  outline: 2px solid var(--fui-accent, #d8c9a6);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fui-menubtn,
+  .fui-menubtn__chevron { transition: none; }
+  .fui-menubtn:active:not([data-locked='on']) { transform: none; }
+}

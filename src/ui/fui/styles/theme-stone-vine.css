@@ -1,0 +1,174 @@
+/* ===========================================================================
+   Theme — Stone & Vine
+   Carved grey stone, celtic vine ornament, teal button faces.
+   Reads as: overworld, town, inventory, quest and shop UI.
+
+   A theme's whole job is to bind SEMANTIC slots (--fui-panel-*, --fui-btn-*)
+   to CONCRETE art (--fui-img-*). Components only ever reference the semantic
+   slots, which is why every component works in every theme for free.
+
+   Border widths are written as explicit `calc(<slice> * <scale>)` rather than
+   reusing the generated --fui-bw-* shortcuts, for two reasons: each family of
+   art needs its own scale (a chunky carved bar and a fine slot ornament cannot
+   share one multiplier), and a calc written here re-resolves inside a
+   `[data-fui-theme]` subtree, whereas a :root-level shortcut cannot.
+   =========================================================================== */
+
+:root,
+[data-fui-theme='stone-vine'] {
+  --fui-theme-name: 'stone-vine';
+
+  /* ── Palette ─────────────────────────────────────────────────────────── */
+  --fui-accent: #6fb3a8;
+  --fui-accent-soft: #a6dcd3;
+  --fui-accent-deep: #29524d;
+  --fui-gold: #d9a441;
+  --fui-gold-soft: #f0cf85;
+  --fui-ink: #e9e3d4;
+  --fui-ink-dim: #a7a08f;
+  --fui-ink-faint: #6d6757;
+
+  /* Flat colours sampled from the art, for gradients and glows that must
+     blend with the painted textures. */
+  --fui-stone: #4a4a52;
+  --fui-stone-dark: #2b2b31;
+  --fui-slate: #22222a;
+
+  /* ── Windows ─────────────────────────────────────────────────────────────
+     Fill 683x574 [60] behind, ornament frame 747x642 [96] over the top. */
+  --fui-panel-scale: 0.46;
+  --fui-panel-fill-src: var(--fui-img-panel-stone-fill);
+  --fui-panel-fill-sl: 60 60 60 60;
+  --fui-panel-fill-bw: calc(60px * var(--fui-panel-scale));
+  --fui-panel-frame-src: var(--fui-img-panel-stone);
+  --fui-panel-frame-sl: 96 96 96 96;
+  --fui-panel-frame-bw: calc(96px * var(--fui-panel-scale));
+  /* The frame overhangs the fill so no fill edge peeks out from under it. */
+  --fui-panel-frame-inset: -7px;
+  --fui-panel-pad-t: 40px;
+  --fui-panel-pad-x: 46px;
+  --fui-panel-pad-b: 42px;
+
+  /* The arched window: ornament is far deeper at the top than the sides. */
+  --fui-panel-alt-fill-src: var(--fui-img-panel-arch-fill);
+  --fui-panel-alt-fill-sl: 60 60 60 60;
+  --fui-panel-alt-fill-bw: calc(60px * var(--fui-panel-scale));
+  --fui-panel-alt-frame-src: var(--fui-img-panel-arch);
+  --fui-panel-alt-frame-sl: 150 80 110 80;
+  --fui-panel-alt-frame-bw: calc(150px * var(--fui-panel-scale))
+    calc(80px * var(--fui-panel-scale)) calc(110px * var(--fui-panel-scale))
+    calc(80px * var(--fui-panel-scale));
+  --fui-panel-alt-frame-inset: -4px;
+  --fui-panel-alt-pad-t: 76px;
+  --fui-panel-alt-pad-x: 44px;
+  --fui-panel-alt-pad-b: 58px;
+
+  /* ── Inner surfaces (lists, scroll bodies, tooltips) ─────────────────── */
+  --fui-surface-src: var(--fui-img-panel-stone-fill);
+  --fui-surface-sl: 60 60 60 60;
+  --fui-surface-bw: calc(60px * 0.28);
+  --fui-surface-flat: rgba(20, 20, 26, 0.82);
+  --fui-surface-pad: 14px;
+
+  /* ── Hollow overlay frames ───────────────────────────────────────────── */
+  --fui-frame-src: var(--fui-img-panel-stone);
+  --fui-frame-sl: 96 96 96 96;
+  --fui-frame-bw: calc(96px * var(--fui-panel-scale));
+  --fui-frame-sm-src: var(--fui-img-slot-stone-sm);
+  --fui-frame-sm-sl: 34 34 34 34;
+  --fui-frame-sm-bw: calc(34px * 0.4);
+
+  /* ── Buttons ─────────────────────────────────────────────────────────────
+     Face art 461x151 [42 58 46 58]. No dedicated hover texture in this pack,
+     so hover is a lighting change instead of a swap. */
+  --fui-btn-scale: 0.44;
+  --fui-btn-src: var(--fui-img-btn-stone-wide);
+  --fui-btn-sl: 42 58 46 58;
+  --fui-btn-bw: calc(42px * var(--fui-btn-scale)) calc(58px * var(--fui-btn-scale))
+    calc(46px * var(--fui-btn-scale)) calc(58px * var(--fui-btn-scale));
+  --fui-btn-hover-src: var(--fui-img-btn-stone-wide);
+  --fui-btn-active-src: var(--fui-img-btn-stone-wide);
+  --fui-btn-hover-filter: brightness(1.16) saturate(1.12);
+  --fui-btn-active-filter: brightness(0.88) saturate(0.95);
+  --fui-btn-pad: 8px 18px;
+  --fui-btn-min-h: 48px;
+  --fui-btn-ink: #eaf6f3;
+  --fui-btn-square-size: 54px;
+
+  --fui-btn-long-src: var(--fui-img-btn-stone-long);
+  --fui-btn-long-sl: 48 64 52 64;
+  --fui-btn-long-bw: calc(48px * var(--fui-btn-scale)) calc(64px * var(--fui-btn-scale))
+    calc(52px * var(--fui-btn-scale)) calc(64px * var(--fui-btn-scale));
+
+  --fui-btn-ghost-src: var(--fui-img-slot-stone-long);
+  --fui-btn-ghost-sl: 40 54 42 54;
+  --fui-btn-ghost-bw: calc(40px * var(--fui-btn-scale)) calc(54px * var(--fui-btn-scale))
+    calc(42px * var(--fui-btn-scale)) calc(54px * var(--fui-btn-scale));
+
+  --fui-btn-sq-src: var(--fui-img-slot-stone-md);
+  --fui-btn-sq-sl: 40 40 40 40;
+  --fui-btn-sq-bw: calc(40px * 0.3);
+
+  /* Prebuilt icon buttons that ship with their glyph painted in. */
+  --fui-btn-close-img: var(--fui-img-btn-icon-close);
+  --fui-btn-back-img: var(--fui-img-btn-icon-back);
+  --fui-btn-settings-img: var(--fui-img-btn-icon-settings);
+
+  /* ── Slots ───────────────────────────────────────────────────────────────
+     Fill 188x199 [30], vine frame 229x235 [40]. At 0.26 the ornament reads at
+     ~10px on a 64px cell, leaving room for the item art. */
+  --fui-slot-scale: 0.26;
+  --fui-slot-fill-src: var(--fui-img-slot-stone-md-fill);
+  --fui-slot-fill-sl: 30 30 30 30;
+  --fui-slot-fill-bw: calc(30px * var(--fui-slot-scale));
+  --fui-slot-frame-src: var(--fui-img-slot-stone-md);
+  --fui-slot-frame-sl: 40 40 40 40;
+  --fui-slot-frame-bw: calc(40px * var(--fui-slot-scale));
+  --fui-slot-frame-inset: -4px;
+  --fui-slot-inset: 13px;
+
+  --fui-slot-lg-frame-src: var(--fui-img-slot-stone-lg);
+  --fui-slot-lg-frame-sl: 46 46 46 46;
+  --fui-slot-lg-frame-bw: calc(46px * var(--fui-slot-scale));
+
+  /* ── Bars ────────────────────────────────────────────────────────────────
+     Track 627x103 [30 62 32 62]; at 0.34 that lands a 35px-tall bar whose
+     ornament still fits inside its own height. */
+  --fui-bar-scale: 0.34;
+  --fui-bar-h: 35px;
+  --fui-bar-track-src: var(--fui-img-bar-track-stone);
+  --fui-bar-track-sl: 30 62 32 62;
+  --fui-bar-track-bw: calc(30px * var(--fui-bar-scale)) calc(62px * var(--fui-bar-scale))
+    calc(32px * var(--fui-bar-scale)) calc(62px * var(--fui-bar-scale));
+  /* Where the fill sits inside the track's painted recess. */
+  --fui-bar-inset-x: 17px;
+  --fui-bar-inset-y: 10px;
+
+  --fui-bar-fill-health-src: var(--fui-img-bar-fill-health);
+  --fui-bar-fill-mana-src: var(--fui-img-bar-fill-mana);
+  --fui-bar-fill-stamina-src: var(--fui-img-bar-fill-stamina);
+  --fui-bar-fill-sl: 0 28 0 28;
+  --fui-bar-fill-bw: 0 calc(28px * var(--fui-bar-scale)) 0 calc(28px * var(--fui-bar-scale));
+
+  /* ── Nameplates ──────────────────────────────────────────────────────── */
+  --fui-banner-src: var(--fui-img-slot-stone-long);
+  --fui-banner-sl: 40 54 42 54;
+  --fui-banner-bw: calc(40px * 0.36) calc(54px * 0.36) calc(42px * 0.36) calc(54px * 0.36);
+  --fui-banner-pad: 5px 22px;
+
+  /* ── Portraits ───────────────────────────────────────────────────────── */
+  --fui-portrait-frame-src: var(--fui-img-slot-stone-lg);
+  --fui-portrait-frame-sl: 46 46 46 46;
+  --fui-portrait-frame-bw: calc(46px * 0.38);
+  --fui-portrait-fill-src: var(--fui-img-slot-stone-lg-fill);
+  --fui-portrait-fill-sl: 40 40 40 40;
+  --fui-portrait-fill-bw: calc(40px * 0.38);
+  --fui-portrait-radius: 4px;
+
+  /* ── Misc art ────────────────────────────────────────────────────────── */
+  --fui-divider-img: var(--fui-img-divider-vine);
+  --fui-divider-ar: var(--fui-ar-divider-vine);
+  --fui-backdrop-img: var(--fui-img-bg-scene-dark);
+  --fui-round-frame-img: var(--fui-img-frame-round-lg);
+  --fui-round-bg-img: var(--fui-img-bg-round-sm);
+}

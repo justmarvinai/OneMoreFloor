@@ -1,0 +1,15 @@
+# Vendored third-party code and art — never reformatted locally, fixes go upstream
+src/ui/fui/
+public/fui/
+
+# Build output and binaries
+dist/
+coverage/
+playwright-report/
+test-results/
+assets/
+package-lock.json
+
+# Documentation is hand-authored prose: tables and wrapping are deliberate,
+# and a formatter rewriting them adds diff noise without adding clarity.
+*.md

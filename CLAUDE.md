@@ -2,9 +2,9 @@
 
 OneMoreFloor is a single-player Fantasy-RPG roguelike tower-climber for the browser (Shakes-and-Fidget feel × endless tower), built as a **long-term commercial game**. Act like a senior engineer on it: every decision defensible in six months; boring beats clever.
 
-## ⛔ Current phase gate — read first
+## ✅ Phase gates — all passed
 
-**Phase 1 (planning) is delivered. Phase 2/3 are NOT passed: the owner has not yet answered `USER_QUESTIONS.md` nor approved development. Until both happen, write NO game code — no scaffolding, no `src/`, no `package.json`.** Allowed now: refining planning docs, answering follow-ups, folding the owner's answers into the docs. When approval is given: fold all answers in, resolve every `⧗Qn` marker in `docs/`, then start ROADMAP M0.
+Planning delivered, all of Q1–Q27 answered (`USER_QUESTIONS.md` is the decision ledger), and **development approved by the owner on 2026-08-22**. Build against `ROADMAP.md` in milestone order; M0 (foundation & walking skeleton) is complete.
 
 ## Source of truth & docs index
 
@@ -13,7 +13,7 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 | Doc | Contents |
 |---|---|
 | `ROADMAP.md` | Phase gates, milestones M0–M10, exit criteria |
-| `USER_QUESTIONS.md` | All open questions + working assumptions (A1–A15) |
+| `USER_QUESTIONS.md` | Decision ledger (Q1–Q27 resolved, A1–A15 confirmed) + where new questions get filed |
 | `docs/ARCHITECTURE.md` | Stack + justification, module layout, policies, Electron forward-compat |
 | `docs/SAVE_SCHEMA.md` | IndexedDB design, versioning/migrations, recovery, clock tamper rules |
 | `docs/BALANCE.md` | Formula shapes, Power Level, brackets/anti-overshoot, simulator |
@@ -40,9 +40,10 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 - No `Math.random()`/`Date.now()` in game logic — seeded RNG streams (`app/rng.ts`) and the clock service (`app/time.ts`) only.
 - Every save-shape change bumps `CURRENT_SCHEMA_VERSION` and ships its migration + captured-blob fixture test **in the same commit** (SAVE_SCHEMA §4).
 - Combat/gacha/merchant randomness resolves through named seed streams so outcomes are replayable (ARCHITECTURE §5).
-- All player-facing text goes through `src/strings/` (Q24 posture) — no literals in logic/content.
+- All player-facing text goes through `src/strings/` (Q24: English-only 0.1, i18n-ready from day one) — no literals in logic/content.
 - Screens follow FantasyUI's lifecycle: construct on enter, `destroy()` on exit; leaked listeners/timers are defects.
-- Verification once M0 lands (keep this list current): `npm run typecheck · lint · test · content:validate · build`, Playwright smoke. Run all before declaring work done; balance/content changes also rerun the simulator (BALANCE.md §10).
+- Verification (run **all** of these before declaring work done): `npm run typecheck · lint · format:check · test · content:validate · build · smoke`. CI runs the same list in the same order. Balance/content changes also rerun the simulator once it exists (BALANCE.md §10).
+- Adding a FantasyUI component: add its name to `fui.components.json`, run `npm run vendor:fui` (needs a local `fantasyuis` clone; `FUI_SRC` overrides the path), commit the vendored output. Dependencies resolve automatically; never hand-copy.
 
 ## Process
 
