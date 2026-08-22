@@ -49,3 +49,34 @@ export const STARTING_CHARACTER_SLOTS = 1;
 
 /** Battle Speed multipliers by tier (Brief §15.1, tiering per Q19). */
 export const BATTLE_SPEED_MULTIPLIERS: readonly number[] = [1, 2, 4, 8];
+
+/**
+ * XP required to go from `level` to `level + 1`.
+ *
+ * Polynomial rather than exponential: levels should keep arriving at a readable
+ * pace all the way to the ascension caps, since a level-up is one of the small
+ * rewards that keeps a session feeling productive (Brief §1). The knee factor
+ * steepens things past each cap so ascension stays a real wall.
+ */
+export const XP_TO_NEXT_LEVEL = { base: 55, coefficient: 24, exponent: 1.52 } as const;
+
+/** Extra XP multiplier per hero-ascension tier already earned. */
+export const XP_ASCENSION_KNEE = 1.85;
+
+/**
+ * Gold cost of the *n*-th purchased point in a stat (Brief §6, assumption A2).
+ *
+ * Unbounded and exponential: there is always another point in reach, and it is
+ * always slightly more than the player has (Brief §14). Speed is absent by type
+ * — gear is its only source (§6) — so it is impossible to price it here.
+ */
+export const STAT_UPGRADE_COST = { base: 22, factor: 1.9, period: 12 } as const;
+
+/** Per-stat price multiplier: health is cheap per point, luck expensive. */
+export const STAT_UPGRADE_MULTIPLIER = {
+  strength: 1,
+  defense: 1,
+  hp: 0.35,
+  resource: 0.9,
+  luck: 1.6,
+} as const;

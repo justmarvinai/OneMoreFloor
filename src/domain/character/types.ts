@@ -5,6 +5,7 @@
  * The direction matters: domain never imports save (ARCHITECTURE §3), so the
  * game's model is defined once here and the save layer follows it.
  */
+import type { ItemInstance } from '../items/types.ts';
 import type { GrowableStats } from '../stats.ts';
 
 /** The five classes of EA 0.1 (Brief §8). No sixth without a brief change. */
@@ -71,9 +72,19 @@ export interface TowerProgress {
 }
 
 /**
- * A character as the game reasons about it. Equipment, inventory, currencies and
- * quests join this as their milestones land (ROADMAP M2+); each addition bumps
- * the save schema and ships its migration (SAVE_SCHEMA §4).
+ * What the player owns. Gold is the only currency in the game (Q1); tickets are
+ * gacha currency, not money (Brief §16.1).
+ */
+export interface Currencies {
+  gold: number;
+  tickets: number;
+  luckyTickets: number;
+}
+
+/**
+ * A character as the game reasons about it. Quest progress and active potion
+ * buffs join this as their milestones land; each addition bumps the save schema
+ * and ships its migration (SAVE_SCHEMA §4).
  */
 export interface Character {
   slotId: SlotId;
@@ -82,6 +93,13 @@ export interface Character {
   /** Points bought with gold, per stat. Speed is not expressible here (§6). */
   purchasedStats: GrowableStats;
   tower: TowerProgress;
+  /** What is worn. Absent slots are empty — or locked, at this ascension (§7). */
+  equipment: Partial<Record<EquipSlotId, ItemInstance>>;
+  /** The backpack (Q16). Its capacity is a balance value, not a type. */
+  inventory: ItemInstance[];
+  currencies: Currencies;
+  /** Gear-ascension materials, by material id (Brief §10.2). */
+  materials: Record<string, number>;
 }
 
 /** Battle Speed tiers (Brief §15.1, shaped by Q19): x1 → x2 → x4 → x8. */

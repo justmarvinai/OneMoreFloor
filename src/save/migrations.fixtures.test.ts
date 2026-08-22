@@ -8,6 +8,7 @@ import { openDatabase } from './db.ts';
 import { createSaveLayer } from './saveLayer.ts';
 import { CURRENT_SCHEMA_VERSION, ACCOUNT_KEY, META_KEY, STORES, characterKey } from './schema.ts';
 import { V1_ACCOUNT, V1_CHARACTER, V1_META } from './fixtures/v1.ts';
+import { V2_CHARACTER } from './fixtures/v2.ts';
 
 /**
  * The migration harness (SAVE_SCHEMA §4/§11).
@@ -21,6 +22,7 @@ const FIXTURES = [
   { version: 1, name: 'meta', blob: V1_META, validate: isMetaRecord },
   { version: 1, name: 'account', blob: V1_ACCOUNT, validate: isAccountRecord },
   { version: 1, name: 'character', blob: V1_CHARACTER, validate: isCharacterRecord },
+  { version: 2, name: 'character', blob: V2_CHARACTER, validate: isCharacterRecord },
 ] as const;
 
 describe('captured save fixtures', () => {
@@ -37,6 +39,31 @@ describe('captured save fixtures', () => {
     expect(validate(record)).toBe(true);
   });
 
+  it('arms a v1 hero who predates the item system (Brief §5)', () => {
+    // The v1 → v2 migration's real job: a character created before items existed
+    // has no weapon, and a hero who cannot be armed cannot play. They get the
+    // loadout their class was always meant to have, rolled from their own seed.
+    const { record, applied } = migrate(V1_CHARACTER);
+    const character = (record as { character: Record<string, unknown> }).character;
+    const equipment = character['equipment'] as Record<string, { defId: string }>;
+
+    expect(applied).toEqual([1]);
+    expect(equipment['mainhand']?.defId).toBe('item.mainhand.warrior-arming-sword');
+    expect(equipment['offhand']?.defId).toBe('item.offhand.warrior-warded-shield');
+    expect(character['currencies']).toEqual({ gold: 0, tickets: 0, luckyTickets: 0 });
+  });
+
+  it('migrates deterministically, so every device produces the same gear', () => {
+    const first = migrate(V1_CHARACTER).record;
+    const second = migrate(V1_CHARACTER).record;
+    expect(first).toEqual(second);
+    // And it matches the captured v2 blob exactly, checksum and all.
+    expect(first).toEqual({
+      ...V2_CHARACTER,
+      integrity: (first as { integrity: unknown }).integrity,
+    });
+  });
+
   it('opens a database written by an older build', async () => {
     setClock(createClock({ source: () => 1_700_000_120_000 }));
     const db = await openDatabase(`omf-fixture-${Math.random().toString(36).slice(2)}`);
@@ -48,13 +75,17 @@ describe('captured save fixtures', () => {
 
     const save = createSaveLayer(db);
 
-    expect((await save.loadMeta()).status).toBe('loaded');
+    // Meta and account shapes did not change in v2, but the record's version
+    // still moves forward with the schema, so both report as migrated.
+    expect((await save.loadMeta()).status).toBe('migrated');
     expect((await save.loadAccount()).record?.account.slotsUnlocked).toBe(1);
 
     const character = await save.loadCharacter(1);
-    expect(character.status).toBe('loaded');
+    expect(character.status).toBe('migrated');
     expect(character.record?.character.identity.name).toBe('Grimhild');
     expect(character.record?.character.identity.classId).toBe('warrior');
+    // The player's hero comes back armed, not empty-handed.
+    expect(character.record?.character.equipment.mainhand).toBeDefined();
 
     db.close();
     setClock(createClock());
