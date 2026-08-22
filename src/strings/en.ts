@@ -237,6 +237,68 @@ export const en = {
   'material.dragonAsh': 'Dragon Ash',
   'material.spireHeart': 'Heart of the Spire',
 
+  // --- Enemies (Brief §4.3; avatars bind by id with a silhouette fallback) ---
+  'enemy.spireRat': 'Spire Rat',
+  'enemy.cutpurse': 'Cutpurse',
+  'enemy.rubbleGolem': 'Rubble Golem',
+  'enemy.caveLurker': 'Cave Lurker',
+  'enemy.bonePiper': 'Bone Piper',
+  'enemy.graveWarden': 'Grave Warden',
+  'enemy.emberHound': 'Ember Hound',
+  'enemy.ashRevenant': 'Ash Revenant',
+
+  // --- Bosses (Brief §3.2) — every tenth floor ---
+  'boss.wardenOfTheGate': 'Warden of the Gate',
+  'boss.gutterKing': 'The Gutter King',
+  'boss.hollowChoir': 'The Hollow Choir',
+  'boss.paleMatriarch': 'Pale Matriarch',
+  'boss.cinderTyrant': 'Cinder Tyrant',
+
+  // --- Effects: normal-floor debuffs are deliberately mild (Brief §3.2) ---
+  'effect.chill': 'Chilled',
+  'effect.gloom': 'Gloom',
+  'effect.sap': 'Sapped',
+  'effect.rust': 'Rusted',
+
+  // --- Effects: boss kits bite far harder ---
+  'effect.curseOfLead': 'Curse of Lead',
+  'effect.withering': 'Withering',
+  'effect.sundered': 'Sundered',
+  'effect.hexed': 'Hexed',
+  'effect.stoneskin': 'Stoneskin',
+  'effect.fury': 'Fury',
+  'effect.quickening': 'Quickening',
+
+  // --- Effects: from signature moves (Q26) ---
+  'effect.shieldGuard': 'Shield Guard',
+  'effect.feint': 'Feint',
+  'effect.songOfFury': 'Song of Fury',
+  'effect.songOfStone': 'Song of Stone',
+  'effect.songOfWind': 'Song of Wind',
+
+  // --- Procedural enemy modifiers (past the authored floors) ---
+  'modifier.frenzied': 'Frenzied',
+  'modifier.armoured': 'Armoured',
+  'modifier.fleet': 'Fleet',
+  'modifier.hulking': 'Hulking',
+  'modifier.cunning': 'Cunning',
+
+  // --- Signature move names, for the combat log and unit frames ---
+  'signature.berserkStrike': 'Berserk Strike',
+  'signature.shieldSlam': 'Shield Slam',
+  'signature.arcaneBlast': 'Arcane Blast',
+  'signature.piercingVolley': 'Piercing Volley',
+  'signature.crescendo': 'Crescendo',
+  'signature.flurryAndFeint': 'Flurry & Feint',
+  'signature.bossOnslaught': 'Onslaught',
+
+  // --- Floor bands (Brief §3.1) ---
+  'band.undercroft': 'The Undercroft',
+  'band.brokenStair': 'The Broken Stair',
+  'band.ossuary': 'The Ossuary',
+  'band.emberReach': 'Ember Reach',
+  'band.endlessAscent': 'The Endless Ascent',
+
   'gate.tooSmall.title': 'A little more room, adventurer',
   'gate.tooSmall.message':
     'OneMoreFloor is built for desktop screens. Widen the window to at least 1280 pixels to play.',

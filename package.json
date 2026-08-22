@@ -14,10 +14,11 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "content:validate": "vitest run --dir src/content --passWithNoTests",
+    "content:validate": "vitest run src/content",
     "smoke": "playwright test",
     "vendor:fui": "node tools/vendor-fui.mjs",
-    "art:optimize": "node tools/optimize-art.mjs"
+    "art:optimize": "node tools/optimize-art.mjs",
+    "sim": "vitest run tools/sim"
   },
   "dependencies": {
     "idb": "^8.0.3"

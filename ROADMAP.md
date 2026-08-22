@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M2 are delivered**; M3 (combat engine & floor generation) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M3 are delivered**; M4 (tower & combat presentation) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -41,10 +41,14 @@ Starting equipment per class (§5, Q15 — carried over from M1). Stats model (�
 
 **Schema v2:** characters gained equipment, inventory, currencies and materials. The migration arms v1 heroes — who predate the item system — with their class loadout, rolled deterministically from their own stored run seed, and ships with a captured fixture as the rules require.
 
-## M3 — Combat engine & floor generation (L)
+## M3 — Combat engine & floor generation (L) — ✅ delivered 2026-08-22
 
 Combat resolution → CombatScript (COMBAT.md §1–6): rounds, Speed double-attacks, Luck crits, variance, buff/debuff model, boss kits, class resources + signature moves (COMBAT.md §5, the approved Q6/Q26 design), endless-guard. Floor generator (bands, every-10th-boss §3.1, seeded stability — CONTENT_PIPELINE §2), reward rolls through brackets (§3.6, incl. Q22 relic/artifact gating), death consequence + Quick-Raid resolution incl. the chain-to-Floor-N (§3.3/§3.4; Q8) — all headless.
 **Exit:** deterministic-replay property test (same seed ⇒ identical script/outcome/loot, watched or skipped); scripted fixture fights prove every stat/effect does its job; first balance-sim smoke runs end-to-end (BALANCE.md §10 harness exists).
+
+**Delivered:** all of the above, 352 unit tests in total. The simulator paid for itself immediately — see BALANCE.md §9a for the three real defects it found on its first run, including an XP double-count in the domain and a Swashbuckler who could not charge her resource at all. Two design decisions were made as a result: a cleared floor applies its own levels, and a death advances the run seed so the next climb is a new tower rather than a replay.
+
+**Left for M9 as designed:** the *ClimberNoShop* archetype plateaus at a boss floor and the class spread is far too wide. Both are artefacts of a game that has no merchants, gear upgrades or ascension yet (M5/M6), so tuning now would be tuning against the wrong game.
 
 ## M4 — Tower & combat presentation (XL)
 
