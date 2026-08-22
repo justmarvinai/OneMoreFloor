@@ -78,6 +78,14 @@ Layout per the reference gif: **player portrait-card left, enemy right** (§4.1)
 
 **Speed x1–x8 (§3.5):** the script performer runs on a WAAPI timeline whose playback rate is the Battle Speed multiplier. Design rule: choreography is authored at x1 with beats that *compress legibly* — at x8 a fight must read as a rapid, punchy exchange (numbers still legible: floats get a minimum on-screen life independent of rate), not a smeared fast-forward. Both extremes are acceptance criteria for the combat milestone (ROADMAP M4), tested at 1080p and 2K.
 
+## 7a. As-built notes (M3)
+
+The engine is implemented as specified above, with three details worth recording:
+
+- **The script asserts the target's health on every hit.** The performer never recomputes damage, which removes any chance of the animation disagreeing with the outcome.
+- **A death advances the run seed.** Floors are stable *within* a run — re-entering floor 41 meets the same enemy — but the next climb is a new tower rather than a replay of the one that just killed you. The new seed is derived deterministically from the old, so a save still replays exactly.
+- **Every blow does at least one point.** A hit that rounds to zero reads as a bug to a player, whatever the arithmetic says.
+
 ## 8. Death & aftermath (§3.3)
 
 Hero HP → 0: death sequence (dark-ember `DeathScreen` treatment), then the reset contract verbatim from §3.3 — tower run to Floor 1; hero keeps level/XP/ascension/currencies/materials/equipment/upgrades/quest progress/account upgrades; `highestFloorEverCleared` untouched (§3.4). The death screen leads with what was **kept** and the Quick-Raid invitation ("Skip back through 41 cleared floors") — death should feel like a launchpad, not a slap (§1's "re-climb faster" loop).

@@ -81,6 +81,16 @@ Two banners, single pulls only, every pull pays something, no pity counter — a
 
 Daily objectives sized to one normal session, weeklies to a normal week, neither trivial (§17) — objective magnitudes scale from the character's own trailing activity (floors/day average) so "one day of normal play" stays true at every depth. Rewards: meaningful gold/material/XP boosts (config), hard weekly carries the Ticket odds (§17). Potions (§12): real-time one-hour buffs (Q9), one active per stat with re-drinking replacing the buff (Q18 — five potionable stats; Speed has none per §6); one tier per bracket window, magnitude a % of the stat (flat numbers die with inflation), priced so always-on-everything potioning is a genuine gold decision (§14 pressure).
 
+## 9a. First simulator findings (M3)
+
+The harness earned its place on the first run, before any tuning had been attempted. It found:
+
+1. **An XP double-count in the domain, not the sim** — floor rewards banked experience *and* the caller converted it again. Fixed by making a cleared floor apply its own levels, so there is no raw-XP seam for a caller to get wrong.
+2. **Every re-climb replayed the identical tower**, which made the core loop a memory test. Deaths now advance the run seed.
+3. **The Swashbuckler could not charge Focus at all at level 1.** Both of her fill events depend on Speed, and Speed comes only from gear (Brief §6), so a new Swashbuckler's bar never moved. She now has a small per-round trickle; the identity from Q26 is unchanged.
+
+**What it still reports, for M9 to close:** with the *ClimberNoShop* archetype (no merchants, no gear upgrades, no ascension — none of which exist before M5/M6), every class plateaus at a boss floor, and the spread between them is far too wide (deepest floor 9 for the Swashbuckler against 101 for the Mage). Both are expected of a game missing its economy, and both are exactly what §10's gates are for. Tuning against a half-built game would be tuning against the wrong thing, so the numbers stand until M9.
+
 ## 10. The balance simulator (how we tune honestly)
 
 A headless harness over the real `domain/` code (same combat resolution, same generators — never a parallel model): scripted player archetypes (e.g., *ClimberNoShop*, *ShopEveryRestock*, *GachaHoarder*) are simulated across sessions/days; outputs: floor-over-time, death walls, gold balance over time, gear-level distribution, time-to-Legendary, signature-move uptime per class, endless-guard fire rate (must be ~0, COMBAT.md §3). Acceptance gates for M9 (provisional): first death ~floors 15–25 for a no-shop climber; the re-climb-in-minutes target from §2 above; classes within a tuned win-rate band of each other at equal PL (§8 "genuine upsides and downsides" — different *paths*, comparable *power*); gold balance trends slightly-short at every archetype (§14). The simulator ships in `tools/` and stays part of the repo — every future content/balance PR reruns it (CLAUDE.md rule).
