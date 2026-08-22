@@ -36,3 +36,27 @@ export function renderErrorPanel(options: ErrorPanelOptions): void {
     h('div', { class: 'omf-error', dataset: { fuiTheme: 'dark-ember' } }, panel.el),
   );
 }
+
+/**
+ * Shown when another tab already holds the session lock (SAVE_SCHEMA §8).
+ *
+ * This is not an error: the game is working exactly as intended by refusing to
+ * let two copies overwrite each other. It says so in those terms.
+ */
+export function renderLockGate(mount: HTMLElement): void {
+  const state = new EmptyState({
+    glyph: 'glyph-broken-shackle',
+    title: t('lock.title'),
+    message: t('lock.message'),
+  });
+
+  const panel = new Panel({ variant: 'alt', width: 560, content: state.el });
+
+  mount.replaceChildren(
+    h(
+      'div',
+      { class: 'omf-error', dataset: { fuiTheme: 'stone-vine', testid: 'lock-gate' } },
+      panel.el,
+    ),
+  );
+}

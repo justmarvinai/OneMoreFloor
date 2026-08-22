@@ -1,0 +1,18 @@
+/**
+ * Our own artwork, registered in FantasyUI's asset-variable namespace.
+ *
+ * The library resolves an `art: 'x'` option to `var(--fui-img-x)`, so declaring
+ * the variable here is all it takes for our portraits to work in its components —
+ * no vendored file is touched and no component needs a special case.
+ *
+ * Files are the optimised derivatives produced by `npm run art:optimize` from the
+ * masters in `assets/`. Vite rewrites these URLs to relative paths at build time.
+ */
+
+:root {
+  --fui-img-class-warrior: url('/art/classes/warrior.webp');
+  --fui-img-class-mage: url('/art/classes/mage.webp');
+  --fui-img-class-hunter: url('/art/classes/hunter.webp');
+  --fui-img-class-bard: url('/art/classes/bard.webp');
+  --fui-img-class-swashbuckler: url('/art/classes/swashbuckler.webp');
+}

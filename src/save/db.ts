@@ -9,10 +9,21 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import { DATABASE_NAME, STORES, type StoredRecord } from './schema.ts';
 
+/**
+ * Every store is keyed by string, including `characters` (`slot-1` … `slot-5`).
+ * Uniform key types keep the store name and its key from having to be correlated
+ * at every call site, which is the difference between typed access and a trail
+ * of casts.
+ */
 export interface OneMoreFloorDB extends DBSchema {
   meta: { key: string; value: StoredRecord };
   account: { key: string; value: StoredRecord };
-  characters: { key: number; value: StoredRecord };
+  characters: { key: string; value: StoredRecord };
+  /**
+   * Backups hold an envelope — the preserved record plus when it was taken —
+   * stored as a plain record like everything else, and narrowed on read by
+   * `isBackupEnvelope`.
+   */
   saveBackups: { key: string; value: StoredRecord };
 }
 

@@ -5,12 +5,23 @@
  * a persistent left rail carrying the hero, their currencies and the navigation,
  * beside a large main panel that swaps as the player moves around.
  *
- * At M0 the rail's destinations are disabled and the main panel says plainly what
- * is and is not built yet. Each milestone turns one of these on for real — nothing
- * here pretends to work (Brief §2.1).
+ * The rail now shows the character actually being played. Its destinations stay
+ * disabled until the milestone that builds each one — nothing here pretends to
+ * work (Brief §2.1).
  */
-import { CurrencyBar, EmptyState, Panel, Portrait, SideNav, StatBar, h } from '@/ui/fui/index.ts';
+import {
+  Button,
+  CurrencyBar,
+  EmptyState,
+  Panel,
+  Portrait,
+  SideNav,
+  StatBar,
+  h,
+} from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
+import { CLASSES } from '@/content/classes/index.ts';
+import { levelCapFor } from '@/domain/character/character.ts';
 import type { Screen } from '@/app/router.ts';
 import type { AppStore } from '@/app/state.ts';
 import { t } from '@/strings/index.ts';
@@ -33,24 +44,57 @@ const NAV_ITEMS = [
   { id: 'quests', label: t('nav.section.quests'), glyph: 'glyph-arcane-symbol', disabled: true },
 ];
 
-export function createHubScreen(store: AppStore): Screen {
+export interface HubScreenOptions {
+  store: AppStore;
+  /** Leave this character and go back to the select screen (Q2). */
+  onSwitch: () => void;
+}
+
+export function createHubScreen(options: HubScreenOptions): Screen {
+  const { store, onSwitch } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
     return component;
   };
 
+  const character = store.get().activeCharacter;
+  const definition = character ? CLASSES[character.identity.classId] : null;
+
   const portrait = track(
-    new Portrait({ art: 'silhouette-warrior-m', shape: 'square', size: 96, fit: 'contain' }),
+    new Portrait({
+      art: definition?.art.portrait ?? 'silhouette-warrior-m',
+      shape: 'square',
+      size: 96,
+      fit: 'cover',
+      name: character?.identity.name,
+      level: character?.progression.level,
+    }),
   );
-  const xp = track(new StatBar({ kind: 'xp', value: 0, max: 100, readout: 'none', width: '100%' }));
+
+  const xp = track(
+    new StatBar({
+      kind: 'xp',
+      value: character?.progression.xp ?? 0,
+      // Until the XP curve lands with progression (M2), the bar shows the level
+      // cap it is climbing towards rather than inventing a per-level requirement.
+      max: character ? levelCapFor(character.progression.ascension) : 100,
+      readout: 'none',
+      width: '100%',
+    }),
+  );
+
   const currencies = track(
     new CurrencyBar({
       currencies: [{ id: 'gold', icon: 'icon-coins', amount: 0, label: 'Gold' }],
       format: 'short',
     }),
   );
+
   const nav = track(new SideNav({ items: NAV_ITEMS, variant: 'full', fill: true }));
+
+  const switchButton = track(new Button({ label: t('select.switch'), variant: 'ghost' }));
+  switchButton.on('click', () => onSwitch());
 
   const placeholder = track(
     new EmptyState({
@@ -68,7 +112,8 @@ export function createHubScreen(store: AppStore): Screen {
 
   const main = track(
     new Panel({
-      title: t('app.title'),
+      title: character ? character.identity.name : t('app.title'),
+      subtitle: definition ? t(definition.taglineKey) : undefined,
       variant: 'default',
       width: '100%',
       height: '100%',
@@ -85,12 +130,11 @@ export function createHubScreen(store: AppStore): Screen {
       h('div', { class: 'omf-shell__hero' }, portrait.el, xp.el),
       currencies.el,
       nav.el,
+      switchButton.el,
     ),
     h('main', { class: 'omf-shell__main' }, main.el),
   );
 
-  // The save slice can change after boot (a later write reports a new status),
-  // so the line follows the store rather than being a one-shot render.
   const unsubscribe = store.select(
     (state) => state.save,
     () => {
@@ -116,9 +160,14 @@ function saveStatusText(store: AppStore): string {
       return t('save.status.created');
     case 'migrated':
       return t('save.status.migrated');
+    case 'recovered':
+      return t('save.status.recovered', {
+        when: save.recoveredFrom ? new Date(save.recoveredFrom).toLocaleString() : '—',
+      });
     case 'corrupt':
       return t('save.status.corrupt');
     case 'loaded':
+    case 'absent':
       return t('save.status.loaded');
   }
 }

@@ -89,6 +89,97 @@ body {
   opacity: 0.75;
 }
 
+/* --- Character select ---------------------------------------------------- */
+
+.omf-select {
+  position: relative;
+  height: 100%;
+}
+
+/**
+ * The picker mounts as a fixed, full-viewport overlay of its own (z-index 620),
+ * so anything we place beside it has to be fixed and above that layer — a
+ * sibling in normal flow simply ends up underneath its backdrop and stops
+ * receiving clicks.
+ */
+.omf-select__actions {
+  position: fixed;
+  right: var(--omf-gap);
+  bottom: var(--omf-gap);
+  display: flex;
+  gap: 8px;
+  z-index: 621;
+}
+
+/* --- Hero creation ------------------------------------------------------- */
+
+.omf-create {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--omf-gap);
+  box-sizing: border-box;
+  gap: 8px;
+}
+
+.omf-create > :first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/**
+ * The creator caps itself at 820px, which reads as a small card stranded on a
+ * 2K display. Widening it here (rather than editing the vendored component)
+ * lets the class art and the description breathe at our target sizes (§20.6).
+ */
+.omf-create .fui-creator {
+  max-width: min(1400px, 100%);
+  margin: 0 auto;
+}
+
+.omf-create__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--omf-gap);
+}
+
+.omf-create__error {
+  margin: 0;
+  min-height: 1.2em;
+  color: var(--fui-danger, #d9704f);
+  font-size: 0.9rem;
+}
+
+/* --- Reset confirmation -------------------------------------------------- */
+
+.omf-reset__warning,
+.omf-reset__prompt {
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.omf-reset__prompt {
+  opacity: 0.85;
+}
+
+.omf-reset__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/**
+ * Destructive actions. FantasyUI has no danger button variant, so this tints an
+ * existing one rather than introducing a component outside its design language
+ * (Brief §20.2).
+ */
+.omf-danger {
+  --fui-btn-tint: var(--fui-danger, #a8331f);
+  filter: hue-rotate(-18deg) saturate(1.25);
+}
+
 /* --- Error surface ------------------------------------------------------- */
 
 .omf-error {

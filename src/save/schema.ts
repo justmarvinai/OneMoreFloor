@@ -6,9 +6,11 @@
  * test in the same commit.** A player with hundreds of hours must survive every
  * update, and a migration written later never gets written.
  *
- * Only the meta record exists at M0. Account and character records arrive with the
- * character lifecycle in M1 (ROADMAP), and each addition follows the same rule.
+ * Game data is nested under a single key (`account`, `character`) rather than
+ * spread across the record, which keeps persistence concerns — the version, the
+ * checksum — from tangling with the domain shapes they wrap.
  */
+import type { Account, Character, SlotId } from '@/domain/character/types.ts';
 import type { Persisted } from './integrity.ts';
 
 export const CURRENT_SCHEMA_VERSION = 1;
@@ -25,9 +27,10 @@ export const STORES = {
 
 export type StoreName = (typeof STORES)[keyof typeof STORES];
 
-/** The single row in the `meta` store. */
 export const META_KEY = 'meta';
+export const ACCOUNT_KEY = 'account';
 
+/** The single row in the `meta` store. */
 export interface MetaRecord extends Persisted {
   schemaVersion: number;
   /** First time this installation was opened. */
@@ -41,5 +44,21 @@ export interface MetaRecord extends Persisted {
   lastKnownWallClock: number;
 }
 
+/** Account-wide state: upgrades that survive any character reset (Q4). */
+export interface AccountRecord extends Persisted {
+  schemaVersion: number;
+  account: Account;
+}
+
+/** One character slot. Absent means the slot is empty — never a blank record. */
+export interface CharacterRecord extends Persisted {
+  schemaVersion: number;
+  character: Character;
+}
+
 /** A record as it comes off disk: shape unproven until migrated and verified. */
 export type StoredRecord = Record<string, unknown>;
+
+export function characterKey(slotId: SlotId): string {
+  return `slot-${slotId}`;
+}

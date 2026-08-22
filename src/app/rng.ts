@@ -43,6 +43,18 @@ export interface WeightedEntry<T> {
   readonly weight: number;
 }
 
+/**
+ * A fresh, unpredictable seed — for a new character's tower run, where the point
+ * is that two players do not get the same tower. Every *use* of the seed after
+ * this is deterministic; only its creation draws real entropy.
+ */
+export function newSeed(prefix = 'run'): string {
+  const bytes = new Uint8Array(8);
+  globalThis.crypto.getRandomValues(bytes);
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${prefix}:${hex}`;
+}
+
 /** FNV-1a, 32-bit. Small, fast and well spread for short string seeds. */
 function hashSeed(seed: string): number {
   let hash = 0x811c9dc5;
