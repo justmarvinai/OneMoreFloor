@@ -1,0 +1,153 @@
+/* ImpactFrame — the one-frame punctuation on a big hit. */
+
+.fui-impact {
+  --fui-impact-power: 0.7;
+  --fui-impact-ms: 620ms;
+  --fui-impact-ink: var(--fui-danger, #d8543f);
+
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+}
+
+.fui-impact[data-tone='heal'] { --fui-impact-ink: var(--fui-success, #7fb069); }
+.fui-impact[data-tone='block'] { --fui-impact-ink: var(--fui-info, #6fa8dc); }
+.fui-impact[data-tone='break'] { --fui-impact-ink: var(--fui-gold, #e0b04a); }
+.fui-impact[data-tone='miss'] { --fui-impact-ink: #8a8a92; }
+
+/* Nothing is visible until it plays — the frame lives permanently over the
+   stage and costs nothing between hits. */
+.fui-impact[data-playing='off'] > * { opacity: 0; }
+
+/* ── Layers ─────────────────────────────────────────────────────────────── */
+
+.fui-impact__flash {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--fui-impact-ink) calc(45% * var(--fui-impact-power)), transparent);
+  mix-blend-mode: screen;
+}
+
+.fui-impact__burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40%;
+  aspect-ratio: 1;
+  margin: -20% 0 0 -20%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    color-mix(in srgb, #fff 85%, transparent) 0 8%,
+    color-mix(in srgb, var(--fui-impact-ink) 80%, transparent) 22%,
+    transparent 62%
+  );
+}
+
+/* Speed lines: one repeating conic gradient masked into a ring, which is
+   cheaper and sharper than forty absolutely-positioned spans. */
+.fui-impact__lines {
+  position: absolute;
+  inset: -20%;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--fui-impact-ink) 70%, transparent) 0deg 1.2deg,
+    transparent 1.2deg 9deg
+  );
+  mask: radial-gradient(circle closest-side at center, transparent 22%, #000 46%, #000 70%, transparent 82%);
+  -webkit-mask: radial-gradient(circle closest-side at center, transparent 22%, #000 46%, #000 70%, transparent 82%);
+}
+
+.fui-impact__stack {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  text-align: center;
+}
+
+.fui-impact__text {
+  font: var(--fui-font-title, 900 clamp(28px, 8vw, 62px)/0.95 system-ui, sans-serif);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--fui-impact-ink) 90%, #000);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--fui-impact-ink) 85%, transparent),
+    0 4px 0 color-mix(in srgb, #000 60%, transparent);
+}
+
+.fui-impact__sub {
+  font: var(--fui-font-title, 700 clamp(14px, 3vw, 22px)/1 system-ui, sans-serif);
+  color: color-mix(in srgb, #fff 80%, var(--fui-impact-ink));
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 6px rgb(0 0 0 / 0.8);
+}
+
+.fui-impact__sub[data-empty='on'] { display: none; }
+
+/* ── Play ───────────────────────────────────────────────────────────────── */
+
+.fui-impact[data-playing='on'] .fui-impact__flash {
+  animation: fui-impact-flash var(--fui-impact-ms) ease-out both;
+}
+
+.fui-impact[data-playing='on'] .fui-impact__burst {
+  animation: fui-impact-burst var(--fui-impact-ms) cubic-bezier(0.1, 0.8, 0.3, 1) both;
+}
+
+.fui-impact[data-playing='on'] .fui-impact__lines {
+  animation: fui-impact-lines var(--fui-impact-ms) cubic-bezier(0.1, 0.8, 0.3, 1) both;
+}
+
+.fui-impact[data-playing='on'] .fui-impact__stack {
+  animation: fui-impact-text var(--fui-impact-ms) cubic-bezier(0.15, 1.4, 0.4, 1) both;
+}
+
+/* Every keyframe that fill-modes forward declares opacity at 100% too — without
+   it the stack settles back to the element's own hidden state mid-flight. */
+@keyframes fui-impact-flash {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes fui-impact-burst {
+  0% { opacity: 0; transform: scale(0.2); }
+  14% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(calc(1.6 + 0.9 * var(--fui-impact-power))); }
+}
+
+@keyframes fui-impact-lines {
+  0% { opacity: 0; transform: scale(0.55) rotate(-6deg); }
+  18% { opacity: calc(0.35 + 0.5 * var(--fui-impact-power)); transform: scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: scale(1.5) rotate(5deg); }
+}
+
+@keyframes fui-impact-text {
+  0% { opacity: 0; transform: scale(calc(1.7 + 0.6 * var(--fui-impact-power))); }
+  22% { opacity: 1; transform: scale(1); }
+  30% { transform: translateX(calc(-4px * var(--fui-impact-power))); }
+  38% { transform: translateX(calc(4px * var(--fui-impact-power))); }
+  46% { transform: none; }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fui-impact[data-playing='on'] .fui-impact__flash,
+  .fui-impact[data-playing='on'] .fui-impact__burst,
+  .fui-impact[data-playing='on'] .fui-impact__lines,
+  .fui-impact[data-playing='on'] .fui-impact__stack {
+    animation: fui-impact-fade var(--fui-impact-ms) ease-out both;
+  }
+  @keyframes fui-impact-fade {
+    0%, 70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+}

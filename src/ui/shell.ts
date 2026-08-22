@@ -5,53 +5,38 @@
  * a persistent left rail carrying the hero, their currencies and the navigation,
  * beside a large main panel that swaps as the player moves around.
  *
- * The rail now shows the character actually being played. Its destinations stay
- * disabled until the milestone that builds each one — nothing here pretends to
- * work (Brief §2.1).
+ * The rail is built once and reused by every destination, so moving between the
+ * tower and the screens that follow it never rebuilds the hero's own frame —
+ * only the panel beside it. Destinations stay disabled until the milestone that
+ * builds each one, and a disabled entry says what it is rather than vanishing
+ * (Brief §20.5).
  */
-import {
-  Button,
-  CurrencyBar,
-  EmptyState,
-  Panel,
-  Portrait,
-  SideNav,
-  StatBar,
-  h,
-} from '@/ui/fui/index.ts';
+import { Button, CurrencyBar, Portrait, SideNav, StatBar, h } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
-import type { Screen } from '@/app/router.ts';
 import type { AppStore } from '@/app/state.ts';
 import { t } from '@/strings/index.ts';
 
-/** Rail destinations. Each is enabled by the milestone that builds its screen. */
-const NAV_ITEMS = [
-  { id: 'tower', label: t('nav.section.tower'), glyph: 'glyph-crossed-swords', disabled: true },
-  {
-    id: 'character',
-    label: t('nav.section.character'),
-    glyph: 'glyph-cloaked-figure',
-    disabled: true,
-  },
-  {
-    id: 'merchants',
-    label: t('nav.section.merchants'),
-    glyph: 'glyph-burning-scroll',
-    disabled: true,
-  },
-  { id: 'quests', label: t('nav.section.quests'), glyph: 'glyph-arcane-symbol', disabled: true },
-];
+export type ShellSection = 'tower' | 'character' | 'merchants' | 'quests';
 
-export interface HubScreenOptions {
+export interface ShellOptions {
   store: AppStore;
+  /** Which rail entry is lit. */
+  active: ShellSection;
+  /** Content for the main panel area. */
+  main: HTMLElement;
   /** Leave this character and go back to the select screen (Q2). */
   onSwitch: () => void;
 }
 
-export function createHubScreen(options: HubScreenOptions): Screen {
-  const { store, onSwitch } = options;
+export interface Shell {
+  el: HTMLElement;
+  destroy(): void;
+}
+
+export function createShell(options: ShellOptions): Shell {
+  const { store, active, main, onSwitch } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -93,18 +78,37 @@ export function createHubScreen(options: HubScreenOptions): Screen {
     }),
   );
 
-  const nav = track(new SideNav({ items: NAV_ITEMS, variant: 'full', fill: true }));
+  const nav = track(
+    new SideNav({
+      items: [
+        { id: 'tower', label: t('nav.section.tower'), glyph: 'glyph-crossed-swords' },
+        {
+          id: 'character',
+          label: t('nav.section.character'),
+          glyph: 'glyph-cloaked-figure',
+          disabled: true,
+        },
+        {
+          id: 'merchants',
+          label: t('nav.section.merchants'),
+          glyph: 'glyph-burning-scroll',
+          disabled: true,
+        },
+        {
+          id: 'quests',
+          label: t('nav.section.quests'),
+          glyph: 'glyph-arcane-symbol',
+          disabled: true,
+        },
+      ],
+      value: active,
+      variant: 'full',
+      fill: true,
+    }),
+  );
 
   const switchButton = track(new Button({ label: t('select.switch'), variant: 'ghost' }));
   switchButton.on('click', () => onSwitch());
-
-  const placeholder = track(
-    new EmptyState({
-      glyph: 'glyph-celestial-body',
-      title: t('hub.placeholder.title'),
-      message: t('hub.placeholder.message'),
-    }),
-  );
 
   const saveStatus = h('p', {
     class: 'omf-save-status',
@@ -112,42 +116,62 @@ export function createHubScreen(options: HubScreenOptions): Screen {
     text: saveStatusText(store),
   });
 
-  const main = track(
-    new Panel({
-      title: character ? character.identity.name : t('app.title'),
-      subtitle: definition ? t(definition.taglineKey) : undefined,
-      variant: 'default',
-      width: '100%',
-      height: '100%',
-      content: [placeholder.el, saveStatus],
-    }),
-  );
-
   const el = h(
     'div',
     { class: 'omf-shell', dataset: { fuiTheme: 'stone-vine', testid: 'hub' } },
     h(
       'aside',
       { class: 'omf-shell__rail' },
-      h('div', { class: 'omf-shell__hero' }, portrait.el, xp.el),
+      h(
+        'div',
+        { class: 'omf-shell__hero' },
+        portrait.el,
+        h('p', {
+          class: 'omf-shell__name fui-title',
+          dataset: { testid: 'hero-name' },
+          text: character?.identity.name ?? '',
+        }),
+        h('p', {
+          class: 'omf-shell__class',
+          text: definition ? t(definition.nameKey) : '',
+        }),
+        xp.el,
+      ),
       currencies.el,
       nav.el,
       switchButton.el,
+      saveStatus,
     ),
-    h('main', { class: 'omf-shell__main' }, main.el),
+    h('main', { class: 'omf-shell__main' }, main),
   );
 
-  const unsubscribe = store.select(
+  // The hero's own frame tracks the character it belongs to: a floor cleared
+  // mid-session moves the XP bar and the gold count without a screen change.
+  const unsubscribeSave = store.select(
     (state) => state.save,
     () => {
       saveStatus.textContent = saveStatusText(store);
     },
   );
 
+  const unsubscribeCharacter = store.select(
+    (state) => state.activeCharacter,
+    (current) => {
+      if (!current) return;
+      // `Portrait` has no setter for its level badge (an upstream wish recorded in
+      // UI_FANTASYUI_MAP §10), so the badge refreshes when the router next builds
+      // a screen — which is the same beat a level-up returns the player on.
+      xp.setMax(xpToNextLevel(current.progression.level, current.progression.ascension));
+      xp.set(current.progression.xp);
+      currencies.set('gold', current.currencies.gold);
+    },
+  );
+
   return {
     el,
     destroy() {
-      unsubscribe();
+      unsubscribeSave();
+      unsubscribeCharacter();
       for (const part of parts) part.destroy();
       el.remove();
     },

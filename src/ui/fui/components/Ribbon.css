@@ -1,0 +1,137 @@
+/* Ribbon — the corner flash over a shop card. */
+
+.fui-ribbon {
+  --fui-ribbon-ink: var(--fui-info);
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+}
+
+.fui-ribbon[data-tone='new'] { --fui-ribbon-ink: var(--fui-info); }
+.fui-ribbon[data-tone='sale'] { --fui-ribbon-ink: var(--fui-danger); }
+.fui-ribbon[data-tone='event'] { --fui-ribbon-ink: var(--fui-xp); }
+.fui-ribbon[data-tone='limited'] { --fui-ribbon-ink: var(--fui-gold); }
+.fui-ribbon[data-tone='sold'] { --fui-ribbon-ink: var(--fui-ink-faint); }
+
+/* A bare ribbon has no card to clip against, so it positions against whatever
+   the consumer puts it in — which must be `position: relative` itself. */
+.fui-ribbon[data-bare='true'] {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fui-ribbon__content {
+  display: block;
+}
+
+.fui-ribbon__label {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--fui-ribbon-ink) 92%, #fff 8%),
+    color-mix(in srgb, var(--fui-ribbon-ink) 70%, #000 30%)
+  );
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-family: var(--fui-font-ui);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.fui-ribbon__glyph {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  background-color: currentColor;
+  mask: var(--fui-glyph-src, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-glyph-src, var(--fui-mask-none)) center / contain no-repeat;
+}
+
+/* The shout must not wrap: a corner strip has a fixed diagonal length, and a
+   second line would spill past the clip rather than growing the ribbon. */
+.fui-ribbon__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fui-ribbon__note {
+  font-size: 0.72em;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  text-transform: none;
+}
+
+/* ── corner ─────────────────────────────────────────────────────────────────
+   A strip long enough to span the diagonal, rotated 45° and clipped by the
+   wrapper. `overflow: hidden` therefore belongs to the wrapper, not the card. */
+.fui-ribbon[data-variant='corner'] {
+  overflow: hidden;
+}
+
+.fui-ribbon[data-variant='corner'] .fui-ribbon__label {
+  width: 190px;
+  padding: 4px 0;
+  font-size: 11px;
+}
+
+.fui-ribbon[data-variant='corner'][data-at='top-right'] .fui-ribbon__label {
+  top: 26px;
+  right: -58px;
+  transform: rotate(45deg);
+}
+
+.fui-ribbon[data-variant='corner'][data-at='top-left'] .fui-ribbon__label {
+  top: 26px;
+  left: -58px;
+  transform: rotate(-45deg);
+}
+
+.fui-ribbon[data-variant='corner'][data-at='bottom-right'] .fui-ribbon__label {
+  bottom: 26px;
+  right: -58px;
+  transform: rotate(-45deg);
+}
+
+.fui-ribbon[data-variant='corner'][data-at='bottom-left'] .fui-ribbon__label {
+  bottom: 26px;
+  left: -58px;
+  transform: rotate(45deg);
+}
+
+/* ── banner ─────────────────────────────────────────────────────────────── */
+.fui-ribbon[data-variant='banner'] .fui-ribbon__label {
+  left: 0;
+  right: 0;
+  flex-direction: column;
+  gap: 0;
+  padding: 5px 10px;
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.fui-ribbon[data-variant='banner'][data-at^='top'] .fui-ribbon__label { top: 0; }
+.fui-ribbon[data-variant='banner'][data-at^='bottom'] .fui-ribbon__label { bottom: 0; }
+
+/* ── flag ───────────────────────────────────────────────────────────────────
+   A tab that hangs past the card's edge, with a notched tail cut by clip-path
+   so it reads as cloth rather than a button. */
+.fui-ribbon[data-variant='flag'] .fui-ribbon__label {
+  padding: 4px 14px 8px;
+  font-size: 11px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+}
+
+.fui-ribbon[data-variant='flag'][data-at$='right'] .fui-ribbon__label { top: -4px; right: 10px; }
+.fui-ribbon[data-variant='flag'][data-at$='left'] .fui-ribbon__label { top: -4px; left: 10px; }

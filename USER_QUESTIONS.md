@@ -1,12 +1,26 @@
 # USER_QUESTIONS — OneMoreFloor EA 0.1 (decision ledger)
 
-> **Status: ALL RESOLVED — Phase 2 complete (owner answered Q1–Q27 on 2026-08-22).** Phase 3 (explicit approval to start development) is a separate gate — see `ROADMAP.md`.
+> **Status: Q1–Q27 resolved (owner, 2026-08-22); Q28 open — filed during M4 and waiting on you.** Development is approved and underway — see `ROADMAP.md`.
 >
 > This file is now the **decision ledger**: every answered question is recorded below with its decision and the doc section where the decision is specified. The full original question texts (context, options, trade-offs) are preserved in git history (first commit of this file). Per `CLAUDE.md`, any **new** ambiguity found during development is filed under *Open questions* below and taken to the owner — never guessed.
 
 ## Open questions
 
-*None currently.*
+### Q28 — Enemy art in the interim (found in M4, 2026-08-22)
+
+**Context.** Q11 settled that *you* supply enemy avatars later, in the class-portrait bust format. It did not say what an enemy looks like until then, and M4 is the milestone where that stops being theoretical: the combat screen puts the enemy portrait at 240 px beside the hero's, and a bestiary of identical grey silhouettes reads as an unfinished build (§2.1) in exactly the screen the brief calls the one that must feel best (§4.1).
+
+**What is in the build now (my judgement call, reversible in one field per enemy).** Ten of the thirteen enemies now wear FantasyUI art that genuinely *is* them — `hero-stone-golem` for the Rubble Golem, `hero-demon-lord` for the Cinder Tyrant, `hero-brute` for the Gutter King, and so on. The three with nothing fitting in the library (Spire Rat, Cave Lurker, Ember Hound) keep `silhouette-warrior-m`: a wrong portrait reads as a bug, while the documented fallback reads as art still to come (§4.3).
+
+**The question.** Which do you want until your own enemy art arrives?
+
+- **A — Keep it as built** *(my recommendation)*: fitting library art where it exists, silhouette where it does not. Best-looking interim, no new work, and every avatar is one field to swap.
+- **B — Silhouette everywhere**: uniform and unmistakably provisional, at the cost of a combat screen that looks unfinished during M4–M7 reviews.
+- **C — Library art everywhere**: no silhouettes at all, accepting that a Spire Rat would be represented by a human figure.
+
+Answering this also tells me whether the missing three are worth a note in the M8 content plan, or whether your art lands before then.
+
+*Nothing is blocked on this — the game plays either way, and switching is a one-line change per enemy.*
 
 ---
 

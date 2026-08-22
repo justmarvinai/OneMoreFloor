@@ -28,9 +28,9 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 - **Speed stat comes only from gear** — never level-ups, never purchasable (§6). Encode this in types, not comments.
 - **Death destroys nothing owned** (§3.3): only tower-run progress resets; highest-floor record persists (§3.4).
 - **Anti-overshoot (§13):** every item source (drops/merchants/gacha) emits only inside the character's Power-Level bracket — guarded by a permanent CI property test (BALANCE.md §6).
-- **Native `title` tooltips are forbidden** anywhere (§20.4) — FantasyUI `Tooltip` only (lint rule).
+- **Native `title` tooltips are forbidden** anywhere (§20.4) — FantasyUI `Tooltip` only. Enforced twice: a lint rule over our source, and `src/ui/tooltips.ts` adopting at runtime the `title`s vendored components emit (UI_FANTASYUI_MAP §12). A smoke test asserts the document never contains one.
 - **Balance numbers live only in `src/content/balance/`** (§3.7) — a literal tunable in `src/domain/` is a review-blocking bug.
-- **Content is data** (§2.3): classes/enemies/floors/items/quests/tutorial in `src/content/` per `docs/CONTENT_PIPELINE.md`; logic never hardcodes content. Enemy avatars bind by id with `silhouette-warrior-m` fallback (§4.3).
+- **Content is data** (§2.3): classes/enemies/floors/items/quests/tutorial in `src/content/` per `docs/CONTENT_PIPELINE.md`; logic never hardcodes content. Enemy avatars bind by id with `silhouette-warrior-m` fallback (§4.3). Art ids are validated against the CSS that declares them, and painted-icon slots reject `glyph-*` ids (those are masks, not pictures).
 - **UI is FantasyUI** (§20.2): vendored components first; custom components only via the allowlist in `docs/UI_FANTASYUI_MAP.md` §10, built in FantasyUI's design language. The game must feel like a game, never a web app (§20.1).
 
 ## Engineering conventions (once code exists)

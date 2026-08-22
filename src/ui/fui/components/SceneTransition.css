@@ -1,0 +1,134 @@
+/* SceneTransition — the wipe that hides a screen swap. */
+
+/* A custom property is not interpolatable until it is registered, so without
+   this the iris would snap open instead of closing over the screen — and the
+   `transitionend` the component listens for would never fire. */
+@property --fui-wipe-hole {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+.fui-wipe {
+  --fui-wipe-ms: 420ms;
+  --fui-wipe-ink: #0b0a08;
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fui-wipe[data-full='true'] {
+  position: fixed;
+}
+
+/* While the screen is open the panels are off-stage, so the layer must not eat
+   clicks meant for the game underneath. */
+.fui-wipe[data-state='covered'] {
+  pointer-events: auto;
+}
+
+.fui-wipe__panel {
+  position: absolute;
+  background:
+    var(--fui-wipe-art, none) center / cover no-repeat,
+    var(--fui-wipe-ink);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.75);
+  transition: transform var(--fui-wipe-ms) var(--fui-ease);
+  will-change: transform;
+}
+
+.fui-wipe__text {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fui-ink);
+  text-shadow: 0 2px 10px #000;
+  opacity: 0;
+  transition: opacity var(--fui-wipe-ms) var(--fui-ease);
+}
+
+.fui-wipe[data-state='covered'] .fui-wipe__text {
+  opacity: 1;
+  transition-delay: calc(var(--fui-wipe-ms) * 0.5);
+}
+
+/* ── curtain: two halves meeting in the middle ───────────────────────────── */
+.fui-wipe[data-variant='curtain'] .fui-wipe__panel {
+  top: 0;
+  bottom: 0;
+  width: 51%;
+}
+
+.fui-wipe[data-variant='curtain'] .fui-wipe__panel--a { left: 0; }
+.fui-wipe[data-variant='curtain'] .fui-wipe__panel--b { right: 0; }
+
+.fui-wipe[data-variant='curtain'][data-state='open'] .fui-wipe__panel--a { transform: translateX(-101%); }
+.fui-wipe[data-variant='curtain'][data-state='open'] .fui-wipe__panel--b { transform: translateX(101%); }
+
+/* ── gate: a slab dropping from above and rising from below ──────────────── */
+.fui-wipe[data-variant='gate'] .fui-wipe__panel {
+  left: 0;
+  right: 0;
+  height: 51%;
+}
+
+.fui-wipe[data-variant='gate'] .fui-wipe__panel--a { top: 0; }
+.fui-wipe[data-variant='gate'] .fui-wipe__panel--b { bottom: 0; }
+
+.fui-wipe[data-variant='gate'][data-state='open'] .fui-wipe__panel--a { transform: translateY(-101%); }
+.fui-wipe[data-variant='gate'][data-state='open'] .fui-wipe__panel--b { transform: translateY(101%); }
+
+/* ── wipe: one panel sweeping across, tilted so the edge reads as a swipe ── */
+.fui-wipe[data-variant='wipe'] .fui-wipe__panel--a {
+  top: -20%;
+  bottom: -20%;
+  left: -12%;
+  right: -12%;
+  transform: skewX(-8deg);
+}
+
+.fui-wipe[data-variant='wipe'] .fui-wipe__panel--b { display: none; }
+
+.fui-wipe[data-variant='wipe'][data-state='open'] .fui-wipe__panel--a {
+  transform: skewX(-8deg) translateX(-130%);
+}
+
+/* ── iris / fade: one full-bleed panel, scaled or faded ──────────────────── */
+.fui-wipe[data-variant='iris'] .fui-wipe__panel--a,
+.fui-wipe[data-variant='fade'] .fui-wipe__panel--a {
+  inset: 0;
+}
+
+.fui-wipe[data-variant='iris'] .fui-wipe__panel--b,
+.fui-wipe[data-variant='fade'] .fui-wipe__panel--b {
+  display: none;
+}
+
+/* The iris is a hole in the panel, not a shrinking panel — a mask keeps the
+   art full-size so it does not warp as the aperture closes. */
+.fui-wipe[data-variant='iris'] .fui-wipe__panel--a {
+  --fui-wipe-hole: 0%;
+  mask: radial-gradient(circle at 50% 50%, transparent var(--fui-wipe-hole), #000 calc(var(--fui-wipe-hole) + 1%));
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent var(--fui-wipe-hole), #000 calc(var(--fui-wipe-hole) + 1%));
+  transition: --fui-wipe-hole var(--fui-wipe-ms) var(--fui-ease);
+}
+
+.fui-wipe[data-variant='iris'][data-state='open'] .fui-wipe__panel--a {
+  --fui-wipe-hole: 100%;
+}
+
+.fui-wipe[data-variant='fade'] .fui-wipe__panel--a {
+  opacity: 1;
+  transition: opacity var(--fui-wipe-ms) var(--fui-ease);
+}
+
+.fui-wipe[data-variant='fade'][data-state='open'] .fui-wipe__panel--a {
+  opacity: 0;
+}

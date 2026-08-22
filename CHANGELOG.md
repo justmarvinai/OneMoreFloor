@@ -5,6 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning wil
 
 ## [Unreleased]
 
+### Added — M4: the game becomes visible
+
+- **The loop is playable.** Climb, fight, loot, level, die, Quick-Raid back up — end to end, with real drops, in a browser. Entering a hero now lands on the tower rather than a placeholder, and the placeholder screen is gone rather than replaced.
+- **The Lootspire** (Brief §3.1, §3.4): a scrolling floor path showing the climb *ahead* of you, because the tower only goes up (Q23) — which means every node on it does something. The floor you are standing on is the fight; a floor you conquered in an earlier run Quick-Raids straight to that depth; new ground is not clickable because climbing is the only way there. Beside it, the next floor's enemy: portrait, stats, and the modifiers it will impose, each with its own tooltip.
+- **The fight** (Brief §4.1, COMBAT.md §7): two portrait cards over the band's arena, in the arrangement the reference screens use. Cards lunge and recoil, crits stamp an impact frame, heavy blows wash the screen red, a full resource bar pulses and its signature move stops the fight for a beat. Under each card is a stat block, because a player who loses should be able to see why from the cards alone. The fight log is a drawer, so the arena keeps the whole screen.
+- **Battle Speed is playback, never outcome** (§3.5). The multiplier scales the animation timeline and the waits between beats, and changing it takes effect on the next beat. Damage numbers have a minimum life independent of the rate, so a fight at x8 reads as a fast exchange rather than a smear — "legible at x8" is now an assertion, not an opinion. Until the account upgrade lands in M6 the indicator shows x1 and says what would raise it (§20.5).
+- **Skip ends a fight exactly where watching it would** (§3.4): every remaining beat is applied with its animation suppressed, so the final frame is identical. The result was already saved before the first frame played (COMBAT.md §1), which is what makes that safe.
+- **The aftermath** (COMBAT.md §8): a victory screen with what the floor gave, loot cards framed by rarity, and "One More Floor" that walks straight into the next fight without a detour. A level-up gets its own beat first. A death leads with what you *kept* — level, gear, gold, materials, every floor record — and offers the Quick-Raid back up, because death is meant to be a launchpad, not a slap.
+- **Native tooltips are now impossible in the running game** (§20.4). Six vendored FantasyUI components set a `title` attribute; a lint rule cannot see them and editing them would be the silent fork the project forbids. A runtime service adopts every `title` the app produces into a FantasyUI `Tooltip` instead, and a smoke test asserts the document never contains one — so the ban is a property of the shipped game, not just of our source.
+- **Bands have a look.** Each floor band carries backdrop art (Q11: FantasyUI's own, for now), painted behind both the trail and the arena, so a stretch of the tower reads as a place rather than a number range. Swapping in the owner's scene art later is one field per band.
+- **Enemies have faces.** Ten of the thirteen enemies and bosses now wear FantasyUI art that genuinely is them — a stone golem, a demon lord, a brute. The three with nothing fitting in the library keep the documented silhouette, because a wrong portrait reads as a bug while the fallback reads as art still to come (§4.3). **⧗Q28** asks the owner which way to close the gap; nothing is blocked on the answer.
+
+### Fixed — M4
+
+- **`content:validate` now checks art bindings**, so a mistyped asset id fails the build instead of rendering as an empty frame. It also rejects a line glyph in any painted-icon slot: FantasyUI's `glyph-*` set is `fill="currentColor"` SVG meant to be used as a CSS mask, and painted as a background image it resolves to black and vanishes — which is exactly how the first pass at effect chips came out invisible.
+- **`npm run smoke` builds before it serves.** Playwright previews `dist/`, so running it alone quietly tested the previous build.
+
+
 ### Added — M3: the combat engine, the tower and Quick-Raid
 
 - **Combat resolves to data, then gets performed** (COMBAT.md §1). A fight is a pure function of `(hero, enemy, seed)` returning the whole thing as an ordered event script. Three brief requirements fall out of that one decision rather than needing their own machinery: skipping a fight can't change its outcome (§3.4), Battle Speed is a playback rate over a decided result (§3.5), and any fight can be replayed exactly from its seed.

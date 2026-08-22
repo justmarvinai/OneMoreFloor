@@ -16,33 +16,49 @@ export interface FloorBand {
   from: number;
   /** Families that appear here, for flavour continuity within a stretch. */
   families: readonly EnemyFamily[];
+  /**
+   * Backdrop art id for fights in this band (Q11: FantasyUI art only in 0.1).
+   * It is painted blurred and far back, so a band reads as a *place* rather than
+   * a number — swapping it for the owner's own scene art is this one field.
+   */
+  backdrop: string;
 }
 
 export const FLOOR_BANDS: readonly FloorBand[] = [
-  { id: 'band.undercroft', nameKey: 'band.undercroft', from: 1, families: ['vermin', 'brigand'] },
+  {
+    id: 'band.undercroft',
+    nameKey: 'band.undercroft',
+    from: 1,
+    families: ['vermin', 'brigand'],
+    backdrop: 'earth-mossy-stone',
+  },
   {
     id: 'band.brokenStair',
     nameKey: 'band.brokenStair',
     from: 15,
     families: ['brigand', 'construct', 'beast'],
+    backdrop: 'earth-rock-spire',
   },
   {
     id: 'band.ossuary',
     nameKey: 'band.ossuary',
     from: 35,
     families: ['undead', 'construct', 'beast'],
+    backdrop: 'earth-monolith',
   },
   {
     id: 'band.emberReach',
     nameKey: 'band.emberReach',
     from: 60,
     families: ['infernal', 'undead'],
+    backdrop: 'fire-lava-field',
   },
   {
     id: 'band.endlessAscent',
     nameKey: 'band.endlessAscent',
     from: 101,
     families: ['infernal', 'undead', 'construct', 'beast'],
+    backdrop: 'earth-crystal-meteor',
   },
 ];
 

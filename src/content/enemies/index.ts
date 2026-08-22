@@ -7,8 +7,13 @@
  * composes these bases with scaling and modifiers, so the tower never runs out
  * (Brief §3.1).
  *
- * Every avatar is FantasyUI's silhouette for now (Brief §4.3): the owner supplies
- * real portraits later, and each is a one-field change.
+ * Avatars bind by id with FantasyUI's silhouette as the fallback (Brief §4.3).
+ * Where the library already ships art that genuinely *is* the enemy — a stone
+ * golem, a demon lord — the enemy wears it, because a screen of identical grey
+ * silhouettes reads as unfinished (§2.1). Where nothing in the library fits (a
+ * rat, a hound), the silhouette stands rather than a wrong picture: a mismatched
+ * portrait reads as a bug, the fallback reads as art still to come. ⧗Q28 asks the
+ * owner which way to close the gap.
  */
 import {
   CHILL,
@@ -25,7 +30,7 @@ import {
 } from './effects.ts';
 import type { BossDef, EnemyDef } from './types.ts';
 
-/** Until real enemy art arrives, everything wears the same silhouette (§4.3). */
+/** The fallback every enemy without fitting art falls back to (Brief §4.3). */
 const SILHOUETTE = 'silhouette-warrior-m';
 
 export const ENEMIES: readonly EnemyDef[] = [
@@ -42,7 +47,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     id: 'enemy.cutpurse',
     nameKey: 'enemy.cutpurse',
     family: 'brigand',
-    avatar: SILHOUETTE,
+    avatar: 'hero-lone-wanderer',
     profile: { hp: 0.9, strength: 1, defense: 0.8, luck: 1.3 },
     playerDebuff: GLOOM,
     floors: [1, 22],
@@ -52,7 +57,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     id: 'enemy.rubble-golem',
     nameKey: 'enemy.rubbleGolem',
     family: 'construct',
-    avatar: SILHOUETTE,
+    avatar: 'hero-stone-golem',
     profile: { hp: 1.5, strength: 1.05, defense: 1.6, speed: 0.5 },
     playerDebuff: RUST,
     floors: [4, 40],
@@ -71,7 +76,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     id: 'enemy.bone-piper',
     nameKey: 'enemy.bonePiper',
     family: 'undead',
-    avatar: SILHOUETTE,
+    avatar: 'hero-blue-cultist',
     profile: { hp: 1, strength: 1.1, defense: 0.95, resource: 1.4 },
     playerDebuff: CHILL,
     floors: [14, 62],
@@ -81,7 +86,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     id: 'enemy.grave-warden',
     nameKey: 'enemy.graveWarden',
     family: 'undead',
-    avatar: SILHOUETTE,
+    avatar: 'hero-nightwatch',
     profile: { hp: 1.35, strength: 1.15, defense: 1.25 },
     playerDebuff: SAP,
     floors: [22, 80],
@@ -100,7 +105,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     id: 'enemy.ash-revenant',
     nameKey: 'enemy.ashRevenant',
     family: 'infernal',
-    avatar: SILHOUETTE,
+    avatar: 'hero-emberknight',
     profile: { hp: 1.25, strength: 1.3, defense: 1.1, luck: 1.2 },
     playerDebuff: SAP,
     floors: [55, 100],
@@ -118,7 +123,7 @@ export const BOSSES: readonly BossDef[] = [
     id: 'boss.warden-of-the-gate',
     nameKey: 'boss.wardenOfTheGate',
     family: 'construct',
-    avatar: SILHOUETTE,
+    avatar: 'hero-vanguard',
     profile: { hp: 1.2, defense: 1.2 },
     playerDebuff: SUNDERED,
     selfBuff: STONESKIN,
@@ -130,7 +135,7 @@ export const BOSSES: readonly BossDef[] = [
     id: 'boss.gutter-king',
     nameKey: 'boss.gutterKing',
     family: 'brigand',
-    avatar: SILHOUETTE,
+    avatar: 'hero-brute',
     profile: { strength: 1.15, luck: 1.3 },
     playerDebuff: HEXED,
     selfBuff: FURY,
@@ -142,7 +147,7 @@ export const BOSSES: readonly BossDef[] = [
     id: 'boss.hollow-choir',
     nameKey: 'boss.hollowChoir',
     family: 'undead',
-    avatar: SILHOUETTE,
+    avatar: 'hero-voidguard',
     profile: { hp: 1.3, resource: 1.6 },
     playerDebuff: CURSE_OF_LEAD,
     selfBuff: STONESKIN,
@@ -154,7 +159,7 @@ export const BOSSES: readonly BossDef[] = [
     id: 'boss.pale-matriarch',
     nameKey: 'boss.paleMatriarch',
     family: 'beast',
-    avatar: SILHOUETTE,
+    avatar: 'hero-green-sorceress',
     profile: { strength: 1.25, speed: 1.3 },
     playerDebuff: WITHERING,
     selfBuff: FURY,
@@ -166,7 +171,7 @@ export const BOSSES: readonly BossDef[] = [
     id: 'boss.cinder-tyrant',
     nameKey: 'boss.cinderTyrant',
     family: 'infernal',
-    avatar: SILHOUETTE,
+    avatar: 'hero-demon-lord',
     profile: { hp: 1.35, strength: 1.3, defense: 1.15 },
     playerDebuff: SUNDERED,
     selfBuff: QUICKENING,

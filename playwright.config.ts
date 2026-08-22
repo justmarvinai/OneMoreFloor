@@ -29,7 +29,9 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions } }],
   webServer: {
-    command: 'npx vite preview --port 4173 --strictPort',
+    // `vite preview` serves whatever is in dist/, so the build belongs here: a
+    // smoke run must never quietly test the previous build.
+    command: 'npm run build && npx vite preview --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

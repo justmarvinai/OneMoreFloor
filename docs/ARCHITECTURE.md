@@ -105,6 +105,12 @@ The stack above is now standing; these are the decisions that only surfaced once
 - **Playwright browser resolution:** the config uses an already-installed Chromium when one is present (`PLAYWRIGHT_CHROMIUM_PATH`, default `/opt/pw-browsers/chromium`) and otherwise falls back to Playwright's managed browser, so the same config works in the dev container and in CI.
 - **Lint rules that encode the brief** are live: native `title` in all three shapes it could reach the DOM, `Math.random()`/`Date.now()`/`new Date()` outside `app/rng.ts` and `app/time.ts`, and the `domain`/`content` → `ui`/`save` import boundary.
 
+## 7b. As-built notes from M4
+
+- **The `title` ban needed a second enforcement point.** Lint covers our source; it cannot cover vendored FantasyUI, which is deliberately excluded from linting because fixes go upstream. `src/ui/tooltips.ts` closes the gap at runtime and a smoke test asserts the shipped document never contains a `title` (UI_FANTASYUI_MAP §12).
+- **The smoke suite builds before it serves.** `vite preview` serves `dist/`, so `npm run smoke` on its own used to test whatever was built last. The Playwright `webServer` command now runs the build itself; the documented verification order is no longer load-bearing for correctness.
+- **`content:validate` was green without running anything.** `--dir src/content` makes Vitest resolve the config's `include` globs relative to that directory, so they matched nothing, and `--passWithNoTests` made the empty result look like a pass. Fixed in M3; M4 added the art-binding checks it now carries.
+
 ## 8. Resolution log
 
 Everything that fed this document is resolved (2026-08-22, `USER_QUESTIONS.md` ledger): the A1 stack posture stands ratified with the plan answers; Q14 confirmed portrait-card combat, so DOM/WAAPI is sufficient and the no-engine call is final for 0.1; Q24 fixed English-only 0.1 on the i18n-ready strings module; Q13 cleared FantasyUI art commercially. The one remaining gate is Phase 3 approval, after which M0 begins.

@@ -9,7 +9,19 @@
 import { createAccount, afterCharacterReset, setActiveSlot } from '@/domain/character/account.ts';
 import { createCharacter, summarize } from '@/domain/character/character.ts';
 import { checkName, type NameProblem } from '@/domain/character/naming.ts';
-import { SLOT_IDS, type Account, type ClassId, type SlotId } from '@/domain/character/types.ts';
+import {
+  SLOT_IDS,
+  type Account,
+  type Character,
+  type ClassId,
+  type SlotId,
+} from '@/domain/character/types.ts';
+import {
+  fightFloor,
+  quickRaid,
+  type FloorResult,
+  type QuickRaidResult,
+} from '@/domain/tower/run.ts';
 import type { SaveLayer } from '@/save/saveLayer.ts';
 import { newSeed } from './rng.ts';
 import {
@@ -33,6 +45,14 @@ export interface Session {
   leave(): Promise<void>;
   /** Erase one slot completely (Brief §19). Account upgrades survive (Q4). */
   reset(slotId: SlotId): Promise<void>;
+  /**
+   * Fight one floor. The fight resolves and its consequences are **saved before
+   * the animation starts** (COMBAT.md §1): a tab that dies mid-fight loses the
+   * choreography, never the outcome.
+   */
+  fight(floor: number): Promise<FloorResult>;
+  /** Quick-Raid through cleared floors, saving the aggregate result (Q8). */
+  raid(throughFloor: number): Promise<QuickRaidResult>;
 }
 
 export type CreateResult = { ok: true } | { ok: false; problem: NameProblem | 'slotUnavailable' };
@@ -150,5 +170,36 @@ export function createSession(save: SaveLayer, store: AppStore): Session {
       characterLeft(store);
       slotsLoaded(store, await readSlots(next));
     },
+
+    async fight(floor) {
+      const character = requireActive(store);
+      const result = fightFloor(character, floor);
+      await commit(result.character);
+      return result;
+    },
+
+    async raid(throughFloor) {
+      const character = requireActive(store);
+      const result = quickRaid(character, throughFloor);
+      await commit(result.character);
+      return result;
+    },
   };
+
+  /**
+   * Persist the character, then let the store notice — in that order. Writing
+   * first is what makes a fight's result survive a crash between resolution and
+   * the screen that shows it (SAVE_SCHEMA §5, COMBAT.md §1).
+   */
+  async function commit(character: Character): Promise<void> {
+    await save.saveCharacter(character);
+    characterEntered(store, character);
+  }
+}
+
+/** A fight without a character loaded is a programming error, not a player one. */
+function requireActive(store: AppStore): Character {
+  const character = store.get().activeCharacter;
+  if (!character) throw new Error('[session] no active character');
+  return character;
 }
