@@ -86,6 +86,8 @@
 
 `QuestBoard` (active dailies/weeklies, claim states, full-board labeling), `QuestTracker` (shell-level pinned objectives), `ProgressRing`/`StatBar` per objective, `RewardPopup` on claim, `CountdownTimer` to reset (Q10: local midnight / Monday 00:00; Q21: 3 dailies + 3 weeklies, one hard weekly, no rerolls).
 
+**As built (M6):** two columns, each with its own reset countdown — "is it worth starting this now?" is the question a board exists to answer, so it is answered above the fold. Every card shows what it asks for, how far along it is, and exactly what it pays *before* the player commits. Composed from `Panel` + `StatBar` + `Badge` + `Button` + `CountdownTimer` rather than from `QuestBoard` itself: see §10's upstream wish 8.
+
 ## 8. Meta screens
 
 | Screen | FantasyUI |
@@ -95,6 +97,8 @@
 | Hero creation (name + class pick + class preview, §5) | `CharacterCreator` + `TextInput` + class `ChampionCard`-style preview panels (Q25: 3–16 chars, unique per account, no rename) |
 | Account upgrades (Battle Speed tiers, slots — §15) | `UpgradePanel` + `CostButton` + `TierBadge` |
 | Tutorial (§18) | `TutorialMask` + `TutorialTip` sequence; completion via `RewardPopup` (Lucky Ticket moment) |
+
+**As built (M6):** the upgrades screen is two cards and no registry — §15 says "exactly two account upgrades exist, do not add more", so the code shape says it too. `CostButton` carries the shortfall line, which is what turns "insanely expensive" (§15.1) into a goal rather than a wall. The tutorial runs *over* the tower rather than instead of it, spotlighting the real rail and the real floor preview through `TutorialMask`; the rail carries `data-nav-id` hooks so an anchor cannot drift when a nav entry is added. Skipping forfeits the reward, and the opening beat says so — §18's "gently discourage" is a sentence where the decision is made, not a nag afterwards.
 | Settings (minimal: no audio §2.2) | `SettingsScreen` (pruned) |
 | Fatal-error / save-recovery panel (SAVE_SCHEMA §6) | `EmptyState` + `Panel`, in-language (never a browser alert) |
 
@@ -121,6 +125,7 @@ Anything beyond this list needs a written justification in this file before it's
 5. `BuffBar` counts durations in **seconds** (`duration()` renders `3` as `3.0s`). Round-based combat has no seconds, so our chips state their duration in the tooltip and pass no `remaining`. An explicit unit or formatter option would let the sweep and the countdown work for turn-based games.
 6. `StageTrail` always renders its **star meter**, so a campaign without star ratings shows `★ 0 / 0`. Ours is hidden with one local rule; a `stars: false` option would be cleaner.
 7. `Portrait` has no `setLevel`, so a level-up cannot update the badge in place. Our rail refreshes it on the next screen build.
+8. `QuestBoard` models **contracts** — bounties a player accepts, abandons and turns in — and carries no progress value. Daily/weekly quests are always active and always counting, so ours are composed from `Panel`/`StatBar`/`Badge` instead. A `progress`/`target` pair on `Bounty`, plus a mode where entries are permanently taken, would let the component cover both.
 
 ## 12. The tooltip service (Brief §20.4)
 

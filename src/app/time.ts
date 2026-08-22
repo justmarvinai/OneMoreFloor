@@ -68,6 +68,28 @@ export function weekKeyOf(timestamp: number): string {
   return `${isoYear}-W${pad2(week)}`;
 }
 
+/**
+ * The next local midnight — when the daily board turns over (Q10).
+ *
+ * Local rather than UTC because the brief's players live in one place each, and
+ * a reset that lands at 3am for half of them is a reset nobody plans around.
+ */
+export function nextDayBoundary(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(24, 0, 0, 0);
+  return date.getTime();
+}
+
+/** The next local Monday at 00:00 — when the weekly board turns over (Q10). */
+export function nextWeekBoundary(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  // Monday is 0 once Sunday is folded to the end of the week.
+  const daysUntilMonday = 7 - ((date.getDay() + 6) % 7);
+  date.setDate(date.getDate() + daysUntilMonday);
+  return date.getTime();
+}
+
 export function createClock(options: ClockOptions = {}): Clock {
   const source = options.source ?? (() => Date.now());
   let mark = options.lastKnown ?? 0;

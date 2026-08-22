@@ -20,7 +20,16 @@ import { clock } from '@/app/time.ts';
 import { computeBadges } from '@/ui/badges.ts';
 import { t } from '@/strings/index.ts';
 
-export type ShellSection = 'tower' | 'character' | 'merchants' | 'quests';
+export type ShellSection = 'tower' | 'character' | 'merchants' | 'quests' | 'upgrades';
+
+/** Rail order, which is also the order the component renders them in. */
+const NAV_ORDER: readonly ShellSection[] = [
+  'tower',
+  'character',
+  'merchants',
+  'quests',
+  'upgrades',
+];
 
 export interface ShellOptions {
   store: AppStore;
@@ -51,8 +60,8 @@ export function createShell(options: ShellOptions): Shell {
   const definition = character ? CLASSES[character.identity.classId] : null;
   // One service decides every dot in the game (§20.5); the rail only renders it.
   const badges = character
-    ? computeBadges(character, clock().now())
-    : { tower: false, character: false, merchants: false, quests: false };
+    ? computeBadges(character, clock().now(), store.get().account)
+    : { tower: false, character: false, merchants: false, quests: false, upgrades: false };
 
   const portrait = track(
     new Portrait({
@@ -106,7 +115,14 @@ export function createShell(options: ShellOptions): Shell {
           id: 'quests',
           label: t('nav.section.quests'),
           glyph: 'glyph-arcane-symbol',
-          disabled: true,
+          ...(badges.quests ? { dot: true } : {}),
+        },
+        {
+          id: 'upgrades',
+          label: t('nav.section.upgrades'),
+          glyph: 'glyph-holy-totem',
+          footer: true,
+          ...(badges.upgrades ? { dot: true } : {}),
         },
       ],
       value: active,
@@ -118,6 +134,16 @@ export function createShell(options: ShellOptions): Shell {
   // `SideNav` emits the id itself, not an object wrapping it.
   nav.on<string>('nav:change', (id) => {
     if (id !== active) onNavigate(id as ShellSection);
+  });
+
+  // Stable hooks for the tutorial's anchors and for tests. The component renders
+  // its items in the order they were given (footer entries last), so tagging by
+  // position is exact — and far steadier than an nth-of-type selector that any
+  // future nav entry would silently shift.
+  const buttons = nav.el.querySelectorAll<HTMLElement>('.fui-sidenav__item');
+  NAV_ORDER.forEach((id, index) => {
+    const button = buttons[index];
+    if (button) button.dataset.navId = id;
   });
 
   const switchButton = track(new Button({ label: t('select.switch'), variant: 'ghost' }));

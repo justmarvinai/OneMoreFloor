@@ -5,6 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning wil
 
 ## [Unreleased]
 
+### Added — M6: reasons to come back
+
+- **Daily and weekly quests** (Brief §17, Q21): three of each, one weekly always hard — the slot that pays in tickets. Every card says what it asks for, how far along it is, and exactly what it pays *before* you decide to chase it, with the countdown to reset above each column, because "is it worth starting this now?" is the question a quest board exists to answer.
+- **Quest targets follow the player down the tower.** A template is a recipe, not a quest: it is instantiated each period against the hero's own depth, which is what keeps §17's "one day of normal play" true on floor 8 and on floor 800 without anyone maintaining two hundred hand-written quests.
+- **Periods are date strings, not timers** (Q10). `2026-08-22` and `2026-W34` are what a board is keyed by, so "has this day already happened?" is a string comparison rather than arithmetic on a clock the player can move. A board only ever moves forward: a key that is not *later* than the stored one leaves everything alone, so winding the system clock back re-opens nothing and re-grants nothing.
+- **Progress comes from what the player did**, never from a state change nobody caused: clearing floors, felling bosses, earning and spending, upgrading, buying, selling, drinking. Nine objective kinds, each one something the game can observe.
+- **The tutorial** (§18) runs *over* the tower rather than instead of it, spotlighting the real floor preview and the real navigation rather than describing them. It is skippable, and the opening beat says what skipping costs — a sentence where the decision is made beats a nag afterwards. Finishing pays a Lucky Ticket and starting gold; skipping does not, because §18 calls it a *completion* reward.
+- **Account upgrades** (§15): Battle Speed x2 → x4 → x8 with the cost concentrated at the top (Q19 — x8 is the long-term goal §15.1 asks for, not an early convenience), and character slots 2–5 with the first cheap and the rest steep. Exactly two upgrades, and the code shape says so: the upgrade kind is a two-member union rather than a registry.
+- **Every dot in the game now comes from one service** (§20.5), including quests and upgrades. A dot means a reward is sitting there or something is affordable *right now* — never "the board changed".
+- **One reward path for the whole game.** Floors, quests and later the gacha all bank their payout through the same function, so a quest reward and a floor reward can never drift apart in what they actually give — the mistake that produced M3's XP double-count.
+
+### Changed — M6
+
+- **Save schema v4:** characters gained their quest boards. A migrated save arrives with both boards empty rather than pre-rolled: a board is built against the hero's depth *and* the current period, so rolling one at migration time would only bake in a key that may already be stale.
+- **Quest targets scale by unit, not by a growth factor.** Counts stay flat with depth, gold targets are priced in floors' worth of income at the hero's own depth, and "go deeper" weeklies are a multiple of their best floor. Pricing gold by *bracket* was the first attempt and it was wrong: a level-2 hero in freshly-rolled starting gear can sit three brackets up while still earning floor-4 money, and the weekly asked them for 45,000 gold.
+- **The second character slot now costs about a first session** rather than forty early floors. §15.2 calls the first extra slot cheap, and the second hero is how a player meets the other four classes — pricing that out costs the game more than it earns.
+- **The router gained an `onEnter` hook**, so the tutorial can start over a live screen without anyone monkey-patching navigation to do it.
+
 ### Added — M5: somewhere for the gold to go
 
 - **The character screen** (Brief §6/§7/§9/§10): the paperdoll with armour down one side and the ascension trinkets down the other, the weapon row beneath, and the backpack alongside. Every stat row says *what the number does* — "31% of damage turned away", "9% double attacks" — computed from the same config the fight reads, so a player can tell whether the next point is worth buying without running an experiment. A locked slot names the ascension that opens it rather than going quiet (§20.5).

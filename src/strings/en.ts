@@ -15,6 +15,7 @@ export const en = {
   'nav.section.character': 'Character',
   'nav.section.merchants': 'Merchants',
   'nav.section.quests': 'Quests',
+  'nav.section.upgrades': 'Account',
 
   'save.status.created': 'New save created.',
   'save.status.loaded': 'Save loaded.',
@@ -504,6 +505,102 @@ export const en = {
   'badge.canUpgrade': 'You can afford an upgrade',
   'badge.canAscend': 'Your hero can ascend',
   'badge.canBuy': 'You can afford something here',
+
+  // --- Quests (Brief §17, Q21) ---
+  'quest.daily.climb': 'Up the Spire',
+  'quest.daily.boss': 'Break a Gate',
+  'quest.daily.spend': 'Coin in Motion',
+  'quest.daily.upgrade': 'Sharpen What You Have',
+  'quest.daily.shop': 'Stock Up',
+  'quest.daily.sell': 'Lighten the Load',
+  'quest.daily.draught': 'A Drink Before the Climb',
+  'quest.weekly.climb': 'The Long Climb',
+  'quest.weekly.earn': "A Week's Wages",
+  'quest.weekly.upgrade': 'Forge Ahead',
+  'quest.weekly.shop': 'Patron of the Spire',
+  'quest.weekly.bosses': 'Gatebreaker',
+  'quest.weekly.deep': 'Depths Unseen',
+  'quest.weekly.fortune': "A Spire-Keeper's Fortune",
+
+  'quest.objective.clearFloors': 'Clear {target} floors',
+  'quest.objective.defeatBosses': 'Defeat {target} bosses',
+  'quest.objective.reachFloor': 'Reach floor {target} in one run',
+  'quest.objective.earnGold': 'Earn {target} gold',
+  'quest.objective.spendGold': 'Spend {target} gold',
+  'quest.objective.upgradeGear': 'Upgrade gear {target} times',
+  'quest.objective.buyItems': 'Buy {target} pieces from a merchant',
+  'quest.objective.sellItems': 'Sell {target} pieces',
+  'quest.objective.drinkPotions': 'Drink {target} draughts',
+
+  'quest.title': 'Quest Board',
+  'quest.daily': 'Daily',
+  'quest.weekly': 'Weekly',
+  'quest.hard': 'Hard',
+  'quest.progress': '{progress} / {target}',
+  'quest.claim': 'Claim',
+  'quest.claimed': 'Claimed',
+  'quest.resetsIn': 'Resets in',
+  'quest.rewards': 'Reward',
+  'quest.rewardGold': '{gold} gold',
+  'quest.rewardXp': '{xp} XP',
+  'quest.rewardTicket': 'Summon Ticket',
+  'quest.rewardLucky': 'Lucky Ticket',
+  'quest.none': 'No quests on the board yet — clear a floor and come back.',
+  'quest.claimedAll': 'Everything here is claimed. New quests arrive at reset.',
+
+  // --- Account upgrades (Brief §15, Q19) ---
+  'upgrades.title': 'Account Upgrades',
+  'upgrades.subtitle': 'Bought once. They survive every reset (Q4).',
+  'upgrades.battleSpeed': 'Battle Speed',
+  'upgrades.battleSpeedDetail':
+    'Fights play at x{rate}. Speed changes the animation, never the outcome.',
+  'upgrades.battleSpeedNext': 'Raise to x{rate}',
+  'upgrades.battleSpeedMax': 'Fights already play at x8.',
+  'upgrades.slots': 'Account Slots',
+  'upgrades.slotsDetail': '{unlocked} of {max} character slots unlocked.',
+  'upgrades.slotsNext': 'Unlock slot {slot}',
+  'upgrades.slotsMax': 'All five slots are yours.',
+  'upgrades.buy': 'Buy',
+  'upgrades.owned': 'Owned',
+  'upgrades.cost': '{cost} gold',
+  'upgrades.paidBy': 'Paid from {name}’s purse.',
+  'upgrades.short': 'You are {missing} gold short.',
+
+  // --- Tutorial (Brief §18) ---
+  'tutorial.skip': 'Skip the tour',
+  'tutorial.skipNudge': 'It takes a minute, and it ends with a Lucky Ticket.',
+  'tutorial.next': 'Got it',
+  'tutorial.finish': 'Begin the climb',
+  'tutorial.take': 'Take it',
+  'tutorial.step': 'Step {step} of {total}',
+  'tutorial.welcome.title': 'The Lootspire',
+  'tutorial.welcome.body':
+    'One tower, no top. Every floor is a fight you watch rather than play, and every fight ' +
+    'pays. The only question the game ever asks is whether you want one more floor. ' +
+    'You can skip this tour — but it takes a minute, and it ends with a Lucky Ticket.',
+  'tutorial.tower.title': 'Climb',
+  'tutorial.tower.body':
+    'The floor you are standing on is the fight. Beat it and the next one opens; every tenth ' +
+    'floor is a boss that hits back harder and pays more.',
+  'tutorial.death.title': 'Falling is part of it',
+  'tutorial.death.body':
+    'When the spire wins, you lose the climb and nothing else — level, gear, gold and your ' +
+    'best-floor record all survive. Quick-Raid skips you back up through floors you have ' +
+    'already beaten.',
+  'tutorial.character.title': 'Grow',
+  'tutorial.character.body':
+    'Gold buys stat points; gold and materials upgrade the gear you find. Speed is the one ' +
+    'stat you can never buy — it comes only from what you are wearing.',
+  'tutorial.merchant.title': 'Spend',
+  'tutorial.merchant.body':
+    'Both merchants stock goods sized to your own power, and restock on their own every few ' +
+    'hours. The Magic Merchant also pours draughts that last an hour.',
+  'tutorial.quests.title': 'Come back tomorrow',
+  'tutorial.quests.body':
+    'Three daily quests and three weekly ones, scaled to how deep you are. The hard weekly is ' +
+    'the one that pays in tickets.',
+  'tutorial.reward.title': 'Take this with you',
+  'tutorial.reward.body': 'A Lucky Ticket and some gold to start the climb with.',
 
   'gate.tooSmall.title': 'A little more room, adventurer',
   'gate.tooSmall.message':

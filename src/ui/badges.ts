@@ -19,7 +19,9 @@ import {
 import { materialIdForTier } from '@/content/items/materials.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
 import { canAscend } from '@/domain/character/character.ts';
-import type { Character } from '@/domain/character/types.ts';
+import type { Account, Character } from '@/domain/character/types.ts';
+import { claimableCount } from '@/domain/quests/quests.ts';
+import { offersFor } from '@/domain/account/upgrades.ts';
 import type { ItemInstance } from '@/domain/items/types.ts';
 import { MERCHANT_IDS, needsRestock, stockOf } from '@/domain/merchants/merchants.ts';
 import { potionStock } from '@/domain/merchants/merchants.ts';
@@ -29,15 +31,20 @@ import type { ShellSection } from '@/ui/shell.ts';
 
 export type Badges = Record<ShellSection, boolean>;
 
-export function computeBadges(character: Character, now: number): Badges {
+export function computeBadges(character: Character, now: number, account?: Account | null): Badges {
   return {
     // Climbing is always available, so a dot here would say nothing.
     tower: false,
     character: hasCharacterAction(character),
     merchants: hasMerchantAction(character, now),
-    // Quests arrive in M6; nothing to claim before they exist.
-    quests: false,
+    // A quest dot means a reward is sitting there — never "the board changed".
+    quests: claimableCount(character.quests) > 0,
+    upgrades: account ? canAffordAnUpgrade(account, character.currencies.gold) : false,
   };
+}
+
+function canAffordAnUpgrade(account: Account, gold: number): boolean {
+  return offersFor(account, gold).some((offer) => offer.affordable);
 }
 
 function hasCharacterAction(character: Character): boolean {

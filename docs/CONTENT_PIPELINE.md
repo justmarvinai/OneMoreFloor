@@ -47,6 +47,8 @@ No per-floor hand tables (endless, §3.1): floors are **generated** from `floorR
 ### Quests (§17) — `content/quests/`
 Template pool: `{ id, cadence: daily|weekly, difficulty: normal|hard, objective: { kind, target: scalingRef }, rewards: RewardTableRef }` — objective kinds are a fixed engine vocabulary (clear-floors, defeat-boss, spend-gold, upgrade-gear, win-without-X…); templates are data. Board per Q21: 3 dailies + 3 weeklies active, one weekly always hard (Ticket/Lucky-Ticket eligible), no rerolls in 0.1.
 
+*As built (M6):* a template carries a `unit` — `count`, `goldFloors` or `depth` — instead of a scaling factor, because the unit *is* the scaling rule and naming it stops the two from drifting. Nine objective kinds are implemented, each one something the game can observe a player *doing*; a tenth is the one part of quest authoring that touches code. Rewards use the same `FloorReward` shape floors pay in, banked through the same `grantReward`, so a quest payout and a floor payout can never disagree about what they actually give.
+
 ### Tutorial (§18) — `content/tutorial/`
 Ordered step data: `{ anchor: uiAnchorId, text: stringRef, advanceOn: eventRef, mask }` driving `TutorialMask/TutorialTip` — reorderable/extendable without code.
 

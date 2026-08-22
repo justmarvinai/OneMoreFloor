@@ -13,6 +13,7 @@ import { createStartingEquipment } from '../items/starting.ts';
 import type { ItemInstance } from '../items/types.ts';
 import { createMerchants } from '../merchants/merchants.ts';
 import { potionBonus } from '../potions/potions.ts';
+import { emptyQuests } from '../quests/quests.ts';
 import { addStats, toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
 import { normalizeName } from './naming.ts';
 import type { AscensionTier, Character, ClassId, EquipSlotId, SlotId } from './types.ts';
@@ -54,6 +55,9 @@ export function createCharacter(input: CreateCharacterInput): Character {
     materials: {},
     potions: {},
     merchants: createMerchants(input.runSeed, input.createdAt),
+    // Empty until the first refresh: a board is rolled against the hero's own
+    // depth, and at creation they have not climbed anything yet.
+    quests: emptyQuests(),
   };
 }
 

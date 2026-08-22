@@ -8,6 +8,7 @@
 import type { ItemInstance } from '../items/types.ts';
 import type { MerchantsState } from '../merchants/types.ts';
 import type { ActivePotions } from '../potions/potions.ts';
+import type { QuestsState } from '../quests/types.ts';
 import type { GrowableStats } from '../stats.ts';
 
 /** The five classes of EA 0.1 (Brief §8). No sixth without a brief change. */
@@ -110,6 +111,13 @@ export interface Character {
   potions: ActivePotions;
   /** Each merchant's shelf, stored as the seed it regenerates from (Q17). */
   merchants: MerchantsState;
+  /**
+   * The daily and weekly boards, keyed by the period they belong to (Brief §17,
+   * Q10). Quests are per character rather than per account: the targets scale to
+   * *this* hero's depth, so a level-3 second character would inherit a
+   * veteran's impossible weekly otherwise.
+   */
+  quests: QuestsState;
 }
 
 /** Battle Speed tiers (Brief §15.1, shaped by Q19): x1 → x2 → x4 → x8. */

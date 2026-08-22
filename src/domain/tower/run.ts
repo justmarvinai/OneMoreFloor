@@ -24,7 +24,7 @@ import { requireItemDef } from '@/content/items/index.ts';
 import { bracketFor } from '../power/brackets.ts';
 import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
-import { awardXp } from '../progression/xp.ts';
+import { grantReward } from '../rewards/grant.ts';
 import { emptyReward, mergeRewards, rollFloorReward, type FloorReward } from './rewards.ts';
 
 export interface FloorResult {
@@ -154,20 +154,8 @@ export interface ClearResult {
  * simulator caught the first time it ran.
  */
 export function applyClear(character: Character, floor: number, reward: FloorReward): ClearResult {
-  const materials = { ...character.materials };
-  for (const [id, count] of Object.entries(reward.materials)) {
-    materials[id] = (materials[id] ?? 0) + count;
-  }
-
-  const withLoot: Character = {
+  const climbed: Character = {
     ...character,
-    currencies: {
-      gold: character.currencies.gold + reward.gold,
-      tickets: character.currencies.tickets + reward.tickets,
-      luckyTickets: character.currencies.luckyTickets + reward.luckyTickets,
-    },
-    materials,
-    inventory: [...character.inventory, ...reward.items],
     tower: {
       ...character.tower,
       currentRunFloor: floor + 1,
@@ -175,8 +163,9 @@ export function applyClear(character: Character, floor: number, reward: FloorRew
     },
   };
 
-  const levelled = awardXp(withLoot, reward.xp);
-  return { character: levelled.character, levelsGained: levelled.levelsGained };
+  // Every reward in the game is banked by the same function, so a quest payout
+  // and a floor payout can never drift apart in what they actually give.
+  return grantReward(climbed, reward);
 }
 
 /**

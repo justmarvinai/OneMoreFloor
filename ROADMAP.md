@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M5 are delivered**; M6 (quests, tutorial, account upgrades) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M6 are delivered**; M7 (gacha) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -72,10 +72,16 @@ Two decisions worth recording. **Potions do not count toward Power Level** — a
 
 **Open question:** ⧗Q29 asks whether potions should be carried and drunk later; the build buys-and-drinks, which is the simplest reading that satisfies every line of §12 and closes the stockpiling loophole. Nothing is blocked on the answer.
 
-## M6 — Quests, tutorial, account upgrades (M)
+## M6 — Quests, tutorial, account upgrades (M) — ✅ delivered 2026-08-22
 
 Daily/weekly engine + board UI (§17; Q10 reset anchors, Q21 3+3 board) incl. hard-quest ticket rewards; tutorial sequence + skip-nudge + completion reward (§18, A10); account upgrades screen with real prices (§15; Q19 x2/x4/x8 tiers); badge service wired game-wide (§20.5).
 **Exit:** fresh profile: tutorial → first claims all guided; quest periods reset correctly across clock scenarios (tamper tests); both upgrades purchasable end-to-end (cheat-funded for testing).
+
+**Delivered:** 453 unit tests and 23 Playwright smoke tests, including a fresh profile walking the tutorial to its Lucky Ticket and a hero earning their way to a real account upgrade in a browser. The clock-tamper requirement is met twice over: a period is a *date string*, so "has this day already happened?" is a string comparison rather than arithmetic on a clock the player controls, and a board only ever moves forward — a key that is not later than the stored one leaves everything alone, so winding the system clock back re-opens nothing.
+
+**One design correction the build forced:** quest targets scale by *unit*, not by a growth factor. Gold targets are priced in floors' worth of income at the hero's own depth, because the first attempt priced them by bracket and a level-2 hero in freshly-rolled starting gear can sit three brackets up while still earning floor-4 money — the weekly asked them for 45,000 gold. Recorded in BALANCE.md §9c.
+
+**One tuning fix:** slot 2 now costs about a first session rather than forty early floors. §15.2 calls the first extra slot cheap, and the second hero is how a player meets the other four classes.
 
 ## M7 — Gacha (M, +set-piece budget)
 

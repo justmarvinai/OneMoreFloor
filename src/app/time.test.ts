@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createClock, dayKeyOf, weekKeyOf } from './time.ts';
+import { createClock, dayKeyOf, nextDayBoundary, nextWeekBoundary, weekKeyOf } from './time.ts';
 
 /** Local-midnight timestamp, so tests read the same in any timezone. */
 function local(year: number, month: number, day: number, hour = 12): number {
@@ -75,5 +75,39 @@ describe('period keys', () => {
     expect(weekKeyOf(local(2026, 1, 1))).toBe('2026-W01');
     expect(weekKeyOf(local(2025, 12, 29))).toBe('2026-W01');
     expect(weekKeyOf(local(2025, 12, 28))).not.toBe('2026-W01');
+  });
+});
+
+describe('period boundaries (Q10)', () => {
+  it('lands the daily reset on the next local midnight', () => {
+    const midday = new Date(2026, 7, 22, 12, 30, 0).getTime();
+    const boundary = new Date(nextDayBoundary(midday));
+
+    expect(boundary.getDate()).toBe(23);
+    expect(boundary.getHours()).toBe(0);
+    expect(boundary.getMinutes()).toBe(0);
+  });
+
+  it('rolls the daily reset forward, never onto the moment itself', () => {
+    const midnight = new Date(2026, 7, 22, 0, 0, 0).getTime();
+    expect(nextDayBoundary(midnight)).toBeGreaterThan(midnight);
+  });
+
+  it('lands the weekly reset on the next local Monday at 00:00', () => {
+    // 2026-08-22 is a Saturday.
+    const saturday = new Date(2026, 7, 22, 18, 0, 0).getTime();
+    const boundary = new Date(nextWeekBoundary(saturday));
+
+    expect(boundary.getDay()).toBe(1);
+    expect(boundary.getDate()).toBe(24);
+    expect(boundary.getHours()).toBe(0);
+  });
+
+  it('gives a Monday a whole week rather than zero', () => {
+    const monday = new Date(2026, 7, 24, 9, 0, 0).getTime();
+    const boundary = new Date(nextWeekBoundary(monday));
+
+    expect(boundary.getDay()).toBe(1);
+    expect(boundary.getDate()).toBe(31);
   });
 });

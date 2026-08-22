@@ -13,6 +13,7 @@
 import { createRng } from '@/app/rng.ts';
 import { createStartingEquipment } from '@/domain/items/starting.ts';
 import { createMerchants } from '@/domain/merchants/merchants.ts';
+import { emptyQuests } from '@/domain/quests/quests.ts';
 import { isClassId } from '@/content/classes/index.ts';
 import { CURRENT_SCHEMA_VERSION, type StoredRecord } from './schema.ts';
 
@@ -81,10 +82,29 @@ const v2ToV3: Migration = (record) => {
   };
 };
 
+/**
+ * v3 → v4: characters gained their quest boards.
+ *
+ * Both boards start empty rather than pre-rolled. A board is instantiated
+ * against the hero's own depth, and the first thing the game does on opening a
+ * character is refresh them — so pre-rolling here would only bake in a period
+ * key that may already be stale by the time the save is opened (Q10).
+ */
+const v3ToV4: Migration = (record) => {
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+
+  return {
+    ...record,
+    character: { ...(character as Record<string, unknown>), quests: emptyQuests() },
+  };
+};
+
 /** Keyed by the version being migrated *from*: `1` upgrades v1 → v2. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: v1ToV2,
   2: v2ToV3,
+  3: v3ToV4,
 };
 
 export class FutureSaveError extends Error {

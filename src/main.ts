@@ -36,6 +36,9 @@ import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
 import { createCharacterScreen } from './ui/screens/character.ts';
 import { createMerchantScreen } from './ui/screens/merchant.ts';
+import { createQuestScreen } from './ui/screens/quests.ts';
+import { createUpgradesScreen } from './ui/screens/upgrades.ts';
+import { startTutorial, type Tutorial } from './ui/tutorial.ts';
 import { createRaidScreen } from './ui/screens/raid.ts';
 import { createTitleScreen } from './ui/screens/title.ts';
 import { createTowerScreen } from './ui/screens/tower.ts';
@@ -52,7 +55,16 @@ const ASSET_BASE = '/fui';
 const BUILD_VERSION = '0.1.0-dev';
 
 type ScreenId =
-  'title' | 'select' | 'create' | 'tower' | 'combat' | 'raid' | 'character' | 'merchant';
+  | 'title'
+  | 'select'
+  | 'create'
+  | 'tower'
+  | 'combat'
+  | 'raid'
+  | 'character'
+  | 'merchant'
+  | 'quests'
+  | 'upgrades';
 
 export async function boot(mount: HTMLElement): Promise<void> {
   setAssetBase(ASSET_BASE);
@@ -122,14 +134,25 @@ export async function boot(mount: HTMLElement): Promise<void> {
     let gearDialog: GearDialog | null = null;
 
     const goTo = (section: ShellSection): void => {
-      if (section === 'merchants') {
-        // Walking in is what ages the shelf out, so the restock happens on the
-        // way rather than the player finding yesterday's goods (Q17).
-        void session.visitMerchant(openMerchant).then(() => router.go('merchant'));
-      } else if (section === 'character') {
-        router.go('character');
-      } else {
-        router.go('tower');
+      switch (section) {
+        case 'merchants':
+          // Walking in is what ages the shelf out, so the restock happens on the
+          // way rather than the player finding yesterday's goods (Q17).
+          void session.visitMerchant(openMerchant).then(() => router.go('merchant'));
+          return;
+        case 'quests':
+          // Same reason: the board turns over on arrival, not on a timer nobody
+          // is watching (Q10).
+          void session.visitQuests().then(() => router.go('quests'));
+          return;
+        case 'character':
+          router.go('character');
+          return;
+        case 'upgrades':
+          router.go('upgrades');
+          return;
+        default:
+          router.go('tower');
       }
     };
 
@@ -138,6 +161,23 @@ export async function boot(mount: HTMLElement): Promise<void> {
       const id = router.current();
       if (id) router.go(id);
       gearDialog?.update(requireCharacter());
+    };
+
+    /** The first-run tour, started once the hero is standing in the tower (§18). */
+    let tutorial: Tutorial | null = null;
+    const maybeStartTutorial = (): void => {
+      if (tutorial || store.get().account?.tutorialCompleted !== false) return;
+      tutorial = startTutorial({
+        mount,
+        onComplete: () => {
+          tutorial = null;
+          void session.finishTutorial(true).then(refreshScreen);
+        },
+        onSkip: () => {
+          tutorial = null;
+          void session.finishTutorial(false);
+        },
+      });
     };
 
     const inspectItem = (uid: string): void => {
@@ -243,6 +283,33 @@ export async function boot(mount: HTMLElement): Promise<void> {
             }).el,
           }),
 
+        quests: () =>
+          createShell({
+            store,
+            active: 'quests',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createQuestScreen({
+              character: requireCharacter(),
+              now: clock().now(),
+              onClaim: (cadence, index) =>
+                void session.claimQuest(cadence, index).then(refreshScreen),
+            }).el,
+          }),
+
+        upgrades: () =>
+          createShell({
+            store,
+            active: 'upgrades',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createUpgradesScreen({
+              account: store.get().account!,
+              character: requireCharacter(),
+              onBuy: (id) => void session.buyUpgrade(id).then(refreshScreen),
+            }).el,
+          }),
+
         merchant: () =>
           createShell({
             store,
@@ -285,6 +352,10 @@ export async function boot(mount: HTMLElement): Promise<void> {
         },
       },
       onError: (error) => renderErrorPanel({ mount, error, onReload: reload }),
+      // The tour points at real UI, so it can only start once a screen is up.
+      onEnter: (id) => {
+        if (id === 'tower') maybeStartTutorial();
+      },
     });
 
     // Release the database handle and the session lock when the tab goes away,

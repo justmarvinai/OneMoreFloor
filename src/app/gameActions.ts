@@ -45,6 +45,19 @@ import {
 } from '@/domain/merchants/merchants.ts';
 import { bracketForCharacter, fightFloor, quickRaid } from '@/domain/tower/run.ts';
 import type { FloorResult, QuickRaidResult } from '@/domain/tower/run.ts';
+import {
+  claimableCount,
+  isClaimable,
+  markClaimed,
+  recordEvent,
+  refreshBoards,
+  type QuestEvent,
+} from '@/domain/quests/quests.ts';
+import type { QuestCadence } from '@/content/quests/types.ts';
+import { grantReward } from '@/domain/rewards/grant.ts';
+import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
+import { TUTORIAL_REWARD } from '@/content/balance/account.ts';
+import { accountLoaded } from './state.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
 import type { SaveLayer } from '@/save/saveLayer.ts';
 import { createRng } from './rng.ts';
@@ -60,6 +73,8 @@ export type Refusal =
   | 'maxAscension'
   | 'notAtLevelCap'
   | 'soldOut'
+  | 'notClaimable'
+  | 'maxed'
   | 'noCharacter';
 
 export type Outcome<T = undefined> =
@@ -83,6 +98,18 @@ export interface GameActions {
   buyFromMerchant(id: MerchantId, index: number): Promise<Outcome<ItemInstance>>;
   rerollMerchant(id: MerchantId): Promise<Outcome<number>>;
   drinkPotion(stat: UpgradableStatId): Promise<Outcome<number>>;
+
+  /** Bring both quest boards up to date for the current period (Q10). */
+  visitQuests(): Promise<Character>;
+  claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
+  /** Buy one of the two account upgrades (Brief §15). */
+  buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
+  /**
+   * Close the tutorial. `rewarded` is false when it was skipped: §18 calls the
+   * Lucky Ticket a *completion* reward, and paying it for skipping would make
+   * the nudge a lie.
+   */
+  finishTutorial(rewarded: boolean): Promise<void>;
 }
 
 export function createGameActions(save: SaveLayer, store: AppStore): GameActions {
@@ -91,6 +118,47 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     await save.saveCharacter(character);
     characterEntered(store, character);
     return character;
+  }
+
+  function questContext(character: Character) {
+    const bracket = bracketForCharacter(character);
+    return {
+      bracketIndex: bracket.index,
+      materialTier: bracket.materialTier,
+      referenceFloor: Math.max(1, character.tower.highestFloorEverCleared),
+      seed: character.tower.runSeed,
+    };
+  }
+
+  /**
+   * Bring the boards up to date, then tell them what the player just did.
+   *
+   * Refreshing on every action rather than only when the quest screen opens is
+   * what makes a day boundary crossed mid-session behave: the old board closes
+   * and the new one starts counting from the very next floor (Q10).
+   */
+  function withQuests(character: Character, events: QuestEvent[]): Character {
+    const timing = clock();
+    const refreshed = refreshBoards(
+      character.quests,
+      { dayKey: timing.dayKey(), weekKey: timing.weekKey() },
+      questContext(character),
+    );
+
+    let quests = refreshed;
+    for (const event of events) quests = recordEvent(quests, event);
+    return quests === character.quests ? character : { ...character, quests };
+  }
+
+  /** The quest events a finished floor produces. */
+  function floorEvents(result: FloorResult): QuestEvent[] {
+    if (!result.cleared) return [];
+    return [
+      { kind: 'floorCleared', floor: result.floor, isBoss: result.isBoss },
+      ...(result.reward && result.reward.gold > 0
+        ? [{ kind: 'goldEarned' as const, amount: result.reward.gold }]
+        : []),
+    ];
   }
 
   function active(): Character {
@@ -152,14 +220,17 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
   return {
     async fight(floor) {
       const result = fightFloor(active(), floor, clock().now());
-      await commit(result.character);
-      return result;
+      const character = withQuests(result.character, floorEvents(result));
+      await commit(character);
+      return { ...result, character };
     },
 
     async raid(throughFloor) {
       const result = quickRaid(active(), throughFloor, clock().now());
-      await commit(result.character);
-      return result;
+      const events = result.floors.flatMap(floorEvents);
+      const character = withQuests(result.character, events);
+      await commit(character);
+      return { ...result, character };
     },
 
     async equip(uid) {
@@ -177,7 +248,11 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     async sell(uid) {
       const sale = sellFromInventory(active(), uid);
       if (!sale) return { ok: false, reason: 'notFound' };
-      return { ok: true, value: sale.gold, character: await commit(sale.character) };
+      const character = withQuests(sale.character, [
+        { kind: 'itemSold' },
+        { kind: 'goldEarned', amount: sale.gold },
+      ]);
+      return { ok: true, value: sale.gold, character: await commit(character) };
     },
 
     async upgradeGear(uid) {
@@ -189,7 +264,10 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const cost = gearLevelCost(found.item);
       if (character.currencies.gold < cost) return { ok: false, reason: 'notEnoughGold' };
 
-      const upgraded = replace(spendGold(character, cost), uid, levelUp(found.item));
+      const upgraded = withQuests(replace(spendGold(character, cost), uid, levelUp(found.item)), [
+        { kind: 'gearUpgraded' },
+        { kind: 'goldSpent', amount: cost },
+      ]);
       return { ok: true, value: undefined, character: await commit(upgraded) };
     },
 
@@ -225,7 +303,10 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         materials[id] = (materials[id] ?? 0) - count;
       }
 
-      const next = replace({ ...spendGold(character, cost.gold), materials }, uid, ascended);
+      const next = withQuests(
+        replace({ ...spendGold(character, cost.gold), materials }, uid, ascended),
+        [{ kind: 'gearUpgraded' }, { kind: 'goldSpent', amount: cost.gold }],
+      );
       return { ok: true, value: undefined, character: await commit(next) };
     },
 
@@ -239,10 +320,10 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       );
       if (result.pointsBought === 0) return { ok: false, reason: 'notEnoughGold' };
 
-      const next: Character = {
-        ...spendGold(character, result.goldSpent),
-        purchasedStats: result.purchased,
-      };
+      const next = withQuests(
+        { ...spendGold(character, result.goldSpent), purchasedStats: result.purchased },
+        [{ kind: 'goldSpent', amount: result.goldSpent }],
+      );
       return { ok: true, value: result.pointsBought, character: await commit(next) };
     },
 
@@ -275,13 +356,16 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const added = addToInventory(spendGold(character, entry.price), entry.item);
       if (!added.ok) return { ok: false, reason: 'backpackFull' };
 
-      const next: Character = {
-        ...added.character,
-        merchants: {
-          ...added.character.merchants,
-          [id]: { ...state, sold: [...state.sold, index] },
+      const next = withQuests(
+        {
+          ...added.character,
+          merchants: {
+            ...added.character.merchants,
+            [id]: { ...state, sold: [...state.sold, index] },
+          },
         },
-      };
+        [{ kind: 'itemBought' }, { kind: 'goldSpent', amount: entry.price }],
+      );
       return { ok: true, value: entry.item, character: await commit(next) };
     },
 
@@ -296,13 +380,16 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         bracketIndex: bracket.index,
         highestFloor: character.tower.highestFloorEverCleared,
       };
-      const next: Character = {
-        ...spendGold(character, cost),
-        merchants: {
-          ...character.merchants,
-          [id]: restock(id, character.tower.runSeed, context),
+      const next = withQuests(
+        {
+          ...spendGold(character, cost),
+          merchants: {
+            ...character.merchants,
+            [id]: restock(id, character.tower.runSeed, context),
+          },
         },
-      };
+        [{ kind: 'goldSpent', amount: cost }],
+      );
       return { ok: true, value: cost, character: await commit(next) };
     },
 
@@ -311,11 +398,73 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const potion = potionFor(stat, bracketForCharacter(character).index);
       if (character.currencies.gold < potion.price) return { ok: false, reason: 'notEnoughGold' };
 
-      const next: Character = {
-        ...spendGold(character, potion.price),
-        potions: drink(character.potions, potion, clock().now()),
-      };
+      const next = withQuests(
+        {
+          ...spendGold(character, potion.price),
+          potions: drink(character.potions, potion, clock().now()),
+        },
+        [{ kind: 'potionDrunk' }, { kind: 'goldSpent', amount: potion.price }],
+      );
       return { ok: true, value: potion.price, character: await commit(next) };
+    },
+
+    async visitQuests() {
+      const character = active();
+      const next = withQuests(character, []);
+      return next === character ? character : commit(next);
+    },
+
+    async claimQuest(cadence, index) {
+      const character = withQuests(active(), []);
+      const quest = character.quests[cadence].quests[index];
+      if (!quest || !isClaimable(quest)) return { ok: false, reason: 'notClaimable' };
+
+      // Marked claimed *and* paid in one step: a claim that banked the reward
+      // without flagging the quest would pay out again on the next press.
+      const claimed = markClaimed(character.quests, cadence, index);
+      const granted = grantReward({ ...character, quests: claimed }, quest.reward);
+      return {
+        ok: true,
+        value: claimableCount(claimed),
+        character: await commit(granted.character),
+      };
+    },
+
+    async buyUpgrade(id) {
+      const character = active();
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const outcome = buyUpgrade(account, character, id);
+      if (outcome === 'maxed') return { ok: false, reason: 'maxed' };
+      if (outcome === 'notEnoughGold') return { ok: false, reason: 'notEnoughGold' };
+
+      // The account and the purse change together, or a reload would hand the
+      // upgrade over for free.
+      await save.saveAccount(outcome.account);
+      accountLoaded(store, outcome.account);
+      const paid = withQuests(outcome.character, [{ kind: 'goldSpent', amount: outcome.cost }]);
+      return { ok: true, value: outcome.cost, character: await commit(paid) };
+    },
+
+    async finishTutorial(rewarded) {
+      const account = store.get().account;
+      if (account && !account.tutorialCompleted) {
+        const done = { ...account, tutorialCompleted: true };
+        await save.saveAccount(done);
+        accountLoaded(store, done);
+      }
+      if (!rewarded) return;
+
+      const granted = grantReward(active(), {
+        gold: TUTORIAL_REWARD.gold,
+        xp: 0,
+        materials: {},
+        items: [],
+        tickets: 0,
+        luckyTickets: TUTORIAL_REWARD.luckyTickets,
+      });
+      await commit(granted.character);
     },
   };
 }

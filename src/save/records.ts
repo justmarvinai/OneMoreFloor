@@ -73,6 +73,7 @@ export function isCharacterRecord(record: StoredRecord): record is StoredRecord 
     Array.isArray(character['inventory']) &&
     isObject(character['materials']) &&
     isObject(character['potions']) &&
+    isObject(character['quests']) &&
     isObject(merchants) &&
     isObject(merchants['equipment']) &&
     isObject(merchants['magic']) &&

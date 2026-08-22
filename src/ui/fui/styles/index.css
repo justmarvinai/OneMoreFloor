@@ -37,6 +37,7 @@
 @import '../components/Paperdoll.css';
 @import '../components/Portrait.css';
 @import '../components/PowerRating.css';
+@import '../components/ProgressRing.css';
 @import '../components/RankUpPanel.css';
 @import '../components/ResultScreen.css';
 @import '../components/RewardPopup.css';
@@ -54,9 +55,11 @@
 @import '../components/StatsPanel.css';
 @import '../components/Tabs.css';
 @import '../components/TextInput.css';
+@import '../components/TierBadge.css';
 @import '../components/TintFrame.css';
 @import '../components/TitleGate.css';
 @import '../components/ToastStack.css';
 @import '../components/Tooltip.css';
+@import '../components/TutorialMask.css';
 @import '../components/UnitFrame.css';
 @import '../components/UpgradePanel.css';

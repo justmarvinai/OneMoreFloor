@@ -89,6 +89,13 @@ Daily objectives sized to one normal session, weeklies to a normal week, neither
 - **Buy and sell are one ratio.** `BUY_PRICE_FRACTION` and `SELL_VALUE_FRACTION` are the two halves of a single knob: a piece sells for roughly a fifth of what it costs, which keeps the backpack a decision rather than a gold faucet (Q16).
 - **Upgrades are outside the bracket rule, on purpose.** Gold and materials spent on a piece *should* push it past what drops — that investment is what raises Power Level, which raises the bracket, which raises the next drop. The property test therefore sweeps generated items and merchant shelves, never upgraded ones.
 
+## 9c. Quests and account upgrades, as built (M6)
+
+- **A quest target's unit is its scaling story.** Counts stay flat with depth (a floor is one click at any depth); gold targets are priced in *floors' worth of income at the hero's own depth*; the two "go deeper" weeklies are a multiple of their best floor. Anchoring gold to the **bracket** instead was the first attempt and it was wrong: a level-2 hero in freshly-rolled starting gear can already sit three brackets up while still earning floor-4 money, and the weekly asked them for 45,000 gold.
+- **Payouts are priced the same way** — as a multiple of what a floor at that depth pays — so a daily is worth chasing at floor 8 and still worth chasing at floor 800 (§17's "genuinely good" rewards).
+- **Only hard quests carry ticket odds** (§17), and the roll happens when the board is built rather than when the quest is claimed, so a player can see what a quest pays before deciding to chase it.
+- **Slot 2 costs about a first session.** §15.2 calls the first extra slot cheap, and the first pass at 2,000 gold was roughly forty early floors — several evenings, not "cheap". The second hero is how a player meets the other four classes; pricing that out costs the game more than it earns. Everything above slot 2 stays steep, and Battle Speed keeps its cost concentrated in x8 (Q19).
+
 ## 9a. First simulator findings (M3)
 
 The harness earned its place on the first run, before any tuning had been attempted. It found:

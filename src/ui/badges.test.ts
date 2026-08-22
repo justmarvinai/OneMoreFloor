@@ -3,6 +3,9 @@ import { createCharacter } from '@/domain/character/character.ts';
 import type { Character } from '@/domain/character/types.ts';
 import { MERCHANT_RESTOCK_MS } from '@/content/balance/merchants.ts';
 import { restock } from '@/domain/merchants/merchants.ts';
+import { rollBoard } from '@/domain/quests/quests.ts';
+import { createAccount } from '@/domain/character/account.ts';
+import { dayKeyOf } from '@/app/time.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import { computeBadges } from './badges.ts';
 
@@ -24,8 +27,33 @@ describe('red-dot truth (Brief §20.5)', () => {
     expect(computeBadges(hero(), NOW).tower).toBe(false);
   });
 
-  it('never dots quests before quests exist', () => {
-    expect(computeBadges(hero(), NOW).quests).toBe(false);
+  it('dots quests only when a reward is sitting there', () => {
+    const fresh = hero();
+    expect(computeBadges(fresh, NOW).quests).toBe(false);
+
+    const context = {
+      bracketIndex: bracketForCharacter(fresh).index,
+      materialTier: 0,
+      referenceFloor: 5,
+      seed: fresh.tower.runSeed,
+    };
+    const board = rollBoard('daily', dayKeyOf(NOW), context);
+    const waiting = hero({
+      quests: {
+        daily: { ...board, quests: board.quests.map((q) => ({ ...q, progress: q.target })) },
+        weekly: { periodKey: '', quests: [] },
+      },
+    });
+
+    expect(computeBadges(waiting, NOW).quests).toBe(true);
+  });
+
+  it('dots the account screen only when an upgrade is affordable (§15)', () => {
+    const broke = hero();
+    expect(computeBadges(broke, NOW, createAccount()).upgrades).toBe(false);
+
+    const rich = hero({ currencies: { gold: 5_000, tickets: 0, luckyTickets: 0 } });
+    expect(computeBadges(rich, NOW, createAccount()).upgrades).toBe(true);
   });
 
   it('dots the character screen when gold could buy a stat point', () => {

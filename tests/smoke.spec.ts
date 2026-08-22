@@ -23,6 +23,19 @@ async function createHero(page: Page, name: string, className = 'Warrior'): Prom
   await page.getByLabel('Character name').fill(name);
   await page.getByRole('button', { name: /Begin the climb/i }).click();
   await expect(page.locator('[data-testid="hub"]')).toBeVisible();
+
+  // The first-run tour opens over the tower (§18). Tests that are not about the
+  // tutorial skip past it; the ones that are, below, drive it deliberately.
+  await dismissTutorial(page);
+}
+
+/** Skip the tour if it is showing, and wait until it is gone. */
+async function dismissTutorial(page: Page): Promise<void> {
+  const skip = page.getByRole('button', { name: /Skip the tour/i });
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click();
+    await expect(skip).toHaveCount(0);
+  }
 }
 
 test('boots to the title gate', async ({ page }) => {
@@ -410,4 +423,114 @@ test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ 
   await expect
     .poll(async () => Number((await power.innerText()).replace(/[^\d]/g, '')))
     .toBeGreaterThan(before);
+});
+
+test('opens the tour on a first hero, and lets it be skipped (Brief §18)', async ({ page }) => {
+  await enterSelect(page);
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await page.getByRole('option', { name: 'Warrior' }).click();
+  await page.getByLabel('Character name').fill('Grimhild');
+  await page.getByRole('button', { name: /Begin the climb/i }).click();
+
+  await expect(page.getByText('The Lootspire').first()).toBeVisible();
+  // The nudge is where the decision is made, not buried in a dialog (§18).
+  await expect(page.getByText(/it ends with a Lucky Ticket/)).toBeVisible();
+
+  await page.getByRole('button', { name: /Skip the tour/i }).click();
+  await expect(page.getByRole('button', { name: /Skip the tour/i })).toHaveCount(0);
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  // Skipping forfeits the reward — it is a *completion* reward (§18).
+  await goToSection(page, 'Account');
+  await expect(page.locator('[data-testid="upgrades"]')).toBeVisible();
+});
+
+test('pays the tour out on completion, and never opens again (Brief §18)', async ({ page }) => {
+  await enterSelect(page);
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await page.getByRole('option', { name: 'Warrior' }).click();
+  await page.getByLabel('Character name').fill('Grimhild');
+  await page.getByRole('button', { name: /Begin the climb/i }).click();
+
+  // Walk the whole tour. Every step advances with one button; the last one's
+  // says "Begin the climb" instead of "Got it".
+  const advance = page.locator('.fui-tutmask button').last();
+  const reward = page.getByText('Take this with you');
+  for (let step = 0; step < 10; step += 1) {
+    if (await reward.isVisible().catch(() => false)) break;
+    await expect(advance).toBeVisible();
+    await advance.click();
+  }
+
+  await expect(reward).toBeVisible();
+  await page.getByRole('button', { name: /^Take it$/ }).click();
+
+  // A Lucky Ticket and starting gold, and the tour is done for good.
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+  await expect(page.getByText('Take this with you')).toHaveCount(0);
+
+  // The starting gold arriving is the visible proof the reward was banked —
+  // and waiting for it means the reload below cannot race the save.
+  await expect(page.locator('.omf-shell__rail .fui-currency__value').first()).toHaveText(/500/);
+
+  await page.reload();
+  await page.getByRole('button', { name: /Enter the Spire/i }).click();
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Skip the tour/i })).toHaveCount(0);
+});
+
+test('puts three dailies and three weeklies up, one of them hard (Q21)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 3);
+  await goToSection(page, 'Quests');
+
+  const board = page.locator('[data-testid="quests"]');
+  await expect(board).toBeVisible();
+  await expect(board.locator('[data-testid="quest-card"]')).toHaveCount(6);
+  await expect(board.getByText('Hard')).toHaveCount(1);
+
+  // Both columns say when they turn over — the question a board exists to answer.
+  await expect(board.getByText('Resets in')).toHaveCount(2);
+
+  // Climbing moved something, which is the whole wiring end to end.
+  await expect(board.getByText(/[1-9]\d* \/ /).first()).toBeVisible();
+});
+
+test('sells the two account upgrades, and only those two (Brief §15)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Account');
+
+  const screen = page.locator('[data-testid="upgrades"]');
+  await expect(screen.getByText('Battle Speed')).toBeVisible();
+  await expect(screen.getByText('Account Slots')).toBeVisible();
+  await expect(screen.locator('.fui-panel')).toHaveCount(2);
+
+  // Earn until the cheap upgrade is within reach, then buy it. A `CostButton`
+  // that cannot be paid for stays pressable and says how short you are, so the
+  // shortfall line — not a disabled attribute — is what "affordable" looks like.
+  const slotsCard = screen.locator('.fui-panel').nth(1);
+  const buy = slotsCard.getByRole('button', { name: /Unlock slot 2/i });
+  const shortfall = slotsCard.getByText(/gold needed/i);
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if ((await shortfall.count()) === 0) break;
+    await goToSection(page, 'Tower');
+    await climb(page, 6);
+    await goToSection(page, 'Account');
+  }
+  expect(await shortfall.count(), 'never earned enough for the cheapest upgrade').toBe(0);
+
+  await buy.click();
+  await expect(screen.getByText('2 of 5 character slots unlocked.')).toBeVisible();
+
+  // And the account keeps it: character select now offers a second slot (§15.2).
+  await page.getByRole('button', { name: /Switch hero/i }).click();
+  const select = page.locator('[data-testid="character-select"]');
+  await expect(select.getByRole('button', { name: 'Empty slot' })).toBeVisible();
+  await expect(select.getByRole('button', { name: 'Locked slot' })).toHaveCount(3);
 });

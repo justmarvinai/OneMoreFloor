@@ -25,6 +25,12 @@ export interface RouterOptions<Id extends string> {
    * (a styled in-game error panel — never a blank page).
    */
   onError?: (error: unknown, id: Id) => void;
+  /**
+   * Called after a screen is mounted. For anything that has to run *over* a
+   * live screen rather than instead of it — the tutorial tour points at real
+   * UI, so it cannot start until that UI exists (Brief §18).
+   */
+  onEnter?: (id: Id) => void;
 }
 
 export interface Router<Id extends string> {
@@ -37,7 +43,7 @@ export interface Router<Id extends string> {
 }
 
 export function createRouter<Id extends string>(options: RouterOptions<Id>): Router<Id> {
-  const { mount, routes, onError } = options;
+  const { mount, routes, onError, onEnter } = options;
   let activeId: Id | null = null;
   let active: Screen | null = null;
 
@@ -62,6 +68,7 @@ export function createRouter<Id extends string>(options: RouterOptions<Id>): Rou
         active = screen;
         activeId = id;
         mount.appendChild(screen.el);
+        onEnter?.(id);
       } catch (error) {
         if (onError) {
           onError(error, id);
