@@ -105,6 +105,11 @@ Planned custom inventory — each built strictly from FantasyUI tokens/semantic 
 
 Anything beyond this list needs a written justification in this file before it's built (§20.2 discipline).
 
+**Upstream wishes (raise against FantasyUIs rather than working around locally):**
+1. `CharacterSelect` takes a single static `confirmLabel`, so a slot picker cannot say "Play" over a hero and "Create" over an empty slot. We ship one honest label ("Continue") until the component can vary it per selection.
+2. `Panel` exposes `setTitle` but no `setSubtitle`, so a subtitle that tracks state has to be rendered as body content.
+3. `ButtonVariant` has no destructive/danger option; reset actions are tinted locally via `.omf-danger` using theme tokens.
+
 ## 11. Resolution & scaling strategy (§20.6)
 
 Fluid layout 1440×900 → 2560×1440, art-directed at 1920×1080; FantasyUI's global `--fui-ui-scale` custom property is the density dial (slightly higher at 2K so the game keeps its chunky handcrafted feel on big glass); sidebar fixed-width, main panel fluid with max-width clamp; below ~1280px width: styled "enlarge your window" gate (mobile out of scope, §2.2/§20.6 — but no architectural corner painted: layouts are flex/grid, no absolute-positioned pixel maps outside the combat stage's internal choreography space).

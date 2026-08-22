@@ -4,6 +4,8 @@
     "Badge",
     "Banner",
     "Button",
+    "CharacterCreator",
+    "CharacterSelect",
     "CurrencyBar",
     "Divider",
     "EmptyState",
@@ -16,7 +18,9 @@
     "Portrait",
     "SceneBackdrop",
     "SideNav",
+    "StarRating",
     "StatBar",
+    "TextInput",
     "TitleGate",
     "ToastStack",
     "Tooltip"

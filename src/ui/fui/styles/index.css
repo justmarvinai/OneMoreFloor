@@ -9,6 +9,8 @@
 @import '../components/Badge.css';
 @import '../components/Banner.css';
 @import '../components/Button.css';
+@import '../components/CharacterCreator.css';
+@import '../components/CharacterSelect.css';
 @import '../components/CurrencyBar.css';
 @import '../components/Divider.css';
 @import '../components/EmptyState.css';
@@ -21,7 +23,9 @@
 @import '../components/Portrait.css';
 @import '../components/SceneBackdrop.css';
 @import '../components/SideNav.css';
+@import '../components/StarRating.css';
 @import '../components/StatBar.css';
+@import '../components/TextInput.css';
 @import '../components/TitleGate.css';
 @import '../components/ToastStack.css';
 @import '../components/Tooltip.css';

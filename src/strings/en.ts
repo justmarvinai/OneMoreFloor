@@ -24,14 +24,139 @@ export const en = {
   'save.status.created': 'New save created.',
   'save.status.loaded': 'Save loaded.',
   'save.status.migrated': 'Save loaded and upgraded to the current version.',
+  'save.status.recovered':
+    'Your save was damaged, so the game restored your last good backup from {when}. ' +
+    'The damaged copy was kept, not deleted.',
   'save.status.corrupt':
-    'Your save could not be verified and was left untouched so nothing is lost. ' +
-    'Recovery from an earlier generation arrives with the next milestone.',
+    'Your save could not be read and no backup could be restored. The damaged data ' +
+    'was kept, not deleted, in case it can be recovered later.',
+
+  // --- Character select (Brief §19, Q2) ---
+  'select.title': 'Your heroes',
+  // One label serves every slot state (play a hero, create in an empty slot),
+  // because FantasyUI's CharacterSelect has a single static confirm label. A
+  // per-state label is an upstream improvement — see UI_FANTASYUI_MAP §10.
+  'select.confirm': 'Continue',
+  'select.slot.empty.name': 'Empty slot',
+  'select.slot.empty.tagline': 'Create a hero here',
+  'select.slot.locked.name': 'Locked slot',
+  'select.slot.locked.hint': 'Unlocked with an Account Slot upgrade',
+  'select.slot.damaged.name': 'Damaged slot',
+  'select.slot.damaged.hint': 'This character could not be read. Nothing was deleted.',
+  'select.slot.summary': 'Level {level} {className}',
+  'select.slot.floor': 'Best floor {floor}',
+  'select.slot.neverClimbed': 'Has not entered the Spire yet',
+  'select.create': 'Create a hero',
+  'select.reset': 'Reset this slot',
+  'select.switch': 'Switch hero',
+
+  // --- Hero creation (Brief §5, §8) ---
+  'create.title': 'Name your hero',
+  'create.confirm': 'Begin the climb',
+  'create.namePlaceholder': 'Name your hero',
+  'create.back': 'Back',
+  'create.difficulty': 'Demanding to play',
+  'create.name.error.tooShort': 'A name needs at least 3 characters.',
+  'create.name.error.tooLong': 'A name can be at most 16 characters.',
+  'create.name.error.illegalCharacters': 'Letters, numbers, spaces, apostrophes and hyphens only.',
+  'create.name.error.noLetter': 'A name needs at least one letter.',
+  'create.name.error.duplicate': 'One of your heroes already carries that name.',
+  'create.name.error.empty': 'Your hero needs a name.',
+
+  // --- Reset (Brief §19) ---
+  'reset.title': 'Reset {name}?',
+  'reset.warning':
+    'This erases {name} completely: level, gear, materials, currencies and tower progress. ' +
+    'It cannot be undone. Your account upgrades are not affected.',
+  'reset.prompt': 'Type {name} to confirm.',
+  'reset.confirm': 'Erase this hero',
+  'reset.cancel': 'Keep my hero',
+
+  // --- Session lock (SAVE_SCHEMA §8) ---
+  'lock.title': 'The game is already open',
+  'lock.message':
+    'OneMoreFloor is running in another tab or window. Two copies would overwrite ' +
+    'each other’s progress, so only one can play at a time. Close the other one and ' +
+    'reload this page.',
 
   'error.title': 'Something went wrong',
   'error.message': 'The game hit an error it could not recover from. Your save was not modified.',
   'error.detail': 'Details: {detail}',
   'error.reload': 'Reload the game',
+
+  // --- Stats and resources (Brief §6, §8.1) ---
+  'stat.strength': 'Strength',
+  'stat.defense': 'Defense',
+  'stat.hp': 'Health',
+  'stat.resource': 'Resource',
+  'stat.luck': 'Luck',
+  'stat.speed': 'Speed',
+  'resource.rage': 'Rage',
+  'resource.mana': 'Mana',
+  'resource.focus': 'Focus',
+
+  // --- Classes (Brief §8; mechanics per the approved Q6/Q26 design) ---
+  'class.warrior.name': 'Warrior',
+  'class.warrior.tagline': 'Heavy armour, heavier swing.',
+  'class.warrior.description':
+    'The Warrior takes a beating and turns it into one. Rage builds whether he lands ' +
+    'a blow or eats one, so long fights favour him — but he is slow, gear rarely gives ' +
+    'him Speed, and he has no answer to a fight he cannot reach.',
+  'class.warrior.resource.fill': 'Rage builds when you strike and when you are struck.',
+  'class.warrior.weapon': 'A two-handed weapon, or a one-handed weapon and a shield.',
+  'class.warrior.signature.name': 'Berserk Strike',
+  'class.warrior.signature.description':
+    'A single devastating blow. Carrying a shield instead turns it into Shield Slam: ' +
+    'a heavy hit that leaves you briefly harder to hurt.',
+
+  'class.mage.name': 'Mage',
+  'class.mage.tagline': 'Patience, then ruin.',
+  'class.mage.description':
+    'The Mage gathers Mana every round and spends it on damage nothing armours ' +
+    'against. Between bursts she is fragile — the lowest health and defense of the ' +
+    'five — so every fight is a race between her timer and theirs.',
+  'class.mage.resource.fill': 'Mana gathers steadily, every round.',
+  'class.mage.weapon': 'A two-handed staff.',
+  'class.mage.signature.name': 'Arcane Blast',
+  'class.mage.signature.description':
+    'An enormous burst that ignores part of the enemy defense — the answer to ' +
+    'anything heavily armoured.',
+
+  'class.hunter.name': 'Hunter',
+  'class.hunter.tagline': 'Every arrow looking for the gap.',
+  'class.hunter.description':
+    'The Hunter turns luck into damage: crits fill her Mana faster, and a full bar ' +
+    'buys a flurry where every arrow can crit on its own. Starve her of critical hits ' +
+    'and she is merely adequate, and her defense is thin.',
+  'class.hunter.resource.fill': 'Mana fills as you land hits, and faster on a critical.',
+  'class.hunter.weapon': 'A two-handed bow.',
+  'class.hunter.signature.name': 'Piercing Volley',
+  'class.hunter.signature.description':
+    'A flurry of arrows, each one able to land a critical hit of its own.',
+
+  'class.bard.name': 'Bard',
+  'class.bard.tagline': 'A song for every occasion.',
+  'class.bard.description':
+    'The Bard buffs himself through a fight, smoothing out bad luck with rotating ' +
+    'songs. He is the steadiest of the five and the least explosive: no single hit ' +
+    'of his will ever headline a fight.',
+  'class.bard.resource.fill': 'Mana gathers each round, and faster while a song is playing.',
+  'class.bard.weapon': 'A two-handed musical instrument.',
+  'class.bard.signature.name': 'Crescendo',
+  'class.bard.signature.description':
+    'Damage plus a song that lifts your attack, defense or speed for the rounds that follow.',
+
+  'class.swashbuckler.name': 'Swashbuckler',
+  'class.swashbuckler.tagline': 'Two blades, no armour, no regrets.',
+  'class.swashbuckler.description':
+    'The Swashbuckler fights on tempo: two one-handed weapons mean twice the Speed ' +
+    'rolls, and Focus builds from dodges and double attacks. When it works she never ' +
+    'gets hit. When it does not, she has the health of a rumour.',
+  'class.swashbuckler.resource.fill': 'Focus builds on every dodge and every double attack.',
+  'class.swashbuckler.weapon': 'Two one-handed weapons, one in each hand.',
+  'class.swashbuckler.signature.name': 'Flurry & Feint',
+  'class.swashbuckler.signature.description':
+    'A burst of rapid strikes that ends with a feint — the next attack against you misses.',
 
   'gate.tooSmall.title': 'A little more room, adventurer',
   'gate.tooSmall.message':

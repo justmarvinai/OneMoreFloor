@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0 is delivered**; M1 is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0 and M1 are delivered**; M2 is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -23,14 +23,18 @@ Repo scaffolding: Vite + strict TS, ESLint/Prettier with the custom rules (impor
 
 **Delivered:** all of the above, with 64 unit tests and 7 Playwright smoke tests green. The offline guarantee is stronger than planned — Vite rewrites FantasyUI's art URLs to fully relative paths at build time, so the packaged game needs no re-pointing step for Electron later. A repeatable `npm run vendor:fui` resolves component dependencies and regenerates the barrel/stylesheet, so growing the UI is a one-line manifest edit. Vercel deployment itself is the owner's to trigger (repo → project link); `vercel.json` is committed and the static build is verified locally.
 
-## M1 — Save layer & character lifecycle (M)
+## M1 — Save layer & character lifecycle (M) — ✅ delivered 2026-08-22
 
 Full SAVE_SCHEMA implementation: stores, checksums, generations/backups, recovery ladder, migration registry + fixture harness, session lock, tamper-damped clock. Account record; hero creation (Q25 name rules, class pick with real class data §5/§8, Q15 starting loadouts); character select (Q2: the single switching point); reset flow (Q4: wipes one slot, account upgrades survive; §19); account-slot gating (§15.2, purchase UI can stub prices until M6).
 **Exit:** SAVE_SCHEMA §11 test plan green (round-trip, tamper, recovery, rollback scenarios); create → play-stub → switch → reset cycle works; a corrupted store recovers with the styled panel, not a crash.
 
+**Delivered:** all of the above, verified by 168 unit tests and 11 Playwright smoke tests covering the whole cycle in a browser. Two things came out stronger than planned: a record's *first* write now seeds its own backup (a test showed a character corrupted right after creation was otherwise unrecoverable), and the five classes are authored as real content with the approved Q26 identities, so hero creation shows each class's resource, signature move and weapon rule rather than a name and a picture.
+
+**Re-sequenced:** starting equipment (Brief §5, Q15) moves to M2. Class content declares each class's weapon rule, but instantiating a starting weapon needs the item system; building a throwaway version of it here would have meant building it twice. The class definitions are ready for it.
+
 ## M2 — Item & stat domain, Power Level, brackets (L)
 
-Stats model (§6, Speed gear-only enforced by type), item generation (base types × rarity × affixes per CONTENT_PIPELINE §2, incl. Q5 accessory pools and Q27 icon binding), equip rules (§8.1/§8.2; Q15 weapon-slot semantics), gear leveling + gear ascension (§10; Q3 slot cadence), materials, gold stat upgrades (A2), XP/levels/hero ascension (§7). Power Level formula + `bracketOf` + **the anti-overshoot property test** (BALANCE.md §5–6) — CI-permanent from this milestone on.
+Starting equipment per class (§5, Q15 — carried over from M1). Stats model (§6, Speed gear-only enforced by type — the `UpgradableStatId` type landed in M1), item generation (base types × rarity × affixes per CONTENT_PIPELINE §2, incl. Q5 accessory pools and Q27 icon binding), equip rules (§8.1/§8.2; Q15 weapon-slot semantics), gear leveling + gear ascension (§10; Q3 slot cadence), materials, gold stat upgrades (A2), XP/levels/hero ascension (§7). Power Level formula + `bracketOf` + **the anti-overshoot property test** (BALANCE.md §5–6) — CI-permanent from this milestone on.
 **Exit:** headless: generate/equip/upgrade/ascend across the full range with invariants green; bracket sweep test green; hero ascends 0→5 with caps/slot unlocks per §7 table.
 
 ## M3 — Combat engine & floor generation (L)
