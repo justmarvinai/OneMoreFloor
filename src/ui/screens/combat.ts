@@ -23,7 +23,7 @@ import type { FloorResult } from '@/domain/tower/run.ts';
 import { BATTLE_SPEED_BY_TIER } from '@/content/balance/account.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { CombatStage } from '@/ui/combat/combatStage.ts';
-import { lootCards, rewardChips } from '@/ui/loot.ts';
+import { lootCards, rewardChips, tipRewardChips } from '@/ui/loot.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
@@ -172,6 +172,10 @@ export function createCombatScreen(options: CombatScreenOptions): CombatScreen {
       if (id === 'next') onNextFloor(result.character.tower.currentRunFloor);
       else onBackToTower();
     });
+
+    // Most materials are met for the first time here, which makes the aftermath
+    // the place "what is this?" gets asked (§20.4).
+    if (reward) tipRewardChips(screen.el, reward);
 
     if (items.length === 0) return screen.el;
 

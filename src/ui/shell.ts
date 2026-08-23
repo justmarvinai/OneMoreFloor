@@ -58,6 +58,7 @@ import type { Screen } from '@/app/router.ts';
 import { clock } from '@/app/time.ts';
 import { computeBadges, type Badges } from '@/ui/badges.ts';
 import { shortDuration } from '@/ui/format.ts';
+import { currencyTooltip, type CurrencyId } from '@/ui/wallet.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
@@ -268,20 +269,17 @@ export function createShell(options: ShellOptions): Shell {
 
   // `CurrencyBar` labels each balance with a native `title` — which the tooltip
   // service would adopt and serve as the name alone. What the player wants to
-  // know is what the balance is *for*.
-  const WALLET_TIPS: Record<string, string> = {
-    gold: t('rail.walletGold'),
-    tickets: t('rail.walletTickets'),
-    luckyTickets: t('rail.walletLucky'),
-  };
+  // know is what the balance is *for*, and where more of it comes from; that
+  // card is built once in `wallet.ts` and served by every surface that shows a
+  // balance, so the rail and the shop counter never disagree.
+  const shown: CurrencyId[] = [
+    'gold',
+    ...((character?.currencies.tickets ?? 0) > 0 ? (['tickets'] as const) : []),
+    ...((character?.currencies.luckyTickets ?? 0) > 0 ? (['luckyTickets'] as const) : []),
+  ];
   currencies.el.querySelectorAll<HTMLElement>('.fui-currency__item').forEach((item, index) => {
-    const id = ['gold', 'tickets', 'luckyTickets'].filter(
-      (candidate) =>
-        candidate === 'gold' ||
-        (candidate === 'tickets' && (character?.currencies.tickets ?? 0) > 0) ||
-        (candidate === 'luckyTickets' && (character?.currencies.luckyTickets ?? 0) > 0),
-    )[index];
-    if (id && WALLET_TIPS[id]) setTip(item, WALLET_TIPS[id]);
+    const id = shown[index];
+    if (id) setTip(item, currencyTooltip(id, character?.currencies[id] ?? 0));
   });
 
   const nav = track(

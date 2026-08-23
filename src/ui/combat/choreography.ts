@@ -104,6 +104,9 @@ export function choreograph(script: CombatScript): Beat[] {
   let at = 0;
   const maxHp: Record<UnitId, number> = { hero: 1, enemy: 1 };
 
+  /** False until the first round begins — see `effectApplied` below. */
+  let opened = false;
+
   const push = (step: Step, advance: number): void => {
     beats.push({ at, step });
     at += advance;
@@ -118,16 +121,16 @@ export function choreograph(script: CombatScript): Beat[] {
           { kind: 'start', hero: event.hero, enemy: event.enemy, isBoss: event.isBoss },
           TIMING.fightStart,
         );
-        for (const applied of event.floorEffects) {
-          push(
-            { kind: 'effectOn', unit: applied.unit, effect: applied.effect },
-            TIMING.floorEffect,
-          );
-        }
+        // `fightStart.floorEffects` states the opening board; the engine *also*
+        // emits an `effectApplied` for each of them, which is the event every
+        // other effect in the fight arrives through. Drawing both put two of
+        // every floor debuff on the card. The events win — one code path — and
+        // the opening keeps its own pacing through `opened` below.
         break;
       }
 
       case 'roundStart':
+        opened = true;
         push({ kind: 'round', round: event.round }, TIMING.roundGap);
         break;
 
@@ -172,7 +175,12 @@ export function choreograph(script: CombatScript): Beat[] {
         break;
 
       case 'effectApplied':
-        push({ kind: 'effectOn', unit: event.unit, effect: event.effect }, TIMING.effect);
+        // Before the first round these are the floor's own opening, which lands
+        // at a slower beat than an effect thrown mid-fight.
+        push(
+          { kind: 'effectOn', unit: event.unit, effect: event.effect },
+          opened ? TIMING.effect : TIMING.floorEffect,
+        );
         break;
 
       case 'effectExpired':

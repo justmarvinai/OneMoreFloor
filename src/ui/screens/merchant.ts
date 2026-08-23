@@ -51,6 +51,7 @@ import {
   statLine,
 } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
+import { currencyTooltip } from '@/ui/wallet.ts';
 import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
 import { openSellDialog } from '@/ui/sellDialog.ts';
 import { refuse } from '@/ui/toasts.ts';
@@ -255,6 +256,11 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   );
   reroll.on('cost:buy', () => onReroll());
   setTip(reroll.el, t('merchant.rerollHint'));
+
+  // The counter's purse says what gold is and where it comes from, like every
+  // other balance in the game (`wallet.ts`).
+  const purse = shop.el.querySelector<HTMLElement>('.fui-shop__purse');
+  if (purse) setTip(purse, currencyTooltip('gold', gold));
 
   // --- the backpack, for selling -------------------------------------------
 

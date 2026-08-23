@@ -209,7 +209,11 @@ describe('anti-overshoot: no source may exceed the requester’s bracket', () =>
     const common = average('common');
     const mythic = average('mythic');
 
-    expect(mythic).toBeGreaterThan(common * 3);
+    // 1.5x, not 3x: the budget window narrowed deliberately in the fifth polish
+    // round so that *investing* in a piece beats *finding* one (BUDGET_WINDOW,
+    // balance/items). Rarity still has to be worth chasing — it just earns most
+    // of its keep through affix count now rather than through raw budget.
+    expect(mythic).toBeGreaterThan(common * 1.5);
     expect(isWithinBracket(bracket, mythic)).toBe(true);
   });
 

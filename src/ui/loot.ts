@@ -12,6 +12,8 @@ import type { ItemInstance } from '@/domain/items/types.ts';
 import { STAT_IDS } from '@/domain/stats.ts';
 import type { FloorReward } from '@/domain/tower/rewards.ts';
 import { getMaterial } from '@/content/items/materials.ts';
+import { setTip } from '@/ui/tooltips.ts';
+import { currencyTooltip, materialTooltip, type CurrencyId } from '@/ui/wallet.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
@@ -30,7 +32,14 @@ export function lootCards(items: readonly ItemInstance[]): ItemCardData[] {
   });
 }
 
-/** The non-item spoils — materials and tickets — as `ResultScreen` chips. */
+/**
+ * The non-item spoils — materials and tickets — as `ResultScreen` chips.
+ *
+ * The order is stable and mirrored by `tipRewardChips`, which pairs the rendered
+ * cells back to what they are: a chip of something a player has never seen
+ * before is exactly where "what *is* this?" gets asked, and the aftermath is
+ * where most materials are met for the first time.
+ */
 export function rewardChips(reward: FloorReward): ResultReward[] {
   const chips: ResultReward[] = [];
 
@@ -46,6 +55,26 @@ export function rewardChips(reward: FloorReward): ResultReward[] {
     chips.push({ icon: 'icon-star', label: t('currency.luckyTickets'), qty: reward.luckyTickets });
   }
   return chips;
+}
+
+/** Give the rendered reward chips the cards `rewardChips` could not carry. */
+export function tipRewardChips(root: HTMLElement, reward: FloorReward): void {
+  const ids: Array<{ kind: 'material'; id: string } | { kind: CurrencyId }> = [
+    ...Object.entries(reward.materials)
+      .filter(([id, count]) => count > 0 && getMaterial(id))
+      .map(([id]) => ({ kind: 'material' as const, id })),
+    ...(reward.tickets > 0 ? [{ kind: 'tickets' as const }] : []),
+    ...(reward.luckyTickets > 0 ? [{ kind: 'luckyTickets' as const }] : []),
+  ];
+
+  root.querySelectorAll<HTMLElement>('.fui-result__reward').forEach((cell, index) => {
+    const entry = ids[index];
+    if (!entry) return;
+    setTip(
+      cell,
+      entry.kind === 'material' ? materialTooltip(entry.id) : currencyTooltip(entry.kind),
+    );
+  });
 }
 
 /** The item's biggest contribution, in one line — the read a drop needs at a glance. */

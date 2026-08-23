@@ -7,7 +7,7 @@
  */
 
 /** Gold from clearing a floor. */
-export const FLOOR_GOLD = { base: 14, factor: 1.72, period: 10 } as const;
+export const FLOOR_GOLD = { base: 24, factor: 1.72, period: 10 } as const;
 
 /** Experience from clearing a floor. */
 export const FLOOR_XP = { base: 26, factor: 1.66, period: 10 } as const;
@@ -18,15 +18,37 @@ export const BOSS_REWARD_MULTIPLIER = 3.2;
 /** Rewards vary a little, so two runs of the same floor are not identical. */
 export const REWARD_VARIANCE = { min: 0.88, max: 1.12 } as const;
 
-/** Chance a cleared floor drops a piece of equipment at all. */
-export const EQUIPMENT_DROP_CHANCE = 0.34;
-export const BOSS_EQUIPMENT_DROP_CHANCE = 1;
+/**
+ * How often a floor hands over a piece of equipment.
+ *
+ * **The tower pays in currency; gear is an event.** At a third of floors a
+ * player was handed so much gear that the pieces they already owned never
+ * mattered: whatever was in the bag beat whatever was worn, so upgrading a piece
+ * was money spent on something that would be replaced two floors later. That
+ * turns §10's whole investment loop — levels, stars, materials — into a system
+ * with no reason to touch it.
+ *
+ * So an ordinary floor almost never drops gear, a boss almost always does, and
+ * bosses can hand over two. What the tower pays every floor instead is gold and
+ * materials — which buy gear from the merchants *by choice*, and improve the
+ * piece already worn.
+ */
+export const EQUIPMENT_DROP_CHANCE = 0.06;
+export const BOSS_EQUIPMENT_DROP_CHANCE = 0.9;
 
-/** Chance of a crafting material, and how many. */
-export const MATERIAL_DROP_CHANCE = 0.42;
+/** Chance a boss that dropped one piece drops a second (Brief §3.2's "extra"). */
+export const BOSS_EQUIPMENT_SECOND_CHANCE = 0.35;
+
+/**
+ * Chance of a crafting material, and how many.
+ *
+ * Raised alongside the drop cut: ascension is now the main way a piece gets
+ * better, and a path with no fuel is not a path (§10.2).
+ */
+export const MATERIAL_DROP_CHANCE = 0.58;
 export const BOSS_MATERIAL_DROP_CHANCE = 1;
 export const MATERIAL_COUNT = { min: 1, max: 3 } as const;
-export const BOSS_MATERIAL_COUNT = { min: 3, max: 6 } as const;
+export const BOSS_MATERIAL_COUNT = { min: 4, max: 8 } as const;
 
 /**
  * Rarity weights for a dropped piece, by depth band. Early tables carry no

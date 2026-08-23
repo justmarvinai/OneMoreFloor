@@ -33,6 +33,8 @@ import { GEAR_ASCENSION_MAX, GEAR_LEVEL_MAX, type ItemInstance } from '@/domain/
 import { STAT_IDS } from '@/domain/stats.ts';
 import type { Character } from '@/domain/character/types.ts';
 import { itemName } from '@/ui/itemView.ts';
+import { setTip } from '@/ui/tooltips.ts';
+import { currencyTooltip, materialTooltip } from '@/ui/wallet.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 export interface GearDialogActions {
@@ -136,6 +138,27 @@ export function openGearDialog(options: GearDialogOptions): GearDialog | null {
       }
     });
     parts.push(ascendPanel);
+
+    /**
+     * What the requirement actually is.
+     *
+     * `UpgradePanel` labels each material cell with a native `title` carrying
+     * the material's name, which the tooltip service adopts and serves as a bare
+     * word — "Iron Sigil" tells a player nothing about what it is or where the
+     * next one comes from. The cells are stamped in the order they were passed,
+     * so position pairs them back to the requirement (§20.4).
+     */
+    const needed = Object.keys(requirement?.materials ?? {});
+    ascendPanel.el.querySelectorAll<HTMLElement>('.fui-upgrade__mat').forEach((cell, index) => {
+      const id = needed[index];
+      if (id) setTip(cell, materialTooltip(id, character.materials[id] ?? 0));
+    });
+
+    // Both panels print a gold cost; both should say what gold is.
+    for (const panel of [levelPanel, ascendPanel]) {
+      const cost = panel.el.querySelector<HTMLElement>('.fui-upgrade__cost');
+      if (cost) setTip(cost, currencyTooltip('gold', gold));
+    }
 
     const tabs = new Tabs({
       items: [

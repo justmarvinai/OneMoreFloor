@@ -14,6 +14,7 @@ import type { Rng } from '@/app/rng.ts';
 import { evaluate } from '@/content/balance/curves.ts';
 import {
   BOSS_EQUIPMENT_DROP_CHANCE,
+  BOSS_EQUIPMENT_SECOND_CHANCE,
   BOSS_LUCKY_TICKET_DROP_CHANCE,
   BOSS_MATERIAL_COUNT,
   BOSS_MATERIAL_DROP_CHANCE,
@@ -152,6 +153,12 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   if (rng.chance(dropChance)) {
     const item = rollItem(input);
     if (item) items.push(item);
+    // A boss is the one place gear arrives in quantity — sometimes two pieces,
+    // which is most of what the tower gives a player to choose between now.
+    if (isBoss && item && rng.chance(BOSS_EQUIPMENT_SECOND_CHANCE)) {
+      const second = rollItem(input);
+      if (second) items.push(second);
+    }
   }
 
   const ticketChance = isBoss ? BOSS_TICKET_DROP_CHANCE : TICKET_DROP_CHANCE;

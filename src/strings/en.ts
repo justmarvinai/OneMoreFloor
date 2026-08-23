@@ -36,10 +36,18 @@ export const en = {
   'rail.noClimb': 'Not yet',
   'rail.running': 'Running',
   'rail.noPotions': 'No draughts running',
-  'rail.walletGold': 'Gold — what merchants, stat points and rerolls cost.',
-  'rail.walletTickets': 'Summon Tickets — one rite each at the Rite of Embers.',
-  'rail.walletLucky':
-    'Lucky Tickets — one rite each at the Rite of Fortune, where the odds are kinder.',
+  'currency.gold.what': 'Gold',
+  'currency.gold.use': 'What merchants, stat points, gear levels and restocks cost.',
+  'currency.gold.where':
+    'Every floor pays it, and every piece you sell or salvage adds to it. It is the ' +
+    'only money in the game.',
+  'currency.tickets.what': 'Summon Ticket',
+  'currency.tickets.use': 'One rite each at the Rite of Embers.',
+  'currency.tickets.where': 'Dropped by floors and bosses, and paid out by quests.',
+  'currency.luckyTickets.what': 'Lucky Ticket',
+  'currency.luckyTickets.use': 'One rite each at the Rite of Fortune, where the odds are kinder.',
+  'currency.luckyTickets.where':
+    'Rare from floors, likelier from bosses, and the reward the tour pays on completion.',
 
   'nav.hero.toCharacter': 'Open the character sheet',
   'nav.hero.here': 'You are looking at the character sheet',
@@ -258,6 +266,16 @@ export const en = {
   'item.artifact.sunSigil': 'Sun Sigil',
 
   // --- Materials (Brief §10.2) ---
+  // What a material is, said once and derived from its own data — a blurb per
+  // material would be eight sentences that all say the same thing (§2.3).
+  'material.kind': 'Ascension material',
+  'material.tier': 'Tier',
+  'material.tierValue': '{tier} of {max}',
+  'material.held': 'You hold',
+  'material.use': 'Spent on ascending a piece of gear to its next star.',
+  'material.where':
+    'Found in the tower and in the rites by heroes of about {power} Power Level and up. ' +
+    'Climbing deeper is the only way to reach the next tier.',
   'material.spireDust': 'Spire Dust',
   'material.ironSigil': 'Iron Sigil',
   'material.emberCore': 'Ember Core',

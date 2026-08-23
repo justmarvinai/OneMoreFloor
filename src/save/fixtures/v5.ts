@@ -10,6 +10,14 @@
  * made no pulls to reproduce (ARCHITECTURE §5).
  *
  * The meta and account shapes did not change in v5, so `v1.ts` still covers them.
+ *
+ * **The starting loadout's numbers moved in the fifth polish round**, when the
+ * item budget window narrowed (`BUDGET_WINDOW`, balance/items). That is expected
+ * and the reason this capture is regenerated rather than hand-held: v1–v4 are
+ * historical blobs and must never change, but v5 is *what this build writes*,
+ * and a balance change to item generation changes it. The migration itself is
+ * untouched — an existing player's saved items keep the budget they were rolled
+ * with (SAVE_SCHEMA §4).
  */
 import type { StoredRecord } from '../schema.ts';
 
@@ -49,14 +57,14 @@ export const V5_CHARACTER: StoredRecord = {
         affixes: [
           {
             stat: 'luck',
-            value: 8,
+            value: 10,
           },
           {
             stat: 'speed',
             value: 3,
           },
         ],
-        budget: 17,
+        budget: 19.3,
         bracketAtDrop: 0,
       },
       offhand: {
@@ -68,10 +76,10 @@ export const V5_CHARACTER: StoredRecord = {
         affixes: [
           {
             stat: 'hp',
-            value: 74,
+            value: 83,
           },
         ],
-        budget: 18.5,
+        budget: 20.75,
         bracketAtDrop: 0,
       },
     },
@@ -112,6 +120,6 @@ export const V5_CHARACTER: StoredRecord = {
     gachaPulls: 0,
   },
   integrity: {
-    crc32: '28506964',
+    crc32: 'ae5a7577',
   },
 };

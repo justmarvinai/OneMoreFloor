@@ -30,6 +30,7 @@ import { BANNERS, bannerOdds, type BannerConfig } from '@/content/balance/gacha.
 import type { Character } from '@/domain/character/types.ts';
 import { canPull, currencyHeld, type BannerId } from '@/domain/gacha/gacha.ts';
 import { setTip } from '@/ui/tooltips.ts';
+import { currencyTooltip } from '@/ui/wallet.ts';
 import { t } from '@/strings/index.ts';
 
 export interface GachaScreenOptions {
@@ -108,18 +109,7 @@ export function createGachaScreen(options: GachaScreenOptions): GachaScreen {
         // The rite's name is already the panel's title; repeating it over the
         // art would cost a line of height and say nothing. What the key art
         // carries instead is the one number the player came here to check.
-        content: h(
-          'div',
-          { class: 'omf-gacha__key' },
-          track(
-            new StatChip({
-              label: currency,
-              value: held,
-              glyph: banner.currencyGlyph,
-              size: 'md',
-            }),
-          ).el,
-        ),
+        content: h('div', { class: 'omf-gacha__key' }, ticketChip(track, banner, currency, held)),
       }),
     );
 
@@ -177,4 +167,24 @@ export function createGachaScreen(options: GachaScreenOptions): GachaScreen {
       el.remove();
     },
   };
+}
+
+/**
+ * The one number a player comes to this screen to check.
+ *
+ * The chip carries the full currency card rather than the bare label: a ticket
+ * balance is worth nothing to somebody who does not know where tickets come
+ * from, and this is the screen where they would most like to know (§20.4).
+ */
+function ticketChip(
+  track: <T extends FuiComponent>(component: T) => T,
+  banner: BannerConfig,
+  currency: string,
+  held: number,
+): HTMLElement {
+  const chip = track(
+    new StatChip({ label: currency, value: held, glyph: banner.currencyGlyph, size: 'md' }),
+  );
+  setTip(chip.el, currencyTooltip(banner.currency, held));
+  return chip.el;
 }

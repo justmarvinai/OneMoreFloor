@@ -5,6 +5,41 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Changed — the drop economy
+
+- **The tower pays in currency; gear is an event.** Equipment fell on about a
+  third of every floor, which quietly broke the whole point of gear levels and
+  ascension: whatever the tower handed over next was likely to beat anything
+  already owned, so money spent improving a piece was money spent on something
+  about to be thrown away. An ordinary floor now almost never drops gear (6%), a
+  boss almost always does (90%) and can hand over two, and what every floor pays
+  instead is gold and materials — which buy gear from the merchants *by choice*,
+  and improve the piece already worn.
+- **One drop is no longer worth four of another.** The budget window a piece may
+  occupy inside its bracket narrowed from 0.55–2.4 to 0.72–1.58, so two drops of
+  the same depth are within about 2.2× of each other. Meanwhile a piece taken to
+  level 15 and five stars is worth about 3.7× its base — level bonuses rose from
+  +60% to +90%, stars from +60% to +95%. **Investment beats luck**, which is the
+  shape the design was written for.
+- Rarity earns less of its keep through raw budget as a result, and more through
+  affix count. That is deliberate: a four-fold budget spread is what made finding
+  gear the entire game.
+
+### Fixed
+
+- **Buffs and debuffs were drawn twice in every fight.** The engine states the
+  opening board on its `fightStart` event *and* emits an `effectApplied` for each
+  floor effect; the choreographer drew both, so every floor debuff appeared as
+  two identical chips on the card. The events win — one code path for every
+  effect, whenever it lands — and the opening keeps its slower beat.
+- **Materials and balances say what they are.** Hovering a material in the Ascend
+  dialog produced the word "Iron Sigil" and nothing else, which tells a player
+  neither what it is nor where the next one comes from. Gold, both ticket kinds
+  and every material now carry a real card — what it is, what it is for, where it
+  comes from — served from one place (`src/ui/wallet.ts`) to the rail, the
+  merchants' counters, the Ascend dialog, the summoning lobby and the fight
+  aftermath, which is where most materials are met for the first time.
+
 ### Changed — the tower, and telling good gear from bad
 
 - **The floor preview answers the question the screen exists to ask.** It listed
