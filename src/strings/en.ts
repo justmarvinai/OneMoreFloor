@@ -492,6 +492,31 @@ export const en = {
   'records.best': 'Best ever',
   'records.runsHint': 'The last {count} runs, newest first.',
 
+  // Saved gear sets, on the Character screen.
+  'loadout.title': 'Saved sets',
+  'loadout.wear': 'Wear',
+  'loadout.save': 'Save',
+  'loadout.namePlaceholder': 'Set {index}',
+  'loadout.empty': 'Empty',
+  'loadout.holds': '{count} pieces',
+  'loadout.wearEmpty': 'Nothing is saved here yet. Press Save to keep what you are wearing.',
+  'loadout.wearTip': 'Put these {count} pieces back on. Anything they replace goes to the pack.',
+  'loadout.saveTip': 'Keep what you are wearing right now, under the name in the field.',
+  'loadout.saveOverTip': 'Replace this set with what you are wearing right now.',
+  'loadout.saved': 'Set saved',
+  'loadout.savedBody': 'What you are wearing is kept here until you save over it.',
+  'loadout.worn': 'Set worn',
+  'loadout.wornMissing': '{count} of its pieces are gone, so their sockets stayed as they were.',
+  'loadout.refused.nothingWorn': 'Nothing to save',
+  'loadout.refused.nothingWornBody': 'The hero is wearing nothing, so there is no set to keep.',
+  'loadout.refused.empty': 'Nothing saved here',
+  'loadout.refused.emptyBody': 'Press Save first, and this set will have something to put back on.',
+  'loadout.refused.alreadyWorn': 'Already wearing it',
+  'loadout.refused.alreadyWornBody': 'Every piece in this set is already on the hero.',
+  'loadout.refused.backpackFull': 'No room to swap',
+  'loadout.refused.backpackFullBody':
+    'What this set takes off has nowhere to go. Sell something, or buy more sockets.',
+
   // The bestiary: what the account has met, and what it has not.
   'bestiary.title': 'Bestiary',
   'bestiary.hint': '{seen} of {total} met. What the account has seen stays seen.',

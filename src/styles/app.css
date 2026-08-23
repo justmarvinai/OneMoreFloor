@@ -2836,3 +2836,61 @@ body > .fui-tooltip .fui-tooltip__price {
   text-transform: uppercase;
   color: var(--fui-ink-faint);
 }
+
+/* --- Saved gear sets ------------------------------------------------------ */
+
+/**
+ * Three cards under the paperdoll that fills them.
+ *
+ * `auto-fit` here rather than `auto-fill`: three is the whole shelf, so they
+ * should share the width they are given instead of leaving a gap where a fourth
+ * would go.
+ */
+.omf-loadouts {
+  margin-top: 14px;
+}
+
+.omf-loadouts__cards {
+  display: grid;
+  /* Narrow enough that all three fit across the sheet's column: a shelf of three
+     that wraps to 2 + 1 reads as a list that ran out of room. */
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 8px;
+}
+
+.omf-loadouts__card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 24%);
+}
+
+.omf-loadouts__card[data-empty='true'] {
+  border-style: dashed;
+  background: rgb(0 0 0 / 12%);
+}
+
+.omf-loadouts__card .fui-input {
+  width: 100%;
+}
+
+.omf-loadouts__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.omf-loadouts__actions .fui-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.omf-loadouts__count {
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}

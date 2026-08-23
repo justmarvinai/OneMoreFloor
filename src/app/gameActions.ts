@@ -21,6 +21,12 @@ import {
 import { backpackCapacity } from '@/domain/character/account.ts';
 import { equipFromInventory, unequip, type LoadoutRefusal } from '@/domain/items/loadout.ts';
 import {
+  applyLoadout,
+  captureLoadout,
+  type ApplyRefusal as PresetApplyRefusal,
+  type CaptureRefusal as PresetCaptureRefusal,
+} from '@/domain/items/presets.ts';
+import {
   addToInventory,
   findInInventory,
   isFull,
@@ -77,6 +83,8 @@ import { clock } from './time.ts';
 /** Everything that can stop an action, in one vocabulary the UI can translate. */
 export type Refusal =
   | LoadoutRefusal
+  | PresetApplyRefusal
+  | PresetCaptureRefusal
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -98,6 +106,10 @@ export interface GameActions {
   raid(throughFloor: number): Promise<QuickRaidResult>;
 
   equip(uid: string): Promise<Outcome<ItemInstance[]>>;
+  /** Save what the hero is wearing into preset `index` (fifth polish round). */
+  saveLoadout(index: number, name: string): Promise<Outcome>;
+  /** Wear preset `index`; the value is how many of its pieces are gone. */
+  wearLoadout(index: number): Promise<Outcome<number>>;
   unequipSlot(slot: EquipSlotId): Promise<Outcome<ItemInstance[]>>;
   sell(uid: string): Promise<Outcome<number>>;
 
@@ -301,6 +313,18 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const result = equipFromInventory(active(), uid, capacity());
       if (!result.ok) return { ok: false, reason: result.reason };
       return { ok: true, value: result.displaced, character: await commit(result.character) };
+    },
+
+    async saveLoadout(index, name) {
+      const saved = captureLoadout(active(), index, name);
+      if (typeof saved === 'string') return { ok: false, reason: saved };
+      return { ok: true, value: undefined, character: await commit(saved) };
+    },
+
+    async wearLoadout(index) {
+      const result = applyLoadout(active(), index, capacity());
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: result.missing, character: await commit(result.character) };
     },
 
     async unequipSlot(slot) {

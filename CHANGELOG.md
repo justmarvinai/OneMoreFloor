@@ -7,6 +7,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Saved gear sets, three per hero.** The set that clears floors fastest is
+  rarely the set that survives a gatekeeper, and swapping eight pieces by hand
+  every ten floors is the kind of tax that makes players stop swapping at all.
+  A preset stores *which pieces*, not copies of them, so a piece levelled or
+  ascended after the set was saved comes back improved — and a piece that was
+  sold is simply reported missing rather than quietly replaced. Wearing one is a
+  single whole-state swap: it either happens completely or is refused with a
+  reason, never half of one set and half of another.
 - **A bestiary, on the Records screen.** Every authored creature has an entry
   from the first visit, and an unmet one shows as a gap rather than being absent:
   a list that grows out of nothing says nothing about how much tower is left, and

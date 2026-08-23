@@ -1433,6 +1433,33 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
 });
 
+test('a gear set can be kept and put back on (fifth polish round)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Character');
+
+  const first = page.locator('[data-testid="loadout-0"]');
+  await expect(first).toBeVisible();
+  await expect(first).toHaveAttribute('data-empty', 'true');
+  // An empty set cannot be worn, and the button says why rather than going grey.
+  const wear = first.getByRole('button', { name: 'Wear' });
+  await expect(wear).toBeDisabled();
+  await wear.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/Press Save/i);
+
+  // Keep what the starting kit is wearing.
+  await first.locator('input').fill('Climbing');
+  await first.getByRole('button', { name: 'Save' }).click();
+  await expect(first).toHaveAttribute('data-empty', 'false');
+  await expect(first).toContainText(/pieces/i);
+  await expect(first.locator('input')).toHaveValue('Climbing');
+
+  // Wearing what is already worn is refused in words (§20.5).
+  await first.getByRole('button', { name: 'Wear' }).click();
+  await expect(page.locator('.fui-toast').last()).toContainText(/Already wearing it/i);
+});
+
 test('the bestiary fills in as the tower is met, and keeps its gaps', async ({ page }) => {
   test.slow();
   await enterSelect(page);

@@ -23,6 +23,7 @@ import './styles/app.css';
 import { setAssetBase } from './ui/fui/index.ts';
 import { createRouter, type Router } from './app/router.ts';
 import { createSession } from './app/session.ts';
+import type { Refusal } from './app/gameActions.ts';
 import { createAppStore, saveLoaded, type AppStore } from './app/state.ts';
 import { createClock, setClock } from './app/time.ts';
 import { acquireSessionLock } from './save/sessionLock.ts';
@@ -344,6 +345,32 @@ export async function boot(mount: HTMLElement): Promise<void> {
       return owned ? itemName(owned) : '';
     };
 
+    /**
+     * Turn a refusal into words the player can act on (§20.5).
+     *
+     * The set of reasons a loadout can refuse is small and closed, so the map is
+     * exhaustive rather than a lookup with a fallback — an unhandled reason is a
+     * compile error rather than a silent shrug.
+     */
+    const sayNo = (reason: Refusal): void => {
+      switch (reason) {
+        case 'nothingWorn':
+          refuse(t('loadout.refused.nothingWorn'), t('loadout.refused.nothingWornBody'));
+          return;
+        case 'empty':
+          refuse(t('loadout.refused.empty'), t('loadout.refused.emptyBody'));
+          return;
+        case 'alreadyWorn':
+          refuse(t('loadout.refused.alreadyWorn'), t('loadout.refused.alreadyWornBody'));
+          return;
+        case 'backpackFull':
+          refuse(t('loadout.refused.backpackFull'), t('loadout.refused.backpackFullBody'));
+          return;
+        default:
+          refuse(t('item.cannotEquip'));
+      }
+    };
+
     const leaveCharacter = (): void => {
       void session.leave().then(() => router.go('select'));
     };
@@ -467,6 +494,22 @@ export async function boot(mount: HTMLElement): Promise<void> {
               },
               onBuyStat: (stat) => void session.buyStat(stat, 1).then(refreshScreen),
               onAscend: () => void session.ascend().then(refreshScreen),
+              onSaveLoadout: (index, name) => {
+                void session.saveLoadout(index, name).then((outcome) => {
+                  if (outcome.ok) notify(t('loadout.saved'), t('loadout.savedBody'));
+                  else sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
+              onWearLoadout: (index) => {
+                void session.wearLoadout(index).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else if (outcome.value > 0) {
+                    notify(t('loadout.worn'), t('loadout.wornMissing', { count: outcome.value }));
+                  } else notify(t('loadout.worn'));
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

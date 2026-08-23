@@ -67,6 +67,16 @@ export const MAX_BACKPACK_SLOTS = 50;
 export const BACKPACK_SLOT_STEP = 5;
 
 /**
+ * Saved gear sets (fifth polish round).
+ *
+ * Three, and not a growing list: a preset is worth having because it is a
+ * *decision* — the climbing set, the boss set, the one built for a floor
+ * modifier — and a shelf of twenty is a second inventory to manage rather than
+ * a shortcut past the first one.
+ */
+export const LOADOUT_PRESETS = 3;
+
+/**
  * Gold to reach each backpack size, keyed by the size it buys. Sizes not listed
  * cannot be bought — which is what makes 50 the ceiling rather than a check.
  */
