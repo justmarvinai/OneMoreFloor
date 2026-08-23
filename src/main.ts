@@ -87,7 +87,11 @@ export async function boot(mount: HTMLElement): Promise<void> {
   // Native browser tooltips are banned game-wide (§20.4). Installing the service
   // before the first screen means vendored components never get a chance to show
   // one, whatever they put in the DOM.
-  const tooltips = installTooltipService(mount);
+  // Rooted at the document rather than at `#app`: modals and the toast stack
+  // mount themselves on the body, outside the app node, and a service that
+  // cannot see them leaves their native `title`s in place for the browser to
+  // draw its own tooltip over the game (§20.4).
+  const tooltips = installTooltipService(mount.ownerDocument.body);
   // Refusals from a drag have nowhere else to go — the screen they happened on is
   // rebuilt in the same beat (`ui/toasts.ts`).
   const toasts = installToastService(mount);
@@ -329,8 +333,25 @@ export async function boot(mount: HTMLElement): Promise<void> {
               gearDialog = null;
               refreshScreen();
             }),
+          salvage: (id) => {
+            const name = nameOfOwnedItem(id);
+            void session.salvage(id).then((outcome) => {
+              gearDialog?.close();
+              gearDialog = null;
+              if (outcome.ok) notify(t('item.salvaged'), t('item.salvagedBody', { name }));
+              refreshScreen();
+            });
+          },
           upgrade: (id) => void session.upgradeGear(id).then(refreshScreen),
           ascend: (id) => void session.ascendGearPiece(id).then(refreshScreen),
+          reforge: (id) => {
+            const name = nameOfOwnedItem(id);
+            void session.reforgeGear(id).then((outcome) => {
+              if (outcome.ok) notify(t('item.reforged'), t('item.reforgedBody', { name }));
+              else refuse(t('item.reforgeShort'), t('item.reforgeShortBody'));
+              refreshScreen();
+            });
+          },
         },
       });
     };

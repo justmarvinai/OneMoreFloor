@@ -86,9 +86,20 @@ function adoptTree(root: Element): void {
   for (const element of root.querySelectorAll('[title]')) adopt(element);
 }
 
+/**
+ * Install the service.
+ *
+ * `root` should be the **document body**, not the app node. Modals, dialogs and
+ * the toast stack mount themselves on the body — outside `#app` — so a service
+ * rooted at the app would never see them: their `title` attributes would survive
+ * unadopted and the browser would draw its own tooltip over the game, which is
+ * exactly what §20.4 forbids. That is how the Ascend dialog came to show a bare
+ * "Iron Sigil" in a system tooltip.
+ */
 export function installTooltipService(root: HTMLElement): TooltipService {
   const tooltip = new Tooltip({ width: 268 });
   root.ownerDocument.body.appendChild(tooltip.el);
+  let shown: HTMLElement | null = null;
 
   const observer = new MutationObserver((records) => {
     for (const record of records) {
@@ -101,7 +112,17 @@ export function installTooltipService(root: HTMLElement): TooltipService {
       }
       // A screen that swaps out from under the cursor never fires `mouseout`,
       // so the tooltip for whatever was there would hang over the new screen.
-      if (record.removedNodes.length > 0) tooltip.hide();
+      // Only what is actually gone counts: rooted at the body, this observer
+      // also sees every toast expiring, and those must not take a tooltip the
+      // player is still reading with them.
+      if (!shown) continue;
+      for (const node of record.removedNodes) {
+        if (node instanceof Element && (node === shown || node.contains(shown))) {
+          shown = null;
+          tooltip.hide();
+          break;
+        }
+      }
     }
   });
 
@@ -126,8 +147,6 @@ export function installTooltipService(root: HTMLElement): TooltipService {
     const text = target.getAttribute(TIP_ATTR) ?? '';
     tooltip.render({ content: h('p', { class: 'omf-tip__hint', text }) });
   };
-
-  let shown: HTMLElement | null = null;
 
   const over = (event: MouseEvent): void => {
     const target = targetOf(event);

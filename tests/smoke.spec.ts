@@ -654,6 +654,25 @@ test('shows no native tooltip in the lobby or the rite either (§20.4)', async (
     await page.$$eval('[title]', (nodes) => nodes.map((node) => node.tagName)),
     'the summoning lobby',
   ).toEqual([]);
+
+  // Dialogs mount on the document body rather than inside the app node, which is
+  // the one place a vendored component's `title` could survive unadopted.
+  await goToSection(page, 'Character');
+  await page.locator('.omf-character__doll .fui-slot:not(.fui-slot--empty)').first().click();
+  const dialog = page.locator('[data-testid="gear-dialog"]');
+  await expect(dialog).toBeVisible();
+  // The Ascend tab is where the material cells live, and each one arrives from
+  // the vendored panel carrying a native `title`.
+  await dialog.getByRole('tab', { name: /Ascend/i }).click();
+  await expect(dialog.locator('.fui-upgrade__mat').first()).toBeVisible();
+  expect(
+    await page.$$eval('[title]', (nodes) => nodes.map((node) => node.tagName)),
+    'the gear dialog',
+  ).toEqual([]);
+
+  // And the material says what it is rather than repeating its own name.
+  await dialog.locator('.fui-upgrade__mat').first().hover();
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/ascend/i);
 });
 
 /* --- M10: the §2.1 / §20.5 sweep ------------------------------------------ */
@@ -1431,6 +1450,41 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   // Watching is available from the first floor, and switching it on sticks.
   await page.locator('[data-testid="auto-watching"]').click();
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
+});
+
+test('a piece can be broken down or reforged, not only sold', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Climb until the tower hands over a piece — gear is an event now, so this
+  // takes a while and the loop says so rather than assuming one floor is enough.
+  const bag = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await climb(page, 5);
+    await goToSection(page, 'Character');
+    if ((await bag.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await bag.count(), 'forty floors dropped nothing').toBeGreaterThan(0);
+
+  await bag.first().click();
+  const dialog = page.locator('[data-testid="gear-dialog"]');
+  await expect(dialog).toBeVisible();
+
+  // Reforge is the third thing you do to a piece you are keeping.
+  await dialog.getByRole('tab', { name: /Reforge/i }).click();
+  await expect(dialog.locator('.fui-upgrade')).toContainText(/Reforge/i);
+
+  // Salvage sits beside Sell, and says what it gives before it is pressed.
+  const salvage = dialog.getByRole('button', { name: /^Salvage$/ });
+  await expect(salvage).toBeVisible();
+  await salvage.hover();
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/materials/i);
+
+  await salvage.click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.fui-toast').last()).toContainText(/Broken down/i);
 });
 
 test('a gear set can be kept and put back on (fifth polish round)', async ({ page }) => {

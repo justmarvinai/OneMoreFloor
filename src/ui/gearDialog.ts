@@ -29,7 +29,13 @@ import {
   gearLevelCost,
   sellValue,
 } from '@/domain/items/upgrade.ts';
-import { GEAR_ASCENSION_MAX, GEAR_LEVEL_MAX, type ItemInstance } from '@/domain/items/types.ts';
+import {
+  GEAR_ASCENSION_MAX,
+  GEAR_LEVEL_MAX,
+  type ItemInstance,
+  type MaterialCost,
+} from '@/domain/items/types.ts';
+import { reforgeCost, salvageYield } from '@/domain/items/salvage.ts';
 import { STAT_IDS } from '@/domain/stats.ts';
 import type { Character } from '@/domain/character/types.ts';
 import { itemName } from '@/ui/itemView.ts';
@@ -41,8 +47,12 @@ export interface GearDialogActions {
   equip(uid: string): void;
   unequip(uid: string): void;
   sell(uid: string): void;
+  /** Break the piece into ascension materials instead of gold. */
+  salvage(uid: string): void;
   upgrade(uid: string): void;
   ascend(uid: string): void;
+  /** Reroll which stats the piece carries (fifth polish round). */
+  reforge(uid: string): void;
 }
 
 export interface GearDialogOptions {
@@ -66,6 +76,7 @@ export function openGearDialog(options: GearDialogOptions): GearDialog | null {
   if (!located) return null;
 
   const parts: FuiComponent[] = [];
+  let openTab = 'level';
   const body = h('div', { class: 'omf-gear', dataset: { testid: 'gear-dialog' } });
 
   const modal = new Modal({
@@ -140,6 +151,37 @@ export function openGearDialog(options: GearDialogOptions): GearDialog | null {
     parts.push(ascendPanel);
 
     /**
+     * Reforge: the same money-and-materials shape as ascension, spent on a
+     * different question. Ascension asks *how much*, this asks *of what* — and
+     * it is drawn as a third tab rather than a button in the row below because
+     * it is one of the three things you do to a piece you are keeping, not one
+     * of the two you do to a piece you are getting rid of.
+     */
+    const reforgePrice = reforgeCost(item);
+    const reforgePanel = new UpgradePanel({
+      title: t('item.reforge'),
+      icon: iconOf(item),
+      from: t('item.reforgeFrom'),
+      to: t('item.reforgeTo'),
+      stats: item.affixes.map((affix) => ({
+        label: t(`stat.${affix.stat}` as StringKey),
+        from: affix.value,
+        to: affix.value,
+      })),
+      materials: materialRows(character, reforgePrice.materials),
+      cost: reforgePrice.gold,
+      costIcon: 'icon-coins',
+      balance: gold,
+      confirmLabel: t('item.reforge'),
+    });
+    reforgePanel.on('upgrade:confirm', () => {
+      if (gold >= reforgePrice.gold && hasMaterials(character, reforgePrice.materials)) {
+        actions.reforge(uid);
+      }
+    });
+    parts.push(reforgePanel);
+
+    /**
      * What the requirement actually is.
      *
      * `UpgradePanel` labels each material cell with a native `title` carrying
@@ -148,14 +190,18 @@ export function openGearDialog(options: GearDialogOptions): GearDialog | null {
      * next one comes from. The cells are stamped in the order they were passed,
      * so position pairs them back to the requirement (§20.4).
      */
-    const needed = Object.keys(requirement?.materials ?? {});
-    ascendPanel.el.querySelectorAll<HTMLElement>('.fui-upgrade__mat').forEach((cell, index) => {
-      const id = needed[index];
-      if (id) setTip(cell, materialTooltip(id, character.materials[id] ?? 0));
-    });
+    const stampMaterials = (panel: UpgradePanel, cost: MaterialCost): void => {
+      const needed = Object.keys(cost);
+      panel.el.querySelectorAll<HTMLElement>('.fui-upgrade__mat').forEach((cell, index) => {
+        const id = needed[index];
+        if (id) setTip(cell, materialTooltip(id, character.materials[id] ?? 0));
+      });
+    };
+    stampMaterials(ascendPanel, requirement?.materials ?? {});
+    stampMaterials(reforgePanel, reforgePrice.materials);
 
-    // Both panels print a gold cost; both should say what gold is.
-    for (const panel of [levelPanel, ascendPanel]) {
+    // Every panel prints a gold cost; all of them should say what gold is.
+    for (const panel of [levelPanel, ascendPanel, reforgePanel]) {
       const cost = panel.el.querySelector<HTMLElement>('.fui-upgrade__cost');
       if (cost) setTip(cost, currencyTooltip('gold', gold));
     }
@@ -164,14 +210,25 @@ export function openGearDialog(options: GearDialogOptions): GearDialog | null {
       items: [
         { id: 'level', label: t('item.upgrade'), icon: 'icon-coins' },
         { id: 'ascend', label: t('item.ascend'), icon: 'icon-star' },
+        { id: 'reforge', label: t('item.reforge'), icon: 'icon-gem' },
       ],
+      active: openTab,
       stretch: true,
     });
     parts.push(tabs);
 
-    const pane = h('div', { class: 'omf-gear__pane' }, levelPanel.el);
+    const panes: Record<string, HTMLElement> = {
+      level: levelPanel.el,
+      ascend: ascendPanel.el,
+      reforge: reforgePanel.el,
+    };
+    const pane = h('div', { class: 'omf-gear__pane' }, panes[openTab] ?? levelPanel.el);
     tabs.on<{ id: string }>('tabs:change', ({ id }) => {
-      pane.replaceChildren(id === 'level' ? levelPanel.el : ascendPanel.el);
+      // Remembered across redraws: every one of these actions changes the
+      // character and rebuilds the dialog, and a tab that snapped back to
+      // Upgrade after each reforge would fight the player doing two in a row.
+      openTab = id;
+      pane.replaceChildren(panes[id] ?? levelPanel.el);
     });
 
     body.appendChild(tabs.el);
@@ -195,6 +252,31 @@ export function openGearDialog(options: GearDialogOptions): GearDialog | null {
       sell.on('click', () => actions.sell(uid));
       parts.push(sell);
       row.appendChild(sell.el);
+
+      /**
+       * The other way to be rid of it.
+       *
+       * Selling and salvaging are the same decision asked in two currencies, so
+       * they sit side by side rather than one being hidden behind the other —
+       * and the button prints the yield rather than the word, because the whole
+       * reason salvage is not a roll is that the player can compare it to the
+       * gold before choosing (§20.5).
+       */
+      const yielded = salvageYield(item);
+      const salvage = new Button({ label: t('item.salvage'), variant: 'ghost' });
+      salvage.on('click', () => actions.salvage(uid));
+      setTip(salvage.el, {
+        title: t('item.salvage'),
+        subtitle: t('item.salvageHint'),
+        stats: Object.entries(yielded).map(([id, count]) => ({
+          label: t((getMaterial(id)?.nameKey ?? id) as StringKey),
+          value: `+${count}`,
+          tone: 'good' as const,
+        })),
+        flavor: t('item.salvageFlavor'),
+      });
+      parts.push(salvage);
+      row.appendChild(salvage.el);
     }
 
     body.appendChild(row);

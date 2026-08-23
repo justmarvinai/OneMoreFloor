@@ -198,3 +198,52 @@ export const GEAR_ASCENSION_COST: readonly {
  * Gold must stay the thing the player is always slightly short of (Brief §14).
  */
 export const SELL_VALUE_FRACTION = 0.18;
+
+/**
+ * Salvage (fifth polish round) — the other thing to do with a piece you do not
+ * want.
+ *
+ * Selling pays gold; salvaging pays the materials that ascension eats. The two
+ * are deliberately not interchangeable: after this round's drop retune the
+ * tower hands over gold and materials rather than gear, so the pieces that do
+ * arrive are worth *more* as fuel for what you are already building than as one
+ * more line in the purse. There is no roll — a player deciding between two
+ * irreversible options deserves to be told exactly what each one gives.
+ */
+export const SALVAGE_BASE_COUNT = 2;
+
+/** Extra material per rarity: a mythic was worth more to break than a common. */
+export const SALVAGE_RARITY_BONUS: Readonly<Record<Rarity, number>> = {
+  common: 0,
+  uncommon: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 5,
+  mythic: 8,
+};
+
+/** Gear levels give a fraction of their gold back as material, rounded down. */
+export const SALVAGE_LEVEL_BONUS = 0.25;
+
+/**
+ * Each star returns two of the piece's own tier and one of the tier above,
+ * because that is roughly the shape of what ascending it consumed. Not all of
+ * it: salvage is a change of mind, and a change of mind costs something.
+ */
+export const SALVAGE_ASCENSION_BONUS = 2;
+export const SALVAGE_ASCENSION_HIGH_TIER_PER_STAR = 1;
+
+/**
+ * Reforge (fifth polish round) — reroll which stats a piece carries.
+ *
+ * The gamble is *which* affixes and how the budget splits, inside the same
+ * window the piece was born in. Two consequences, both deliberate: a reforge can
+ * never overshoot the bracket that produced the item (§13), and a player willing
+ * to spend can eventually reach the budget the luckiest possible drop would have
+ * had — investment reaching what luck could, which is the shape §10 asks for.
+ *
+ * Priced as a real sink rather than a formality: over half the piece's worth in
+ * gold, plus materials that only the depth it came from yields.
+ */
+export const REFORGE_GOLD_MULTIPLIER = 0.55;
+export const REFORGE_MATERIAL_COUNT = 3;

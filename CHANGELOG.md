@@ -7,6 +7,19 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Salvage, beside Sell.** A piece you do not want can be broken into the
+  materials ascension eats instead of sold for gold. The two sit side by side
+  because they are the same decision asked in two currencies — and salvage is
+  deliberately not a roll, so the button can print exactly what it gives before
+  it is pressed. After this round's drop retune the pieces that arrive are often
+  worth more as fuel for what you are building than as another line in the purse.
+- **Reforge, as a third tab on a piece you are keeping.** Rerolls *which* stats
+  it carries, for gold and the materials of the depth it came from. The budget is
+  redrawn inside the window the piece was born in, so a reforge can never
+  overshoot the bracket that produced it (§13) while a player willing to keep
+  paying can reach the budget the luckiest possible drop would have had —
+  investment reaching what luck could. A five-star piece rerolls with five lines,
+  because its sockets come from its stars rather than from a fresh rarity roll.
 - **Saved gear sets, three per hero.** The set that clears floors fastest is
   rarely the set that survives a gatekeeper, and swapping eight pieces by hand
   every ten floors is the kind of tax that makes players stop swapping at all.
@@ -91,6 +104,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Fixed
 
+- **Dialogs showed the browser's own tooltips (§20.4).** The tooltip service
+  listened on the app node, and modals mount themselves on the document body —
+  outside it. Every `title` a vendored component put inside a dialog therefore
+  survived unadopted, and the browser drew its own grey box over the game: the
+  bare "Iron Sigil" over the Ascend dialog's materials was this, and no amount of
+  giving those cells a real card could have fixed it. The service now listens at
+  the document, and the §20.4 sweep opens a dialog rather than only checking a
+  screen. Toasts expiring no longer take a tooltip the player is reading with
+  them, which the wider root would otherwise have caused.
 - **The floor preview folded in on itself on a short screen.** Every section of
   the tower's side panel is a flex child that may shrink so the panel can own its
   own height — and a flex child shrinks past its own content rather than pushing

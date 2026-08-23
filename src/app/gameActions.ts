@@ -34,7 +34,7 @@ import {
 } from '@/domain/items/inventory.ts';
 import { rollAscensionAffix } from '@/domain/items/generate.ts';
 import { affixCapacity } from '@/domain/items/upgrade.ts';
-import type { ItemInstance } from '@/domain/items/types.ts';
+import type { ItemInstance, MaterialCost } from '@/domain/items/types.ts';
 import { affixPool } from '@/content/items/affixPools.ts';
 import { materialIdForTier, requireItemDef } from '@/content/items/index.ts';
 import { potionFor } from '@/content/items/potions.ts';
@@ -65,6 +65,7 @@ import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
 import { recordKills } from '@/domain/account/bestiary.ts';
+import { reforge, salvageFromInventory } from '@/domain/items/salvage.ts';
 import {
   canPull,
   pull,
@@ -112,6 +113,11 @@ export interface GameActions {
   wearLoadout(index: number): Promise<Outcome<number>>;
   unequipSlot(slot: EquipSlotId): Promise<Outcome<ItemInstance[]>>;
   sell(uid: string): Promise<Outcome<number>>;
+
+  /** Break a backpack piece into ascension materials (fifth polish round). */
+  salvage(uid: string): Promise<Outcome<MaterialCost>>;
+  /** Reroll a piece's affixes for gold and materials (fifth polish round). */
+  reforgeGear(uid: string): Promise<Outcome<ItemInstance>>;
 
   upgradeGear(uid: string): Promise<Outcome>;
   ascendGearPiece(uid: string): Promise<Outcome>;
@@ -341,6 +347,24 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         { kind: 'goldEarned', amount: sale.gold },
       ]);
       return { ok: true, value: sale.gold, character: await commit(character) };
+    },
+
+    async salvage(uid) {
+      const broken = salvageFromInventory(active(), uid);
+      if (!broken) return { ok: false, reason: 'notFound' };
+      // Salvage is a piece leaving the pack the same way a sale is, and the
+      // quest board counts pieces parted with rather than gold taken for them.
+      const character = withQuests(broken.character, [{ kind: 'itemSold' }]);
+      return { ok: true, value: broken.materials, character: await commit(character) };
+    },
+
+    async reforgeGear(uid) {
+      const result = reforge(active(), uid);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      const character = withQuests(result.character, [
+        { kind: 'goldSpent', amount: result.cost.gold },
+      ]);
+      return { ok: true, value: result.item, character: await commit(character) };
     },
 
     async upgradeGear(uid) {
