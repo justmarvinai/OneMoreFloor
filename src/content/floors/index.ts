@@ -5,6 +5,13 @@
  * a stretch of floors its character, and a generator that keeps going past the
  * last authored one. The final band is deliberately open-ended: it is the one
  * the player spends most of their life in.
+ *
+ * A band's `families` list is load-bearing rather than descriptive: the floor
+ * generator draws only from the families named here, so widening a band's cast
+ * or narrowing it to make a stretch feel claustrophobic is a data edit
+ * (CONTENT_PIPELINE §4). Bands overlap the enemies' own floor ranges — an enemy
+ * appears where *both* agree — which is what lets a family fade in and out of a
+ * stretch instead of switching on at its first floor.
  */
 import type { EnemyFamily } from '@/content/enemies/types.ts';
 import type { StringKey } from '@/strings/index.ts';
@@ -14,7 +21,10 @@ export interface FloorBand {
   nameKey: StringKey;
   /** First floor of the band; it runs until the next band begins. */
   from: number;
-  /** Families that appear here, for flavour continuity within a stretch. */
+  /**
+   * The only families that appear here. The generator filters its candidates by
+   * this, so a band is a *place* rather than a caption over the same roster.
+   */
   families: readonly EnemyFamily[];
   /**
    * Backdrop art id for fights in this band (Q11: FantasyUI art only in 0.1).
@@ -36,28 +46,35 @@ export const FLOOR_BANDS: readonly FloorBand[] = [
     id: 'band.brokenStair',
     nameKey: 'band.brokenStair',
     from: 15,
-    families: ['brigand', 'construct', 'beast'],
+    families: ['brigand', 'beast', 'construct'],
     backdrop: 'earth-rock-spire',
+  },
+  {
+    id: 'band.floodedWorks',
+    nameKey: 'band.floodedWorks',
+    from: 35,
+    families: ['construct', 'arcane', 'vermin'],
+    backdrop: 'earth-fissure-web',
   },
   {
     id: 'band.ossuary',
     nameKey: 'band.ossuary',
-    from: 35,
-    families: ['undead', 'construct', 'beast'],
+    from: 55,
+    families: ['undead', 'beast', 'arcane'],
     backdrop: 'earth-monolith',
   },
   {
     id: 'band.emberReach',
     nameKey: 'band.emberReach',
-    from: 60,
-    families: ['infernal', 'undead'],
+    from: 75,
+    families: ['infernal', 'undead', 'aberration', 'construct'],
     backdrop: 'fire-lava-field',
   },
   {
     id: 'band.endlessAscent',
     nameKey: 'band.endlessAscent',
     from: 101,
-    families: ['infernal', 'undead', 'construct', 'beast'],
+    families: ['aberration', 'infernal', 'arcane', 'construct', 'undead', 'beast'],
     backdrop: 'earth-crystal-meteor',
   },
 ];

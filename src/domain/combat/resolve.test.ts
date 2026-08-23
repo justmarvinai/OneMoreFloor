@@ -6,6 +6,12 @@ import { fightFloor, heroCombatant } from '../tower/run.ts';
 import { critChance, doubleAttackChance, resolveCombat } from './resolve.ts';
 import type { Combatant, CombatEvent } from './types.ts';
 
+/**
+ * A fixed instant. Nothing here drinks potions, and pinning the clock is what
+ * keeps these fights byte-identical between runs (ARCHITECTURE §5).
+ */
+const NOW = 1_700_000_000_000;
+
 function hero(classId: ClassId = 'warrior', overrides: Partial<Combatant> = {}): Combatant {
   const character = createCharacter({
     slotId: 1,
@@ -14,7 +20,7 @@ function hero(classId: ClassId = 'warrior', overrides: Partial<Combatant> = {}):
     createdAt: 0,
     runSeed: 'combat-test',
   });
-  return { ...heroCombatant(character), ...overrides };
+  return { ...heroCombatant(character, NOW), ...overrides };
 }
 
 function dummy(overrides: Partial<Combatant> = {}): Combatant {
@@ -236,10 +242,10 @@ describe('signature moves (Q6/Q26)', () => {
       createdAt: 0,
       runSeed: 'shield',
     });
-    expect(heroCombatant(withShield).signature).toBe('shieldSlam');
+    expect(heroCombatant(withShield, NOW).signature).toBe('shieldSlam');
 
     const twoHanded = { ...withShield, equipment: { mainhand: withShield.equipment.mainhand } };
-    expect(heroCombatant(twoHanded).signature).toBe('berserkStrike');
+    expect(heroCombatant(twoHanded, NOW).signature).toBe('berserkStrike');
   });
 
   it('lands the Hunter’s volley as several separate blows, each able to crit', () => {
@@ -359,7 +365,7 @@ describe('a real fight on floor 1', () => {
         createdAt: 0,
         runSeed: `first:${classId}`,
       });
-      const result = fightFloor(character, 1);
+      const result = fightFloor(character, 1, NOW);
       expect(result.cleared, `${classId} lost on floor 1`).toBe(true);
     }
   });

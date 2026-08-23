@@ -20,7 +20,6 @@ import {
   MODIFIER_CHANCE,
 } from '@/content/balance/enemies.ts';
 import {
-  BOSSES,
   ENEMIES,
   ENEMY_MODIFIERS,
   bossForFloor,
@@ -86,14 +85,7 @@ export function generateFloor(runSeed: string, floor: number): GeneratedFloor {
   const boss = isBossFloor(floor);
   const band = bandForFloor(floor);
 
-  let enemy: EnemyDef | BossDef;
-  if (boss) {
-    enemy = bossForFloor(floor) ?? BOSSES[BOSSES.length - 1]!;
-  } else {
-    const candidates = enemiesForFloor(floor);
-    const pool = candidates.length > 0 ? candidates : deepestEnemies(band);
-    enemy = rng.weighted(pool.map((candidate) => ({ value: candidate, weight: candidate.weight })));
-  }
+  const enemy: EnemyDef | BossDef = boss ? bossForFloor(floor) : enemyFor(runSeed, floor, band);
 
   // Past the authored floors an enemy may carry a modifier, which trades one
   // stat for another rather than simply inflating it (CONTENT_PIPELINE §2).
@@ -110,11 +102,74 @@ export function generateFloor(runSeed: string, floor: number): GeneratedFloor {
       effect: boss ? scaleEffect(enemy.playerDebuff, floor) : enemy.playerDebuff,
     });
   }
-  if (boss && 'selfBuff' in enemy && enemy.selfBuff) {
-    effects.push({ unit: 'enemy', effect: scaleEffect(enemy.selfBuff, floor) });
+  const selfBuff = (enemy as Partial<BossDef>).selfBuff;
+  if (boss && selfBuff) {
+    effects.push({ unit: 'enemy', effect: scaleEffect(selfBuff, floor) });
   }
 
   return { floor, isBoss: boss, band, enemy, modifier, stats, effects };
+}
+
+/**
+ * Who is standing on a normal floor.
+ *
+ * Two gates, and an enemy needs both: its own floor range says *when* it is a
+ * fair fight, the band's family list says *where* it belongs. Filtering by only
+ * the first made every stretch of the tower draw from the same roster and read
+ * as a number rather than a place (CONTENT_PIPELINE §2).
+ *
+ * Then one rule that is pure pacing: **a floor does not serve the enemy the
+ * floor below served**, whenever there is anyone else to serve. Independent
+ * draws produce runs — four Cave Lurkers in a row turned up in the very first
+ * pacing pass — and a run of identical floors is the single loudest way an
+ * endless tower can read as unfinished (§3.7).
+ *
+ * Honouring that exactly needs to know what the *previous* floor actually
+ * served, which is itself the result of the same rule. Rather than recurse five
+ * thousand floors, the chain is rebuilt from the start of the current stretch —
+ * a boss floor resets it, so the walk is at most nine steps at any depth. Still
+ * pure, still stateless, still the same fight every time from the same seed.
+ */
+function enemyFor(runSeed: string, floor: number, band: FloorBand): EnemyDef {
+  let previous: string | null = null;
+  let chosen: EnemyDef | null = null;
+
+  for (let step = stretchStart(floor); step <= floor; step += 1) {
+    const stepBand = step === floor ? band : bandForFloor(step);
+    chosen = pickAvoiding(runSeed, step, stepBand, previous);
+    previous = chosen.id;
+  }
+  return chosen!;
+}
+
+/** The first floor since the last boss — where a stretch's variety starts over. */
+function stretchStart(floor: number): number {
+  let start = floor;
+  // Bounded by the boss cadence: a boss floor is never more than a decade back.
+  while (start > 1 && !isBossFloor(start - 1)) start -= 1;
+  return start;
+}
+
+function pickAvoiding(
+  runSeed: string,
+  floor: number,
+  band: FloorBand,
+  previous: string | null,
+): EnemyDef {
+  const pool = poolFor(floor, band);
+  const fresh = pool.length > 1 ? pool.filter((candidate) => candidate.id !== previous) : pool;
+  return weightedPick(createRng(floorSeed(runSeed, floor)), fresh.length > 0 ? fresh : pool);
+}
+
+function poolFor(floor: number, band: FloorBand): EnemyDef[] {
+  const inRange = enemiesForFloor(floor);
+  const inBand = inRange.filter((candidate) => band.families.includes(candidate.family));
+  if (inBand.length > 0) return inBand;
+  return inRange.length > 0 ? inRange : deepestEnemies(band);
+}
+
+function weightedPick(rng: ReturnType<typeof createRng>, pool: EnemyDef[]): EnemyDef {
+  return rng.weighted(pool.map((candidate) => ({ value: candidate, weight: candidate.weight })));
 }
 
 /** Fallback pool for floors past every authored range: the deepest enemies. */

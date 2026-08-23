@@ -1,0 +1,136 @@
+/* RuneCircle — concentric rings of runes turning around a conjuring. */
+
+.fui-runes {
+  --fui-runes-size: 280px;
+  --fui-runes-ink: var(--fui-xp);
+  --fui-runes-charge: 0.25;
+  position: relative;
+  display: grid;
+  width: var(--fui-runes-size);
+  height: var(--fui-runes-size);
+  place-items: center;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 50%,
+    color-mix(in srgb, var(--fui-runes-ink) calc(var(--fui-runes-charge) * 26%), transparent) 0%,
+    transparent 68%
+  );
+}
+
+.fui-runes__ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--fui-runes-size) * var(--fui-runes-at));
+  height: calc(var(--fui-runes-size) * var(--fui-runes-at));
+  margin: calc(var(--fui-runes-size) * var(--fui-runes-at) / -2);
+  border-radius: 50%;
+  animation: fui-runes-turn var(--fui-runes-spin, 60s) linear infinite;
+  animation-direction: var(--fui-runes-dir, normal);
+}
+
+.fui-runes[data-still='true'] .fui-runes__ring {
+  animation: none;
+}
+
+.fui-runes__ring[data-line='true'] {
+  border: 1px solid color-mix(
+    in srgb,
+    var(--fui-runes-ink) calc(30% + var(--fui-runes-charge) * 55%),
+    transparent
+  );
+  box-shadow: 0 0 calc(var(--fui-runes-charge) * 20px)
+    color-mix(in srgb, var(--fui-runes-ink) calc(var(--fui-runes-charge) * 60%), transparent);
+}
+
+@keyframes fui-runes-turn {
+  to { transform: rotate(360deg); }
+}
+
+/* Each rune rides a zero-height spoke rotated out from the centre, then
+   counter-rotates by the same angle so it stays upright on the rim. */
+.fui-runes__spoke {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  height: 50%;
+  width: 0;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--fui-runes-angle, 0deg));
+}
+
+.fui-runes__tick {
+  position: absolute;
+  left: -1px;
+  top: 0;
+  width: 2px;
+  height: calc(var(--fui-runes-size) * 0.022);
+  background: color-mix(
+    in srgb,
+    var(--fui-runes-ink) calc(35% + var(--fui-runes-charge) * 60%),
+    transparent
+  );
+}
+
+.fui-runes__glyph {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: calc(var(--fui-runes-size) * 0.07);
+  height: calc(var(--fui-runes-size) * 0.07);
+  transform: translate(-50%, -10%) rotate(calc(-1 * var(--fui-runes-angle, 0deg)));
+  background-color: color-mix(
+    in srgb,
+    var(--fui-runes-ink) calc(45% + var(--fui-runes-charge) * 55%),
+    transparent
+  );
+  mask: var(--fui-glyph-src, var(--fui-mask-none)) center / contain no-repeat;
+  -webkit-mask: var(--fui-glyph-src, var(--fui-mask-none)) center / contain no-repeat;
+  filter: drop-shadow(0 0 calc(var(--fui-runes-charge) * 6px) var(--fui-runes-ink));
+}
+
+.fui-runes__poly {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.fui-runes__poly-shape {
+  fill: color-mix(in srgb, var(--fui-runes-ink) calc(var(--fui-runes-charge) * 12%), transparent);
+  stroke: color-mix(
+    in srgb,
+    var(--fui-runes-ink) calc(35% + var(--fui-runes-charge) * 55%),
+    transparent
+  );
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 calc(var(--fui-runes-charge) * 8px) var(--fui-runes-ink));
+}
+
+/* Round, not square. Art dropped into a summoning circle is nearly always a
+   rectangular painting, and its corners are exactly what reaches out far enough
+   to cover the diagonal glyphs on the innermost ring. */
+.fui-runes__core {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: calc(var(--fui-runes-size) * 0.42);
+  height: calc(var(--fui-runes-size) * 0.42);
+  place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.fui-runes__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* `cover` rather than `contain`: the circular window is doing the cropping, so
+     letterboxing inside it would just show the ground through a smaller hole. */
+  background: center / cover no-repeat;
+  filter: drop-shadow(0 0 calc(6px + var(--fui-runes-charge) * 16px) var(--fui-runes-ink));
+}

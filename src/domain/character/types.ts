@@ -6,6 +6,9 @@
  * game's model is defined once here and the save layer follows it.
  */
 import type { ItemInstance } from '../items/types.ts';
+import type { MerchantsState } from '../merchants/types.ts';
+import type { ActivePotions } from '../potions/potions.ts';
+import type { QuestsState } from '../quests/types.ts';
 import type { GrowableStats } from '../stats.ts';
 
 /** The five classes of EA 0.1 (Brief §8). No sixth without a brief change. */
@@ -82,9 +85,9 @@ export interface Currencies {
 }
 
 /**
- * A character as the game reasons about it. Quest progress and active potion
- * buffs join this as their milestones land; each addition bumps the save schema
- * and ships its migration (SAVE_SCHEMA §4).
+ * A character as the game reasons about it. Quest progress joins this as its
+ * milestone lands; each addition bumps the save schema and ships its migration
+ * (SAVE_SCHEMA §4).
  */
 export interface Character {
   slotId: SlotId;
@@ -100,6 +103,28 @@ export interface Character {
   currencies: Currencies;
   /** Gear-ascension materials, by material id (Brief §10.2). */
   materials: Record<string, number>;
+  /**
+   * Potions running right now (Brief §12, Q18). Keyed by stat, so a second
+   * potion on the same stat replaces the first rather than stacking — and Speed
+   * cannot appear here at all (§6).
+   */
+  potions: ActivePotions;
+  /** Each merchant's shelf, stored as the seed it regenerates from (Q17). */
+  merchants: MerchantsState;
+  /**
+   * The daily and weekly boards, keyed by the period they belong to (Brief §17,
+   * Q10). Quests are per character rather than per account: the targets scale to
+   * *this* hero's depth, so a level-3 second character would inherit a
+   * veteran's impossible weekly otherwise.
+   */
+  quests: QuestsState;
+  /**
+   * How many gacha pulls this hero has made (Brief §16). It is a *seed input*,
+   * not a statistic: each pull draws from a stream named by this number, so a
+   * save plus a pull number reproduces exactly what came out (ARCHITECTURE §5).
+   * There is no pity counter in 0.1 (Q20) and this is not one.
+   */
+  gachaPulls: number;
 }
 
 /** Battle Speed tiers (Brief §15.1, shaped by Q19): x1 → x2 → x4 → x8. */

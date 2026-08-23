@@ -18,6 +18,12 @@ import { canEquip } from '@/domain/items/equip.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { fightFloor, quickRaid } from '@/domain/tower/run.ts';
 
+/**
+ * A fixed instant. Nothing here drinks potions, and pinning the clock is what
+ * keeps these fights byte-identical between runs (ARCHITECTURE §5).
+ */
+const NOW = 1_700_000_000_000;
+
 export interface SimOptions {
   classId: ClassId;
   /** How many attempts at the tower to simulate. */
@@ -105,7 +111,7 @@ export function simulate(options: SimOptions): SimReport {
 
     // Re-climb what is already beaten, then push into the unknown (Brief §1).
     if (character.tower.highestFloorEverCleared > 0) {
-      const raid = quickRaid(character, character.tower.highestFloorEverCleared);
+      const raid = quickRaid(character, character.tower.highestFloorEverCleared, NOW);
       character = raid.character;
       fights += raid.floors.length;
       if (raid.died) {
@@ -116,7 +122,7 @@ export function simulate(options: SimOptions): SimReport {
 
     while (character.tower.currentRunFloor <= floorCap) {
       const floor = character.tower.currentRunFloor;
-      const result = fightFloor(character, floor);
+      const result = fightFloor(character, floor, NOW);
       character = result.character;
       fights += 1;
 

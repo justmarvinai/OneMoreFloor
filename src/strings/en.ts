@@ -15,6 +15,8 @@ export const en = {
   'nav.section.character': 'Character',
   'nav.section.merchants': 'Merchants',
   'nav.section.quests': 'Quests',
+  'nav.section.gacha': 'Summoning',
+  'nav.section.upgrades': 'Account',
 
   'save.status.created': 'New save created.',
   'save.status.loaded': 'Save loaded.',
@@ -233,27 +235,75 @@ export const en = {
   'material.spireHeart': 'Heart of the Spire',
 
   // --- Enemies (Brief §4.3; avatars bind by id with a silhouette fallback) ---
+  // Vermin — the spire's own rot, thickest near the bottom.
   'enemy.spireRat': 'Spire Rat',
+  'enemy.middenSwarm': 'Midden Swarm',
+  'enemy.cellarTick': 'Cellar Tick',
+  'enemy.sumpCrawler': 'Sump Crawler',
+
+  // Brigands — people who got here first and stayed.
   'enemy.cutpurse': 'Cutpurse',
-  'enemy.rubbleGolem': 'Rubble Golem',
+  'enemy.stairSkulker': 'Stair Skulker',
+  'enemy.ropeCutter': 'Rope-Cutter',
+  'enemy.chainBruiser': 'Chain Bruiser',
+
+  // Beasts — what nests in a tower nobody sweeps.
   'enemy.caveLurker': 'Cave Lurker',
+  'enemy.stairWolf': 'Stair Wolf',
+  'enemy.roostHarrier': 'Roost Harrier',
+  'enemy.paleStalker': 'Pale Stalker',
+
+  // Constructs — the spire's staff, still on duty.
+  'enemy.rubbleGolem': 'Rubble Golem',
+  'enemy.clockworkSentry': 'Clockwork Sentry',
+  'enemy.brassWarden': 'Brass Warden',
+  'enemy.slagColossus': 'Slag Colossus',
+
+  // Arcane — spellwork that outlived whoever cast it.
+  'enemy.worksWisp': 'Wisp of the Works',
+  'enemy.tomeBound': 'Tome-Bound',
+  'enemy.glassSerpent': 'Glass Serpent',
+  'enemy.sigilEater': 'Sigil Eater',
+
+  // Undead — the previous climbers.
   'enemy.bonePiper': 'Bone Piper',
   'enemy.graveWarden': 'Grave Warden',
+  'enemy.choirghast': 'Choirghast',
+  'enemy.barrowKnight': 'Barrow Knight',
+
+  // Infernal — where the spire burns.
   'enemy.emberHound': 'Ember Hound',
   'enemy.ashRevenant': 'Ash Revenant',
+  'enemy.cinderWretch': 'Cinder Wretch',
+
+  // Aberration — the parts of the tower that stopped agreeing with the rest.
+  'enemy.warpEaten': 'Warp-Eaten',
+  'enemy.riftMaw': 'Rift Maw',
+  'enemy.hollowGaze': 'Hollow Gaze',
 
   // --- Bosses (Brief §3.2) — every tenth floor ---
   'boss.wardenOfTheGate': 'Warden of the Gate',
   'boss.gutterKing': 'The Gutter King',
   'boss.hollowChoir': 'The Hollow Choir',
   'boss.paleMatriarch': 'Pale Matriarch',
+  'boss.brassConclave': 'The Brass Conclave',
+  'boss.sumpMother': 'The Sump Mother',
+  'boss.graveTide': 'The Grave Tide',
+  'boss.ironAbbot': 'The Iron Abbot',
   'boss.cinderTyrant': 'Cinder Tyrant',
+  'boss.theUnmade': 'The Unmade',
 
   // --- Effects: normal-floor debuffs are deliberately mild (Brief §3.2) ---
   'effect.chill': 'Chilled',
   'effect.gloom': 'Gloom',
   'effect.sap': 'Sapped',
   'effect.rust': 'Rusted',
+  'effect.mire': 'Mired',
+  'effect.fray': 'Frayed',
+  'effect.spite': 'Spite',
+  'effect.drain': 'Drained',
+  'effect.weariness': 'Weariness',
+  'effect.seepage': 'Seepage',
 
   // --- Effects: boss kits bite far harder ---
   'effect.curseOfLead': 'Curse of Lead',
@@ -263,6 +313,14 @@ export const en = {
   'effect.stoneskin': 'Stoneskin',
   'effect.fury': 'Fury',
   'effect.quickening': 'Quickening',
+  'effect.silence': 'Silenced',
+  'effect.exsanguination': 'Exsanguination',
+  'effect.shatteredGuard': 'Shattered Guard',
+  'effect.palsy': 'Palsy',
+  'effect.carapace': 'Carapace',
+  'effect.omen': 'Omen',
+  'effect.wellspring': 'Wellspring',
+  'effect.bloodrage': 'Bloodrage',
 
   // --- Effects: from signature moves (Q26) ---
   'effect.shieldGuard': 'Shield Guard',
@@ -277,6 +335,10 @@ export const en = {
   'modifier.fleet': 'Fleet',
   'modifier.hulking': 'Hulking',
   'modifier.cunning': 'Cunning',
+  'modifier.venomous': 'Venomous',
+  'modifier.warded': 'Warded',
+  'modifier.ravenous': 'Ravenous',
+  'modifier.attuned': 'Attuned',
 
   // --- Signature move names, for the combat log and unit frames ---
   'signature.berserkStrike': 'Berserk Strike',
@@ -290,6 +352,7 @@ export const en = {
   // --- Floor bands (Brief §3.1) ---
   'band.undercroft': 'The Undercroft',
   'band.brokenStair': 'The Broken Stair',
+  'band.floodedWorks': 'The Flooded Works',
   'band.ossuary': 'The Ossuary',
   'band.emberReach': 'Ember Reach',
   'band.endlessAscent': 'The Endless Ascent',
@@ -397,6 +460,263 @@ export const en = {
   'death.raid': 'Quick-Raid back to Floor {floor}',
   'death.raidNone': 'Return to the Spire',
   'death.continue': 'Climb again',
+
+  // --- Potions (Brief §12, Q18) ---
+  'potion.strength': 'Draught of Might',
+  'potion.defense': 'Draught of Iron',
+  'potion.hp': 'Draught of Vigour',
+  'potion.resource': 'Draught of Essence',
+  'potion.luck': 'Draught of Fortune',
+  'potion.effect': '+{percent}% {stat} for one hour',
+  'potion.active': 'Active — {time} left',
+  'potion.replace': 'Drinking again restarts the hour',
+  'potion.drink': 'Drink',
+  'potion.refresh': 'Refresh',
+  'potion.tier': 'Tier {tier}',
+  'potion.none': 'No potions running',
+
+  // --- What a stat does (Brief §6) ---
+  'stat.hint.strength': '{value} damage a strike',
+  'stat.hint.defense': '{percent}% of damage turned away',
+  'stat.hint.hp': 'Hit points',
+  'stat.hint.resource': 'Signature charges at {value}',
+  'stat.hint.luck': '{percent}% critical hits',
+  'stat.hint.speed': '{percent}% double attacks — gear only',
+
+  // --- Character screen (Brief §6, §7, §9, §10) ---
+  'character.title': '{name}',
+  'character.subtitle': 'Level {level} {className}',
+  'character.power': 'Power Level',
+  'character.ascension': 'Ascension',
+  'character.ascend': 'Ascend',
+  'character.ascendReady': 'Level cap reached — ascend to raise it',
+  'character.ascendLocked': 'Reach level {level} to ascend',
+  'character.ascendMax': 'Fully ascended',
+  'character.ascendUnlocks': 'Unlocks the {slot} slot',
+  'character.ascendDone': 'Ascended to {stars} stars',
+  'character.levelCap': 'Level {level} / {cap}',
+  'character.levelCapEndless': 'Level {level} — no cap',
+  'character.stats': 'Stats',
+  'character.buy': 'Buy',
+  'character.buyCost': '{cost} gold',
+  'character.buyLocked': 'Speed comes only from gear',
+  'character.cannotAfford': 'Not enough gold',
+  'character.equipment': 'Equipment',
+  'character.backpack': 'Backpack ({used} / {capacity})',
+  'character.emptySlot': 'Empty',
+  'character.lockedSlot': 'Unlocked at Ascension {tier}',
+  'character.buffs': 'Active potions',
+
+  // --- Items (shared) ---
+  'item.level': '+{level}',
+  'item.levelFull': 'Level {level} / {max}',
+  'item.ascension': '{stars} / {max} stars',
+  'item.equip': 'Equip',
+  'item.unequip': 'Unequip',
+  'item.sell': 'Sell',
+  'item.sellFor': 'Sell for {gold}',
+  'item.upgrade': 'Upgrade',
+  'item.upgradeCost': '{cost} gold',
+  'item.upgradeMax': 'Fully upgraded',
+  'item.ascend': 'Ascend',
+  'item.ascendMax': 'Fully ascended',
+  'item.ascendNeeds': 'Needs {materials}',
+  'item.materialLine': '{count}× {name}',
+  'item.compare': 'Currently worn',
+  'item.equipped': 'Worn',
+  'item.refused.wrongSlot': 'That does not go there',
+  'item.refused.slotLocked': 'That slot unlocks at a higher ascension',
+  'item.refused.wrongClass': 'Another class carries this',
+  'item.refused.wrongWeaponKind': 'Your class cannot hold that',
+  'item.refused.offhandBlocked': 'Your two-handed weapon fills both hands',
+  'item.refused.notFound': 'That piece is gone',
+  'item.refused.backpackFull': 'Your backpack has no room for what comes off',
+
+  // --- Inventory (Q16) ---
+  'inventory.full': 'Your backpack is full',
+  'inventory.fullDetail':
+    'Floor {floor} dropped {name}. Sell something, or leave the new piece behind.',
+  'inventory.keepNew': 'Sell the worst piece and keep it',
+  'inventory.leaveIt': 'Leave it on the floor',
+  'inventory.empty': 'Nothing in the backpack yet — the tower fills it.',
+  'inventory.sold': 'Sold {name} for {gold} gold',
+  'inventory.lost': 'Left {name} behind',
+
+  // --- Merchants (Brief §11/§12, Q17) ---
+  'merchant.equipment': 'Equipment Merchant',
+  'merchant.magic': 'Magic Merchant',
+  'merchant.equipmentTagline': 'Weapons and armour, sized to your power.',
+  'merchant.magicTagline': 'Trinkets and draughts for those who can pay.',
+  'merchant.stock': 'For sale',
+  'merchant.potions': 'Draughts',
+  'merchant.restockLabel': 'New goods in',
+  'merchant.restockNow': 'New goods have arrived',
+  'merchant.reroll': 'Restock now',
+  'merchant.rerollHint': 'Fresh stock, at your power. The wait is free.',
+  'merchant.buy': 'Buy',
+  'merchant.drink': 'Drink',
+  'merchant.price': '{gold} gold',
+  'merchant.sold': 'Sold out',
+  'merchant.bought': 'Bought {name}',
+  'merchant.sellTitle': 'Sell from your backpack',
+  'merchant.sellEmpty': 'Nothing to sell.',
+  'merchant.tab.equipment': 'Equipment',
+  'merchant.tab.magic': 'Magic',
+
+  // --- Notifications (§20.5) ---
+  'badge.canUpgrade': 'You can afford an upgrade',
+  'badge.canAscend': 'Your hero can ascend',
+  'badge.canBuy': 'You can afford something here',
+
+  // --- Quests (Brief §17, Q21) ---
+  'quest.daily.climb': 'Up the Spire',
+  'quest.daily.boss': 'Break a Gate',
+  'quest.daily.spend': 'Coin in Motion',
+  'quest.daily.upgrade': 'Sharpen What You Have',
+  'quest.daily.shop': 'Stock Up',
+  'quest.daily.sell': 'Lighten the Load',
+  'quest.daily.draught': 'A Drink Before the Climb',
+  'quest.weekly.climb': 'The Long Climb',
+  'quest.weekly.earn': "A Week's Wages",
+  'quest.weekly.upgrade': 'Forge Ahead',
+  'quest.weekly.shop': 'Patron of the Spire',
+  'quest.weekly.bosses': 'Gatebreaker',
+  'quest.weekly.deep': 'Depths Unseen',
+  'quest.weekly.fortune': "A Spire-Keeper's Fortune",
+  'quest.daily.deep': 'One Floor Further',
+  'quest.daily.bank': 'Fill the Purse',
+  'quest.daily.hunt': 'Gate After Gate',
+  'quest.weekly.spend': 'A Week of Spending',
+  'quest.weekly.draughts': "The Alchemist's Regular",
+  'quest.weekly.summit': 'The High Reach',
+
+  'quest.objective.clearFloors': 'Clear {target} floors',
+  'quest.objective.defeatBosses': 'Defeat {target} bosses',
+  'quest.objective.reachFloor': 'Reach floor {target} in one run',
+  'quest.objective.earnGold': 'Earn {target} gold',
+  'quest.objective.spendGold': 'Spend {target} gold',
+  'quest.objective.upgradeGear': 'Upgrade gear {target} times',
+  'quest.objective.buyItems': 'Buy {target} pieces from a merchant',
+  'quest.objective.sellItems': 'Sell {target} pieces',
+  'quest.objective.drinkPotions': 'Drink {target} draughts',
+
+  'quest.title': 'Quest Board',
+  'quest.daily': 'Daily',
+  'quest.weekly': 'Weekly',
+  'quest.hard': 'Hard',
+  'quest.progress': '{progress} / {target}',
+  'quest.claim': 'Claim',
+  'quest.claimed': 'Claimed',
+  'quest.resetsIn': 'Resets in',
+  'quest.rewards': 'Reward',
+  'quest.rewardGold': '{gold} gold',
+  'quest.rewardXp': '{xp} XP',
+  'quest.rewardTicket': 'Summon Ticket',
+  'quest.rewardLucky': 'Lucky Ticket',
+  'quest.none': 'No quests on the board yet — clear a floor and come back.',
+  'quest.claimedAll': 'Everything here is claimed. New quests arrive at reset.',
+
+  // --- Gacha (Brief §16, Q20) ---
+  'gacha.title': 'The Summoning Circle',
+  'gacha.subtitle': 'Tickets are rare. What they buy is sized to you — never beyond you.',
+  'gacha.banner.ticket.name': 'Rite of Embers',
+  'gacha.banner.ticket.blurb':
+    'The common rite. Legendary steel is the prize, and it seldom answers — but the circle ' +
+    'never sends you away with nothing.',
+  'gacha.banner.lucky.name': 'Rite of the Fallen Star',
+  'gacha.banner.lucky.blurb':
+    'The rite worth saving for. Mythical is what it is chasing, and even a poor night here ' +
+    'ends in Epic.',
+  'gacha.held': 'You hold {count}',
+  'gacha.pull': 'Perform the rite',
+  'gacha.rates.title': 'Odds',
+  'gacha.rates.total': 'Total',
+  'gacha.rates.note.perPull':
+    'Rates are per pull and never change. There is no pity counter — a pull is a pull.',
+  'gacha.rates.note.always': 'Every pull pays something. No outcome here is empty.',
+  'gacha.rates.note.bracket':
+    'Everything the circle gives is sized to your Power Level, so nothing arrives too strong ' +
+    'to have been earned.',
+  'gacha.row.gear': '{rarity} gear',
+  'gacha.row.materials': 'Crafting materials',
+  'gacha.row.gold': 'A purse of gold',
+  'gacha.refuse.noCurrency': 'The circle wants a {currency}. You have none.',
+  'gacha.refuse.backpackFull':
+    'Your backpack is full, and the circle will not conjure something you cannot carry. ' +
+    'Sell or equip a piece first.',
+
+  // The rite itself (§16.3) — one line per beat, spoken by the circle.
+  'gacha.rite.charge': 'The circle wakes…',
+  'gacha.rite.tease': 'Something is coming through.',
+  'gacha.rite.almost': 'Closer…',
+  'gacha.rite.break': 'It holds!',
+  'gacha.rite.reveal.common': 'The circle answers.',
+  'gacha.rite.reveal.rare': 'A worthy answer.',
+  'gacha.rite.reveal.epic': 'The circle burns bright!',
+  'gacha.rite.reveal.legendary': 'LEGENDARY!',
+  'gacha.rite.reveal.mythic': 'MYTHICAL!',
+  'gacha.rite.reveal.gold': 'A purse, heavy with coin.',
+  'gacha.rite.reveal.materials': 'The circle yields its stone.',
+  'gacha.rite.skip': 'Skip',
+  'gacha.rite.again': 'Again',
+  'gacha.rite.done': 'Take it',
+  'gacha.rite.banked': 'Already in your backpack.',
+  'gacha.rite.gold': '{gold} gold',
+  'gacha.rite.materials': '{count} × {name}',
+
+  // --- Account upgrades (Brief §15, Q19) ---
+  'upgrades.title': 'Account Upgrades',
+  'upgrades.subtitle': 'Bought once. They survive every reset (Q4).',
+  'upgrades.battleSpeed': 'Battle Speed',
+  'upgrades.battleSpeedDetail':
+    'Fights play at x{rate}. Speed changes the animation, never the outcome.',
+  'upgrades.battleSpeedNext': 'Raise to x{rate}',
+  'upgrades.battleSpeedMax': 'Fights already play at x8.',
+  'upgrades.slots': 'Account Slots',
+  'upgrades.slotsDetail': '{unlocked} of {max} character slots unlocked.',
+  'upgrades.slotsNext': 'Unlock slot {slot}',
+  'upgrades.slotsMax': 'All five slots are yours.',
+  'upgrades.buy': 'Buy',
+  'upgrades.owned': 'Owned',
+  'upgrades.cost': '{cost} gold',
+  'upgrades.paidBy': 'Paid from {name}’s purse.',
+  'upgrades.short': 'You are {missing} gold short.',
+
+  // --- Tutorial (Brief §18) ---
+  'tutorial.skip': 'Skip the tour',
+  'tutorial.skipNudge': 'It takes a minute, and it ends with a Lucky Ticket.',
+  'tutorial.next': 'Got it',
+  'tutorial.finish': 'Begin the climb',
+  'tutorial.take': 'Take it',
+  'tutorial.step': 'Step {step} of {total}',
+  'tutorial.welcome.title': 'The Lootspire',
+  'tutorial.welcome.body':
+    'One tower, no top. Every floor is a fight you watch rather than play, and every fight ' +
+    'pays. The only question the game ever asks is whether you want one more floor. ' +
+    'You can skip this tour — but it takes a minute, and it ends with a Lucky Ticket.',
+  'tutorial.tower.title': 'Climb',
+  'tutorial.tower.body':
+    'The floor you are standing on is the fight. Beat it and the next one opens; every tenth ' +
+    'floor is a boss that hits back harder and pays more.',
+  'tutorial.death.title': 'Falling is part of it',
+  'tutorial.death.body':
+    'When the spire wins, you lose the climb and nothing else — level, gear, gold and your ' +
+    'best-floor record all survive. Quick-Raid skips you back up through floors you have ' +
+    'already beaten.',
+  'tutorial.character.title': 'Grow',
+  'tutorial.character.body':
+    'Gold buys stat points; gold and materials upgrade the gear you find. Speed is the one ' +
+    'stat you can never buy — it comes only from what you are wearing.',
+  'tutorial.merchant.title': 'Spend',
+  'tutorial.merchant.body':
+    'Both merchants stock goods sized to your own power, and restock on their own every few ' +
+    'hours. The Magic Merchant also pours draughts that last an hour.',
+  'tutorial.quests.title': 'Come back tomorrow',
+  'tutorial.quests.body':
+    'Three daily quests and three weekly ones, scaled to how deep you are. The hard weekly is ' +
+    'the one that pays in tickets.',
+  'tutorial.reward.title': 'Take this with you',
+  'tutorial.reward.body': 'A Lucky Ticket and some gold to start the climb with.',
 
   'gate.tooSmall.title': 'A little more room, adventurer',
   'gate.tooSmall.message':

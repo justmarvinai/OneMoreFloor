@@ -12,6 +12,8 @@
  */
 import { createRng } from '@/app/rng.ts';
 import { createStartingEquipment } from '@/domain/items/starting.ts';
+import { createMerchants } from '@/domain/merchants/merchants.ts';
+import { emptyQuests } from '@/domain/quests/quests.ts';
 import { isClassId } from '@/content/classes/index.ts';
 import { CURRENT_SCHEMA_VERSION, type StoredRecord } from './schema.ts';
 
@@ -52,9 +54,74 @@ const v1ToV2: Migration = (record) => {
   };
 };
 
+/**
+ * v2 → v3: characters gained running potions and each merchant's shelf.
+ *
+ * Neither can be reconstructed from anything a v2 save holds, and neither should
+ * be: a potion the player never drank would be a gift, and a shelf rolled at
+ * migration time would be stale before they opened it. So the potion rack starts
+ * empty and both merchants start with a shelf stamped at the epoch — which reads
+ * as overdue to `needsRestock`, so the first visit fills it at the character's
+ * real bracket rather than a guessed one (Q17).
+ */
+const v2ToV3: Migration = (record) => {
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+
+  const existing = character as Record<string, unknown>;
+  const tower = existing['tower'] as { runSeed?: unknown } | undefined;
+  const runSeed = typeof tower?.runSeed === 'string' ? tower.runSeed : 'legacy';
+
+  return {
+    ...record,
+    character: {
+      ...existing,
+      potions: {},
+      merchants: createMerchants(runSeed, 0),
+    },
+  };
+};
+
+/**
+ * v3 → v4: characters gained their quest boards.
+ *
+ * Both boards start empty rather than pre-rolled. A board is instantiated
+ * against the hero's own depth, and the first thing the game does on opening a
+ * character is refresh them — so pre-rolling here would only bake in a period
+ * key that may already be stale by the time the save is opened (Q10).
+ */
+const v3ToV4: Migration = (record) => {
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+
+  return {
+    ...record,
+    character: { ...(character as Record<string, unknown>), quests: emptyQuests() },
+  };
+};
+
+/**
+ * v4 → v5: characters gained their gacha pull counter.
+ *
+ * Zero is the honest starting value: nobody has pulled on a save that predates
+ * the gacha. The counter seeds each pull's stream rather than tracking anything
+ * the player earns, so starting it over costs nothing (Q20 — there is no pity).
+ */
+const v4ToV5: Migration = (record) => {
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+  return {
+    ...record,
+    character: { ...(character as Record<string, unknown>), gachaPulls: 0 },
+  };
+};
+
 /** Keyed by the version being migrated *from*: `1` upgrades v1 → v2. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: v1ToV2,
+  2: v2ToV3,
+  3: v3ToV4,
+  4: v4ToV5,
 };
 
 export class FutureSaveError extends Error {

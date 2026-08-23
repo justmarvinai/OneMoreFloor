@@ -62,6 +62,9 @@ export function installTooltipService(root: HTMLElement): TooltipService {
       for (const node of record.addedNodes) {
         if (node instanceof Element) adoptTree(node);
       }
+      // A screen that swaps out from under the cursor never fires `mouseout`,
+      // so the tooltip for whatever was there would hang over the new screen.
+      if (record.removedNodes.length > 0) tooltip.hide();
     }
   });
 

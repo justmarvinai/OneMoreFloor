@@ -81,6 +81,36 @@ Two banners, single pulls only, every pull pays something, no pity counter — a
 
 Daily objectives sized to one normal session, weeklies to a normal week, neither trivial (§17) — objective magnitudes scale from the character's own trailing activity (floors/day average) so "one day of normal play" stays true at every depth. Rewards: meaningful gold/material/XP boosts (config), hard weekly carries the Ticket odds (§17). Potions (§12): real-time one-hour buffs (Q9), one active per stat with re-drinking replacing the buff (Q18 — five potionable stats; Speed has none per §6); one tier per bracket window, magnitude a % of the stat (flat numbers die with inflation), priced so always-on-everything potioning is a genuine gold decision (§14 pressure).
 
+## 9b. The economy, as built (M5)
+
+- **Potions are percentages, never flat points.** A "+40 Strength" draught is a gift on floor 10 and a rounding error on floor 1000, and the tower is endless (§3.7). Magnitude creeps up with the bracket so a deeper draught earns its higher price, and it is capped so no stack of potions ever rivals gear.
+- **Potions do not count toward Power Level.** If they did, a player could potion up, pull loot from a bracket they cannot hold, and let the buff lapse — §13's overshoot in another costume. They raise what the hero *hits with* (`combatStatsOf`), never what the game thinks they are worth (`totalStatsOf`).
+- **Merchant stock ages out three ways** (Q17): the six-hour clock, a new best-floor milestone every ten floors, and — added here — a change of bracket. A shelf rolled for a weaker hero is not merely stale, it is visibly unbuyable, and leaving it there would make the shop feel broken rather than patient.
+- **Buy and sell are one ratio.** `BUY_PRICE_FRACTION` and `SELL_VALUE_FRACTION` are the two halves of a single knob: a piece sells for roughly a fifth of what it costs, which keeps the backpack a decision rather than a gold faucet (Q16).
+- **Upgrades are outside the bracket rule, on purpose.** Gold and materials spent on a piece *should* push it past what drops — that investment is what raises Power Level, which raises the bracket, which raises the next drop. The property test therefore sweeps generated items and merchant shelves, never upgraded ones.
+
+## 9c. Quests and account upgrades, as built (M6)
+
+- **A quest target's unit is its scaling story.** Counts stay flat with depth (a floor is one click at any depth); gold targets are priced in *floors' worth of income at the hero's own depth*; the two "go deeper" weeklies are a multiple of their best floor. Anchoring gold to the **bracket** instead was the first attempt and it was wrong: a level-2 hero in freshly-rolled starting gear can already sit three brackets up while still earning floor-4 money, and the weekly asked them for 45,000 gold.
+- **Payouts are priced the same way** — as a multiple of what a floor at that depth pays — so a daily is worth chasing at floor 8 and still worth chasing at floor 800 (§17's "genuinely good" rewards).
+- **Only hard quests carry ticket odds** (§17), and the roll happens when the board is built rather than when the quest is claimed, so a player can see what a quest pays before deciding to chase it.
+- **Slot 2 costs about a first session.** §15.2 calls the first extra slot cheap, and the first pass at 2,000 gold was roughly forty early floors — several evenings, not "cheap". The second hero is how a player meets the other four classes; pricing that out costs the game more than it earns. Everything above slot 2 stays steep, and Battle Speed keeps its cost concentrated in x8 (Q19).
+
+## 9d. The gacha, as built (M7)
+
+- **The odds in the config are the odds on screen.** Weights are relative, and the lobby's `RateTable` divides them itself — so a balance pass that edits a weight cannot leave a stale percentage printed next to it. Ticket banner: Legendary 3.00%, Epic 14.00%, Rare 33.00%, materials 30.00%, gold 20.00%. Lucky banner: Mythical 0.80%, Legendary 27.20%, Epic 72.00%. Both jackpots satisfy §16.2's "extremely low"; the Lucky one is well under a percent.
+- **No weight is spent on nothing** (Q20). The worst outcome on the Ticket banner is a real bundle of materials at the hero's own tier; the worst on the Lucky banner is Epic gear. A property test draws every entry on every bracket and asserts each pull paid *something*.
+- **Gold payouts are priced in floors' worth of income**, the same unit quests use, so a 26-floor purse still means something on floor 400.
+- **The anti-overshoot guard now sweeps both banners** through the gacha's own code path (§16.2's "no overshooting"). Pulls inherit the guarantee by generating through the same `generateItem` every drop and shelf uses; the sweep proves it rather than trusting it.
+- **The animation's bluff is a balance number, not a hidden one.** How high the reveal teases is drawn from `BLUFF_LADDER` and then raised to the outcome's own rarity — so the build may over-sell and can never under-sell. About a third of pulls stay honest; the full staging is rare enough to still mean something the twentieth time. The drawn rank is stored on the pull result, which makes the *animation* replayable from a save alongside the prize.
+
+## 9e. The roster, as authored (M8)
+
+- **Authored, not tuned.** Enemy profiles, boss multipliers, family weights and `MODIFIER_STRENGTH` are first-pass numbers chosen for *shape* — a Rubble Golem is slow and armoured, a Roost Harrier is fast and fragile — not for a target difficulty curve. M9's simulator gates are where they get their real values, and tuning them before the roster existed would have been tuning against a smaller game.
+- **Difficulty is asserted, not assumed.** The tower sweep compares decade to decade over five thousand floors: a single floor may dip when a fast, fragile enemy follows a hulking one, and it should be able to, but floor 500 may never be an easier fight than floor 400.
+- **Variety is a floor, not an average.** Every authored floor must offer at least three candidates and every ten-floor stretch must actually show four different enemies in a single run. Both are test assertions, so a future band edit that narrows a stretch below them fails rather than quietly making the climb repetitive.
+- **The boss sequence is the difficulty language.** Ten gates, each attacking a different stat from the one before it, is what makes depth feel like a curriculum rather than a multiplier. M9 may move the numbers; it should not collapse the sequence.
+
 ## 9a. First simulator findings (M3)
 
 The harness earned its place on the first run, before any tuning had been attempted. It found:

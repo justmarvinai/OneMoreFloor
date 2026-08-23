@@ -7,6 +7,9 @@ import { createCharacter, totalStatsOf, equippedItems } from '@/domain/character
 import { affixBudget, itemStats } from '@/domain/items/derive.ts';
 import { generateItem } from '@/domain/items/generate.ts';
 import { RARITIES, type Rarity } from '@/domain/items/types.ts';
+import { MERCHANT_IDS, restock, stockOf } from '@/domain/merchants/merchants.ts';
+import { BANNERS } from '@/content/balance/gacha.ts';
+import { pull } from '@/domain/gacha/gacha.ts';
 import { bracketAt, bracketFor, isWithinBracket } from './brackets.ts';
 import { powerLevel } from './power.ts';
 
@@ -59,6 +62,91 @@ describe('anti-overshoot: no source may exceed the requester’s bracket', () =>
 
     // Guard against the sweep silently shrinking to nothing.
     expect(generated).toBeGreaterThan(10_000);
+  });
+
+  it('holds for both merchants, at every bracket (Brief §11/§12)', () => {
+    // M5 added a second and third item source. They inherit the guarantee by
+    // going through `generateItem`, and this proves it through the shop's own
+    // code path rather than trusting that they do.
+    let sold = 0;
+
+    for (let index = 0; index < BRACKET_COUNT; index += 1) {
+      const bracket = bracketAt(index);
+      const character = {
+        ...createCharacter({
+          slotId: 1,
+          name: 'Grimhild',
+          classId: 'warrior',
+          createdAt: 0,
+          runSeed: `overshoot-shop:${index}`,
+        }),
+        progression: { level: 900, xp: 0, ascension: 5 as const },
+      };
+
+      for (const id of MERCHANT_IDS) {
+        const state = restock(id, `overshoot:${index}`, {
+          now: 0,
+          bracketIndex: index,
+          highestFloor: index * 10,
+        });
+        for (const entry of stockOf(id, character, state, bracket)) {
+          const realised = affixBudget(entry.item);
+          expect(
+            realised,
+            `${id} at bracket ${index} sold ${entry.item.defId} for ${realised}, ceiling ${bracket.window.max}`,
+          ).toBeLessThanOrEqual(bracket.window.max + 1e-6);
+          sold += 1;
+        }
+      }
+    }
+
+    expect(sold).toBeGreaterThan(200);
+  });
+
+  it('holds for both gacha banners, at every bracket (Brief §16.2)', () => {
+    // The brief singles the gacha out — "all gacha rewards are bracketed by
+    // Power Level, no overshooting" — so it gets its own sweep even though it
+    // shares `generateItem` with everything else. The point is to catch the day
+    // someone adds a gacha-only generator for a "special" banner item.
+    let pulled = 0;
+    let gearSeen = 0;
+
+    for (let index = 0; index < BRACKET_COUNT; index += 1) {
+      const bracket = bracketAt(index);
+      const character = {
+        ...createCharacter({
+          slotId: 1,
+          name: 'Grimhild',
+          classId: 'warrior',
+          createdAt: 0,
+          runSeed: `overshoot-gacha:${index}`,
+        }),
+        // Ascended to the cap so every equipment slot is unlocked: a slot the
+        // hero cannot wear yet is a slot this sweep would never test.
+        progression: { level: 900, xp: 0, ascension: 5 as const },
+      };
+
+      for (const banner of BANNERS) {
+        for (let pullNumber = 0; pullNumber < 40; pullNumber += 1) {
+          const result = pull({ character, banner: banner.id, bracket, pullNumber });
+          pulled += 1;
+          if (!result.item) continue;
+
+          const realised = affixBudget(result.item);
+          expect(
+            realised,
+            `${banner.id} at bracket ${index} paid ${result.item.defId} worth ${realised}, ceiling ${bracket.window.max}`,
+          ).toBeLessThanOrEqual(bracket.window.max + 1e-6);
+          expect(result.item.bracketAtDrop).toBe(index);
+          gearSeen += 1;
+        }
+      }
+    }
+
+    expect(pulled).toBeGreaterThan(1_000);
+    // The Lucky banner is gear-only, so a sweep that saw no gear would be a
+    // sweep that silently stopped generating items.
+    expect(gearSeen).toBeGreaterThan(pulled / 2);
   });
 
   it('never lets a higher rarity escape the bracket a lower one sits in', () => {

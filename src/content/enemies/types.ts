@@ -10,8 +10,15 @@ import type { EffectDef } from '@/domain/combat/types.ts';
 import type { StatId } from '@/domain/stats.ts';
 import type { StringKey } from '@/strings/index.ts';
 
-/** Thematic families, which also group what appears in a floor band. */
-export type EnemyFamily = 'vermin' | 'brigand' | 'construct' | 'beast' | 'undead' | 'infernal';
+/**
+ * Thematic families.
+ *
+ * A family is not decoration: a floor band names the families that live in it and
+ * the generator draws only from those, so this list is what makes one stretch of
+ * the tower feel different from the next (CONTENT_PIPELINE §2).
+ */
+export type EnemyFamily =
+  'vermin' | 'brigand' | 'beast' | 'construct' | 'arcane' | 'undead' | 'infernal' | 'aberration';
 
 export interface EnemyDef {
   id: string;

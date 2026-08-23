@@ -1,0 +1,136 @@
+/* TutorialMask — dim everything but one thing. */
+
+.fui-tutmask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 60;
+  color: var(--fui-text, #e8e0cd);
+}
+
+.fui-tutmask[data-closed='on'] { display: none; }
+
+/* The dim is the hole's own shadow, spread far enough to cover any stage. One
+   box means the cut-out can animate between steps instead of four panels
+   sliding independently and tearing at the corners. */
+.fui-tutmask__hole {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-radius: 6px;
+  box-shadow: 0 0 0 9999px color-mix(in srgb, #000 72%, transparent);
+  border: 2px solid color-mix(in srgb, var(--fui-accent, #d8c9a6) 80%, transparent);
+  transition:
+    left 320ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    top 320ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    width 320ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    height 320ms cubic-bezier(0.2, 0.9, 0.25, 1),
+    border-radius 320ms ease-out;
+  animation: fui-tutmask-breathe 2.4s ease-in-out infinite;
+}
+
+.fui-tutmask[data-shape='circle'] .fui-tutmask__hole { border-radius: 50%; }
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+
+.fui-tutmask__card {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(300px, calc(100% - 32px));
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: var(--fui-panel-fill-src, none) center / 100% 100%;
+  background-color: color-mix(in srgb, var(--fui-panel-ink, #14100c) 96%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fui-accent, #d8c9a6) 40%, transparent);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.55);
+  animation: fui-tutmask-card 300ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.fui-tutmask__title {
+  margin: 0;
+  font: var(--fui-font-title, 700 14px/1.2 system-ui, sans-serif);
+  letter-spacing: 0.04em;
+  color: var(--fui-accent, #d8c9a6);
+}
+
+.fui-tutmask__body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--fui-text, #e8e0cd) 82%, transparent);
+}
+
+.fui-tutmask__title[data-empty='on'],
+.fui-tutmask__body[data-empty='on'],
+.fui-tutmask__count[data-empty='on'] { display: none; }
+
+.fui-tutmask__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.fui-tutmask__count {
+  flex: 1;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--fui-text, #e8e0cd) 45%, transparent);
+}
+
+.fui-tutmask__skip {
+  padding: 5px 8px;
+  border: 0;
+  background: none;
+  color: color-mix(in srgb, var(--fui-text, #e8e0cd) 55%, transparent);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fui-tutmask__next {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, #f0d68a, var(--fui-gold, #e0b04a));
+  color: #1a1408;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 2px 0 color-mix(in srgb, #000 45%, transparent);
+}
+
+.fui-tutmask__next:active { transform: translateY(2px); box-shadow: none; }
+
+.fui-tutmask__next:focus-visible,
+.fui-tutmask__skip:focus-visible {
+  outline: 2px solid var(--fui-accent, #d8c9a6);
+  outline-offset: 2px;
+}
+
+@keyframes fui-tutmask-breathe {
+  0%, 100% { border-color: color-mix(in srgb, var(--fui-accent, #d8c9a6) 80%, transparent); }
+  50% { border-color: color-mix(in srgb, var(--fui-accent, #d8c9a6) 30%, transparent); }
+}
+
+@keyframes fui-tutmask-card {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to { opacity: 1; transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fui-tutmask__hole { transition: none; animation: none; }
+  .fui-tutmask__card { animation: none; }
+}

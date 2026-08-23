@@ -23,6 +23,19 @@ async function createHero(page: Page, name: string, className = 'Warrior'): Prom
   await page.getByLabel('Character name').fill(name);
   await page.getByRole('button', { name: /Begin the climb/i }).click();
   await expect(page.locator('[data-testid="hub"]')).toBeVisible();
+
+  // The first-run tour opens over the tower (§18). Tests that are not about the
+  // tutorial skip past it; the ones that are, below, drive it deliberately.
+  await dismissTutorial(page);
+}
+
+/** Skip the tour if it is showing, and wait until it is gone. */
+async function dismissTutorial(page: Page): Promise<void> {
+  const skip = page.getByRole('button', { name: /Skip the tour/i });
+  if (await skip.isVisible().catch(() => false)) {
+    await skip.click();
+    await expect(skip).toHaveCount(0);
+  }
 }
 
 test('boots to the title gate', async ({ page }) => {
@@ -274,4 +287,342 @@ test('never shows a native browser tooltip anywhere (Brief §20.4)', async ({ pa
 
   await fightAndSkip(page);
   expect(await titles(), 'a fight and its result').toEqual([]);
+});
+
+/**
+ * Clear floors until the hero has gold to spend, and always finish standing in
+ * the tower — a death mid-climb is an ordinary outcome, not a broken test.
+ */
+async function climb(page: Page, floors: number): Promise<void> {
+  for (let index = 0; index < floors; index += 1) {
+    await startFight(page);
+    await skipToVerdict(page);
+    await expect(page.locator('.omf-combat__aftermath > *')).toBeVisible();
+
+    const levelUp = page.getByRole('button', { name: /^Continue$/ });
+    if (await levelUp.isVisible().catch(() => false)) await levelUp.click();
+
+    const back = page.getByRole('button', { name: /Back to the Spire/i });
+    if (await back.isVisible().catch(() => false)) {
+      await back.click();
+      await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+      continue;
+    }
+
+    // The spire won. Take the way back up it offers and stop climbing. That
+    // route goes through the raid summary when there are floors to raid, and
+    // straight to the tower when there are not.
+    await page
+      .getByRole('button', { name: /Quick-Raid back to Floor|Return to the Spire/i })
+      .click();
+
+    const raid = page.locator('[data-testid="raid"]');
+    const tower = page.locator('[data-testid="tower"]');
+    await expect(raid.or(tower).first()).toBeVisible();
+    if (await raid.isVisible().catch(() => false)) {
+      await page.getByRole('button', { name: /^Continue$/ }).click();
+    }
+    await expect(tower).toBeVisible();
+    return;
+  }
+}
+
+async function goToSection(page: Page, label: string): Promise<void> {
+  await page.locator('.fui-sidenav__item', { hasText: label }).click();
+}
+
+test('shows what every stat does, not just what it is (Brief §6)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Character');
+
+  const screen = page.locator('[data-testid="character"]');
+  await expect(screen).toBeVisible();
+  await expect(screen.getByText(/damage a strike/)).toBeVisible();
+  await expect(screen.getByText(/of damage turned away/)).toBeVisible();
+  await expect(screen.getByText(/critical hits/)).toBeVisible();
+
+  // Speed is on the list and explicitly unbuyable — the §6 exception, visible.
+  await expect(screen.getByText('Speed comes only from gear')).toBeVisible();
+});
+
+test('spends gold on a stat and the number moves (Brief §6)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 6);
+  await goToSection(page, 'Character');
+
+  const row = page.locator('[data-stat="hp"]');
+  const before = Number(await row.locator('.omf-character__stat-value').innerText());
+  await row.getByRole('button', { name: /Buy/i }).click();
+
+  await expect
+    .poll(async () => Number(await row.locator('.omf-character__stat-value').innerText()))
+    .toBeGreaterThan(before);
+});
+
+test('sells what the merchant stocks, at the hero’s own power (Brief §11, §13)', async ({
+  page,
+}) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 6);
+  await goToSection(page, 'Merchants');
+
+  const shop = page.locator('[data-testid="merchant"]');
+  await expect(shop).toBeVisible();
+  await expect(shop.getByText('Equipment Merchant')).toBeVisible();
+  // The free wait is on screen beside the paid restock — never only the paid one.
+  await expect(shop.getByText(/New goods in/)).toBeVisible();
+  await expect(shop.getByRole('button', { name: /Restock now/i })).toBeVisible();
+
+  // The Magic Merchant is one tab away, and sells draughts by the hour (§12).
+  await shop.getByRole('tab', { name: 'Magic' }).click();
+  await expect(page.getByText(/for one hour/).first()).toBeVisible();
+});
+
+test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Floor payouts and shelf prices are both rolled, so the test earns until the
+  // shop is affordable rather than assuming a fixed number of floors covers it.
+  const buyButtons = page
+    .locator('[data-testid="merchant"] .fui-itemcard')
+    .getByRole('button', { name: 'Buy', exact: true })
+    .and(page.locator('button:not([disabled])'));
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await climb(page, 5);
+    await goToSection(page, 'Merchants');
+    if ((await buyButtons.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await buyButtons.count(), 'nothing on the shelf was ever affordable').toBeGreaterThan(0);
+
+  await goToSection(page, 'Character');
+  const power = page.locator('[data-testid="character"] .fui-power__value');
+  const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
+
+  await goToSection(page, 'Merchants');
+  await buyButtons.first().click();
+
+  // The piece is in the backpack; wearing it is the point of buying it.
+  await goToSection(page, 'Character');
+  // The purchase lands at the end of the pack, behind whatever the climb dropped.
+  await page
+    .locator('[data-testid="character"] .fui-inv .fui-slot:not(.fui-slot--empty)')
+    .last()
+    .click();
+  await expect(page.locator('[data-testid="gear-dialog"]')).toBeVisible();
+  await page.getByRole('button', { name: /^Equip$/ }).click();
+
+  await expect
+    .poll(async () => Number((await power.innerText()).replace(/[^\d]/g, '')))
+    .toBeGreaterThan(before);
+});
+
+test('opens the tour on a first hero, and lets it be skipped (Brief §18)', async ({ page }) => {
+  await enterSelect(page);
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await page.getByRole('option', { name: 'Warrior' }).click();
+  await page.getByLabel('Character name').fill('Grimhild');
+  await page.getByRole('button', { name: /Begin the climb/i }).click();
+
+  await expect(page.getByText('The Lootspire').first()).toBeVisible();
+  // The nudge is where the decision is made, not buried in a dialog (§18).
+  await expect(page.getByText(/it ends with a Lucky Ticket/)).toBeVisible();
+
+  await page.getByRole('button', { name: /Skip the tour/i }).click();
+  await expect(page.getByRole('button', { name: /Skip the tour/i })).toHaveCount(0);
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  // Skipping forfeits the reward — it is a *completion* reward (§18).
+  await goToSection(page, 'Account');
+  await expect(page.locator('[data-testid="upgrades"]')).toBeVisible();
+});
+
+test('pays the tour out on completion, and never opens again (Brief §18)', async ({ page }) => {
+  await enterSelect(page);
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await page.getByRole('option', { name: 'Warrior' }).click();
+  await page.getByLabel('Character name').fill('Grimhild');
+  await page.getByRole('button', { name: /Begin the climb/i }).click();
+
+  // Walk the whole tour. Every step advances with one button; the last one's
+  // says "Begin the climb" instead of "Got it".
+  const advance = page.locator('.fui-tutmask button').last();
+  const reward = page.getByText('Take this with you');
+  for (let step = 0; step < 10; step += 1) {
+    if (await reward.isVisible().catch(() => false)) break;
+    await expect(advance).toBeVisible();
+    await advance.click();
+  }
+
+  await expect(reward).toBeVisible();
+  await page.getByRole('button', { name: /^Take it$/ }).click();
+
+  // A Lucky Ticket and starting gold, and the tour is done for good.
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+  await expect(page.getByText('Take this with you')).toHaveCount(0);
+
+  // The starting gold arriving is the visible proof the reward was banked —
+  // and waiting for it means the reload below cannot race the save.
+  await expect(page.locator('.omf-shell__rail .fui-currency__value').first()).toHaveText(/500/);
+
+  await page.reload();
+  await page.getByRole('button', { name: /Enter the Spire/i }).click();
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Skip the tour/i })).toHaveCount(0);
+});
+
+test('puts three dailies and three weeklies up, one of them hard (Q21)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 3);
+  await goToSection(page, 'Quests');
+
+  const board = page.locator('[data-testid="quests"]');
+  await expect(board).toBeVisible();
+  await expect(board.locator('[data-testid="quest-card"]')).toHaveCount(6);
+  await expect(board.getByText('Hard')).toHaveCount(1);
+
+  // Both columns say when they turn over — the question a board exists to answer.
+  await expect(board.getByText('Resets in')).toHaveCount(2);
+
+  // Climbing moved something, which is the whole wiring end to end.
+  await expect(board.getByText(/[1-9]\d* \/ /).first()).toBeVisible();
+});
+
+test('sells the two account upgrades, and only those two (Brief §15)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Account');
+
+  const screen = page.locator('[data-testid="upgrades"]');
+  await expect(screen.getByText('Battle Speed')).toBeVisible();
+  await expect(screen.getByText('Account Slots')).toBeVisible();
+  await expect(screen.locator('.fui-panel')).toHaveCount(2);
+
+  // Earn until the cheap upgrade is within reach, then buy it. A `CostButton`
+  // that cannot be paid for stays pressable and says how short you are, so the
+  // shortfall line — not a disabled attribute — is what "affordable" looks like.
+  const slotsCard = screen.locator('.fui-panel').nth(1);
+  const buy = slotsCard.getByRole('button', { name: /Unlock slot 2/i });
+  const shortfall = slotsCard.getByText(/gold needed/i);
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if ((await shortfall.count()) === 0) break;
+    await goToSection(page, 'Tower');
+    await climb(page, 6);
+    await goToSection(page, 'Account');
+  }
+  expect(await shortfall.count(), 'never earned enough for the cheapest upgrade').toBe(0);
+
+  await buy.click();
+  await expect(screen.getByText('2 of 5 character slots unlocked.')).toBeVisible();
+
+  // And the account keeps it: character select now offers a second slot (§15.2).
+  await page.getByRole('button', { name: /Switch hero/i }).click();
+  const select = page.locator('[data-testid="character-select"]');
+  await expect(select.getByRole('button', { name: 'Empty slot' })).toBeVisible();
+  await expect(select.getByRole('button', { name: 'Locked slot' })).toHaveCount(3);
+});
+
+/* --- M7: the gacha (Brief §16) -------------------------------------------- */
+
+test('prints the odds it runs, and refuses a rite it cannot pay for (§16.2)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Summoning');
+
+  const lobby = page.locator('[data-testid="gacha"]');
+  await expect(lobby).toBeVisible();
+  await expect(lobby.getByText('Rite of Embers')).toBeVisible();
+  await expect(lobby.getByText('Rite of the Fallen Star')).toBeVisible();
+
+  // The disclosure is stated once, under both tables, rather than twice.
+  await expect(lobby.locator('.omf-gacha__terms li')).toHaveCount(3);
+
+  // The disclosure is the point of the screen: every row, adding to 100%.
+  const rates = lobby.locator('.fui-rates');
+  await expect(rates).toHaveCount(2);
+  await expect(rates.first().locator('.fui-rates__row')).toHaveCount(5);
+  await expect(rates.first().getByText('100.00%')).toBeVisible();
+
+  // The jackpots are printed as the extremely low numbers §16.2 demands.
+  await expect(rates.first().getByText('Legendary gear')).toBeVisible();
+  await expect(rates.nth(1).getByText('0.80%')).toBeVisible();
+
+  // No tickets yet, so both rites say so rather than failing on the press.
+  await expect(lobby.getByText(/Summon Ticket needed/i).first()).toBeVisible();
+});
+
+test('performs the rite, banks the prize and spends the ticket (§16.3)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+
+  // The tour pays a Lucky Ticket, which is the honest way into the rite.
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await page.getByRole('option', { name: 'Warrior' }).click();
+  await page.getByLabel('Character name').fill('Grimhild');
+  await page.getByRole('button', { name: /Begin the climb/i }).click();
+
+  const advance = page.locator('.fui-tutmask button').last();
+  const reward = page.getByText('Take this with you');
+  for (let step = 0; step < 10; step += 1) {
+    if (await reward.isVisible().catch(() => false)) break;
+    await advance.click();
+  }
+  await page.getByRole('button', { name: /^Take it$/ }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  await goToSection(page, 'Summoning');
+  const lobby = page.locator('[data-testid="gacha"]');
+  const luckyCard = lobby.locator('.fui-panel').nth(1);
+  await expect(luckyCard.locator('.fui-chip__value')).toHaveText('1');
+
+  // Perform the Lucky rite — the second card's pull button.
+  await lobby
+    .locator('.fui-panel')
+    .nth(1)
+    .getByRole('button', { name: /Perform the rite/i })
+    .click();
+
+  // It is a set-piece, not a transition: the chamber covers the game and the
+  // circle speaks before anything is revealed (§16.3).
+  const rite = page.locator('[data-testid="rite"]');
+  await expect(rite).toBeVisible();
+  await expect(rite).toHaveAttribute('data-phase', 'build');
+  await expect(page.locator('[data-testid="rite-caption"]')).not.toBeEmpty();
+
+  // Skipping lands on the same answer the animation was going to give.
+  await rite.getByRole('button', { name: /^Skip$/ }).click();
+  await expect(rite).toHaveAttribute('data-phase', 'reveal');
+  await expect(rite.locator('.omf-rite__prizeName')).toBeVisible();
+
+  await rite.getByRole('button', { name: /^Take it$/ }).click();
+  await expect(rite).toHaveCount(0);
+
+  // The ticket is gone and the rite now refuses, which is the whole loop.
+  await expect(luckyCard.locator('.fui-chip__value')).toHaveText('0');
+  await expect(lobby.getByText(/Lucky Ticket needed/i).first()).toBeVisible();
+});
+
+test('shows no native tooltip in the lobby or the rite either (§20.4)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Summoning');
+
+  await expect(page.locator('[data-testid="gacha"]')).toBeVisible();
+  expect(
+    await page.$$eval('[title]', (nodes) => nodes.map((node) => node.tagName)),
+    'the summoning lobby',
+  ).toEqual([]);
 });

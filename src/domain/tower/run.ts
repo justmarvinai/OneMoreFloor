@@ -18,13 +18,13 @@ import { getClass } from '@/content/classes/index.ts';
 import { signatureFor } from '../combat/signature.ts';
 import { resolveCombat } from '../combat/resolve.ts';
 import type { CombatScript, Combatant } from '../combat/types.ts';
-import { equippedItems, totalStatsOf } from '../character/character.ts';
+import { combatStatsOf, equippedItems, totalStatsOf } from '../character/character.ts';
 import type { Character } from '../character/types.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { bracketFor } from '../power/brackets.ts';
 import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
-import { awardXp } from '../progression/xp.ts';
+import { grantReward } from '../rewards/grant.ts';
 import { emptyReward, mergeRewards, rollFloorReward, type FloorReward } from './rewards.ts';
 
 export interface FloorResult {
@@ -41,10 +41,16 @@ export interface FloorResult {
   levelsGained: number;
 }
 
-/** Build the hero's combatant from their current stats and gear. */
-export function heroCombatant(character: Character): Combatant {
+/**
+ * Build the hero's combatant from their current stats, gear and running potions.
+ *
+ * `now` comes from the clock service, because potions expire in real time (Q9).
+ * Passing it explicitly is what keeps a fight replayable: the same save and the
+ * same instant always produce the same combatant.
+ */
+export function heroCombatant(character: Character, now: number): Combatant {
   const definition = getClass(character.identity.classId);
-  const stats = totalStatsOf(character);
+  const stats = combatStatsOf(character, now);
 
   // The Warrior's signature depends on whether a shield is in hand (Q26).
   const offhand = character.equipment.offhand;
@@ -85,12 +91,12 @@ export function bracketForCharacter(character: Character) {
  * Rewards are rolled during resolution from the same seed, so a skipped fight
  * and a watched one produce identical loot (Q8) — the property test asserts it.
  */
-export function fightFloor(character: Character, floor: number): FloorResult {
+export function fightFloor(character: Character, floor: number, now: number): FloorResult {
   const generated = generateFloor(character.tower.runSeed, floor);
   const seed = `${character.tower.runSeed}/combat:${floor}`;
 
   const script = resolveCombat({
-    hero: heroCombatant(character),
+    hero: heroCombatant(character, now),
     enemy: enemyCombatant(generated),
     floor,
     isBoss: generated.isBoss,
@@ -148,20 +154,8 @@ export interface ClearResult {
  * simulator caught the first time it ran.
  */
 export function applyClear(character: Character, floor: number, reward: FloorReward): ClearResult {
-  const materials = { ...character.materials };
-  for (const [id, count] of Object.entries(reward.materials)) {
-    materials[id] = (materials[id] ?? 0) + count;
-  }
-
-  const withLoot: Character = {
+  const climbed: Character = {
     ...character,
-    currencies: {
-      gold: character.currencies.gold + reward.gold,
-      tickets: character.currencies.tickets + reward.tickets,
-      luckyTickets: character.currencies.luckyTickets + reward.luckyTickets,
-    },
-    materials,
-    inventory: [...character.inventory, ...reward.items],
     tower: {
       ...character.tower,
       currentRunFloor: floor + 1,
@@ -169,8 +163,9 @@ export function applyClear(character: Character, floor: number, reward: FloorRew
     },
   };
 
-  const levelled = awardXp(withLoot, reward.xp);
-  return { character: levelled.character, levelsGained: levelled.levelsGained };
+  // Every reward in the game is banked by the same function, so a quest payout
+  // and a floor payout can never drift apart in what they actually give.
+  return grantReward(climbed, reward);
 }
 
 /**
@@ -229,7 +224,11 @@ export interface QuickRaidResult {
  * never a guarantee. Only floors already cleared may be raided, so the first
  * unbeaten floor always has to be fought properly.
  */
-export function quickRaid(character: Character, throughFloor: number): QuickRaidResult {
+export function quickRaid(
+  character: Character,
+  throughFloor: number,
+  now: number,
+): QuickRaidResult {
   const floors: FloorResult[] = [];
   let current = character;
   let reward = emptyReward();
@@ -240,7 +239,7 @@ export function quickRaid(character: Character, throughFloor: number): QuickRaid
   for (let floor = current.tower.currentRunFloor; floor <= throughFloor; floor += 1) {
     if (!canQuickRaid(current, floor)) break;
 
-    const result = fightFloor(current, floor);
+    const result = fightFloor(current, floor, now);
     floors.push(result);
     current = result.character;
 

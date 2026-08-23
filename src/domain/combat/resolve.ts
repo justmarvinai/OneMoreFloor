@@ -16,13 +16,13 @@
 import {
   CRIT,
   DAMAGE_VARIANCE,
-  DEFENSE_K,
   ROUND_CAP,
   SPEED,
   STRIKE_STRENGTH_COEFFICIENT,
 } from '@/content/balance/combat.ts';
-import { bandRelative, diminishing, evaluate } from '@/content/balance/curves.ts';
+import { bandRelative, diminishing } from '@/content/balance/curves.ts';
 import { createRng } from '@/app/rng.ts';
+import { bandOf } from './bands.ts';
 import {
   applyEffect,
   consumeDodge,
@@ -66,17 +66,6 @@ function snapshot(unit: Combatant): CombatantSnapshot {
 }
 
 /** Band references grow with depth, so percentages stay in tuned windows. */
-function bandOf(floor: number): {
-  defenseK: number;
-  critReference: number;
-  speedReference: number;
-} {
-  return {
-    defenseK: evaluate({ kind: 'exponential', ...DEFENSE_K }, floor),
-    critReference: evaluate({ kind: 'exponential', ...CRIT.reference }, floor),
-    speedReference: evaluate({ kind: 'exponential', ...SPEED.reference }, floor),
-  };
-}
 
 export function critChance(luck: number, floor: number): number {
   return bandRelative(luck, bandOf(floor).critReference, CRIT.cap);

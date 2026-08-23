@@ -82,6 +82,18 @@ interface ItemInstance {
 - Loading a save **newer** than the build (possible after a rollback / an old Electron build later): refuse to open that character with a clear in-game message rather than destructively "migrating down". Never write to a newer-versioned record.
 - Content-id migrations: if a content id is ever renamed/removed, the same registry maps old ids (items referencing a removed def degrade gracefully to a defined fallback def, never crash).
 
+### Version history (as built)
+
+| Version | Landed | What changed | Migration |
+|---|---|---|---|
+| 1 | M0/M1 | The original record shapes. | — |
+| 2 | M2 | Characters gained equipment, inventory, currencies and materials. | Arms a v1 hero with their class loadout, rolled from their own run seed. |
+| 3 | M5 | Characters gained running potions and each merchant's shelf. | Empty potion rack; both shelves stamped at the epoch so the first visit stocks them at the hero's real bracket rather than a guessed one (Q17). |
+| 4 | M6 | Characters gained their daily and weekly quest boards. | Both boards empty: a board is rolled against the hero's own depth *and* the current period, so pre-rolling at migration time would only bake in a period key that may already be stale (Q10). |
+| 5 | M7 | Characters gained their gacha pull count. | Zero. It is a *seed input*, not a statistic — a save that predates the gacha has made no pulls to reproduce — and it is emphatically not a pity counter (Q20). |
+
+Every row above ships a captured blob in `src/save/fixtures/`, and the harness opens all of them on every CI run. A merchant's shelf is stored as **the seed it regenerates from**, not as items: the save stays small, a shop is reproducible in a bug report the way a fight is, and stock cannot drift out of agreement with the rules that made it.
+
 ## 5. When we write
 
 Autosave on every meaningful transition (fight resolved, loot claimed, purchase, equip/unequip, upgrade, ascension, quest claim, gacha pull, character switch/reset), debounced ~1 s so burst actions coalesce; forced flush on `visibilitychange→hidden` and `pagehide`. There is no manual "Save" button — the game is simply always saved; among other things, death (§3.3) must never be dodgeable by killing the tab before the write lands.

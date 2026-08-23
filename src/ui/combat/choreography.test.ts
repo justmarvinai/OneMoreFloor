@@ -15,6 +15,12 @@ import { STAT_IDS } from '@/domain/stats.ts';
 import { choreograph, floatLifeFor, performanceMs, TIMING } from './choreography.ts';
 import { iconForEffect } from './effectIcons.ts';
 
+/**
+ * A fixed instant. Nothing here drinks potions, and pinning the clock is what
+ * keeps these fights byte-identical between runs (ARCHITECTURE §5).
+ */
+const NOW = 1_700_000_000_000;
+
 function character(classId: 'warrior' | 'mage' | 'swashbuckler' = 'warrior') {
   return createCharacter({
     slotId: 1,
@@ -30,7 +36,7 @@ function script(floor = 1): CombatScript {
   const hero = character();
   const generated = generateFloor(hero.tower.runSeed, floor);
   return resolveCombat({
-    hero: heroCombatant(hero),
+    hero: heroCombatant(hero, NOW),
     enemy: enemyCombatant(generated),
     floor,
     isBoss: generated.isBoss,
@@ -144,8 +150,8 @@ describe('effect icons', () => {
 describe('a fight the player watches and one they skip', () => {
   it('are the same fight — the schedule is the only difference (Q8)', () => {
     const hero = character();
-    const watched = fightFloor(hero, 1);
-    const skipped = fightFloor(hero, 1);
+    const watched = fightFloor(hero, 1, NOW);
+    const skipped = fightFloor(hero, 1, NOW);
     expect(watched.script).toEqual(skipped.script);
     expect(choreograph(watched.script)).toEqual(choreograph(skipped.script));
   });
