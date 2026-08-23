@@ -235,27 +235,75 @@ export const en = {
   'material.spireHeart': 'Heart of the Spire',
 
   // --- Enemies (Brief §4.3; avatars bind by id with a silhouette fallback) ---
+  // Vermin — the spire's own rot, thickest near the bottom.
   'enemy.spireRat': 'Spire Rat',
+  'enemy.middenSwarm': 'Midden Swarm',
+  'enemy.cellarTick': 'Cellar Tick',
+  'enemy.sumpCrawler': 'Sump Crawler',
+
+  // Brigands — people who got here first and stayed.
   'enemy.cutpurse': 'Cutpurse',
-  'enemy.rubbleGolem': 'Rubble Golem',
+  'enemy.stairSkulker': 'Stair Skulker',
+  'enemy.ropeCutter': 'Rope-Cutter',
+  'enemy.chainBruiser': 'Chain Bruiser',
+
+  // Beasts — what nests in a tower nobody sweeps.
   'enemy.caveLurker': 'Cave Lurker',
+  'enemy.stairWolf': 'Stair Wolf',
+  'enemy.roostHarrier': 'Roost Harrier',
+  'enemy.paleStalker': 'Pale Stalker',
+
+  // Constructs — the spire's staff, still on duty.
+  'enemy.rubbleGolem': 'Rubble Golem',
+  'enemy.clockworkSentry': 'Clockwork Sentry',
+  'enemy.brassWarden': 'Brass Warden',
+  'enemy.slagColossus': 'Slag Colossus',
+
+  // Arcane — spellwork that outlived whoever cast it.
+  'enemy.worksWisp': 'Wisp of the Works',
+  'enemy.tomeBound': 'Tome-Bound',
+  'enemy.glassSerpent': 'Glass Serpent',
+  'enemy.sigilEater': 'Sigil Eater',
+
+  // Undead — the previous climbers.
   'enemy.bonePiper': 'Bone Piper',
   'enemy.graveWarden': 'Grave Warden',
+  'enemy.choirghast': 'Choirghast',
+  'enemy.barrowKnight': 'Barrow Knight',
+
+  // Infernal — where the spire burns.
   'enemy.emberHound': 'Ember Hound',
   'enemy.ashRevenant': 'Ash Revenant',
+  'enemy.cinderWretch': 'Cinder Wretch',
+
+  // Aberration — the parts of the tower that stopped agreeing with the rest.
+  'enemy.warpEaten': 'Warp-Eaten',
+  'enemy.riftMaw': 'Rift Maw',
+  'enemy.hollowGaze': 'Hollow Gaze',
 
   // --- Bosses (Brief §3.2) — every tenth floor ---
   'boss.wardenOfTheGate': 'Warden of the Gate',
   'boss.gutterKing': 'The Gutter King',
   'boss.hollowChoir': 'The Hollow Choir',
   'boss.paleMatriarch': 'Pale Matriarch',
+  'boss.brassConclave': 'The Brass Conclave',
+  'boss.sumpMother': 'The Sump Mother',
+  'boss.graveTide': 'The Grave Tide',
+  'boss.ironAbbot': 'The Iron Abbot',
   'boss.cinderTyrant': 'Cinder Tyrant',
+  'boss.theUnmade': 'The Unmade',
 
   // --- Effects: normal-floor debuffs are deliberately mild (Brief §3.2) ---
   'effect.chill': 'Chilled',
   'effect.gloom': 'Gloom',
   'effect.sap': 'Sapped',
   'effect.rust': 'Rusted',
+  'effect.mire': 'Mired',
+  'effect.fray': 'Frayed',
+  'effect.spite': 'Spite',
+  'effect.drain': 'Drained',
+  'effect.weariness': 'Weariness',
+  'effect.seepage': 'Seepage',
 
   // --- Effects: boss kits bite far harder ---
   'effect.curseOfLead': 'Curse of Lead',
@@ -265,6 +313,14 @@ export const en = {
   'effect.stoneskin': 'Stoneskin',
   'effect.fury': 'Fury',
   'effect.quickening': 'Quickening',
+  'effect.silence': 'Silenced',
+  'effect.exsanguination': 'Exsanguination',
+  'effect.shatteredGuard': 'Shattered Guard',
+  'effect.palsy': 'Palsy',
+  'effect.carapace': 'Carapace',
+  'effect.omen': 'Omen',
+  'effect.wellspring': 'Wellspring',
+  'effect.bloodrage': 'Bloodrage',
 
   // --- Effects: from signature moves (Q26) ---
   'effect.shieldGuard': 'Shield Guard',
@@ -279,6 +335,10 @@ export const en = {
   'modifier.fleet': 'Fleet',
   'modifier.hulking': 'Hulking',
   'modifier.cunning': 'Cunning',
+  'modifier.venomous': 'Venomous',
+  'modifier.warded': 'Warded',
+  'modifier.ravenous': 'Ravenous',
+  'modifier.attuned': 'Attuned',
 
   // --- Signature move names, for the combat log and unit frames ---
   'signature.berserkStrike': 'Berserk Strike',
@@ -292,6 +352,7 @@ export const en = {
   // --- Floor bands (Brief §3.1) ---
   'band.undercroft': 'The Undercroft',
   'band.brokenStair': 'The Broken Stair',
+  'band.floodedWorks': 'The Flooded Works',
   'band.ossuary': 'The Ossuary',
   'band.emberReach': 'Ember Reach',
   'band.endlessAscent': 'The Endless Ascent',
@@ -522,6 +583,12 @@ export const en = {
   'quest.weekly.bosses': 'Gatebreaker',
   'quest.weekly.deep': 'Depths Unseen',
   'quest.weekly.fortune': "A Spire-Keeper's Fortune",
+  'quest.daily.deep': 'One Floor Further',
+  'quest.daily.bank': 'Fill the Purse',
+  'quest.daily.hunt': 'Gate After Gate',
+  'quest.weekly.spend': 'A Week of Spending',
+  'quest.weekly.draughts': "The Alchemist's Regular",
+  'quest.weekly.summit': 'The High Reach',
 
   'quest.objective.clearFloors': 'Clear {target} floors',
   'quest.objective.defeatBosses': 'Defeat {target} bosses',

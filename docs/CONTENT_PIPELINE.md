@@ -32,6 +32,8 @@ Five entries in 0.1 (§8); a sixth class later = one new entry + weapon pool + a
 ```
 Hand-authored volume per Q12: **~30 enemy types across ~8 thematic families for floors 1–100 (~3 per 10-floor band) and 10 bosses (floors 10–100)**; beyond the authored range the floor generator composes `base enemy × scaling × modifier affixes` (e.g., `modifier.frenzied`: +ATK −DEF), all defined here too.
 
+*As built (M8):* thirty enemies across eight families — vermin, brigand, beast, construct, arcane, undead, infernal, aberration — and ten bosses, one per gate from floor 10 to 100. A family is load-bearing rather than decorative: a band names the families that live in it and the generator draws only from those, so an enemy needs its floor range *and* a band that admits its family before a player can meet it. Nine procedural modifiers (up from five) supply the deep tower's variety; thirty enemies × nine modifiers is what floor 4000 is made of. Boss floors past 100 cycle the authored roster by floor number rather than repeating the deepest one forever.
+
 ### Bosses (§3.2) — `content/enemies/bosses/`
 Enemy shape + `bossKit`: player-debuff + self-buff sets (COMBAT.md §4) with per-depth magnitude curves, extra-reward table ref, and (later) dedicated avatar ids.
 
@@ -46,6 +48,8 @@ No per-floor hand tables (endless, §3.1): floors are **generated** from `floorR
 
 ### Quests (§17) — `content/quests/`
 Template pool: `{ id, cadence: daily|weekly, difficulty: normal|hard, objective: { kind, target: scalingRef }, rewards: RewardTableRef }` — objective kinds are a fixed engine vocabulary (clear-floors, defeat-boss, spend-gold, upgrade-gear, win-without-X…); templates are data. Board per Q21: 3 dailies + 3 weeklies active, one weekly always hard (Ticket/Lucky-Ticket eligible), no rerolls in 0.1.
+
+*As built (M8):* twenty templates, ten per cadence, four of the weeklies hard — so the one hard slot §17 reserves for ticket odds is not the same quest every week (Q21).
 
 *As built (M6):* a template carries a `unit` — `count`, `goldFloors` or `depth` — instead of a scaling factor, because the unit *is* the scaling rule and naming it stops the two from drifting. Nine objective kinds are implemented, each one something the game can observe a player *doing*; a tenth is the one part of quest authoring that touches code. Rewards use the same `FloorReward` shape floors pay in, banked through the same `grantReward`, so a quest payout and a floor payout can never disagree about what they actually give.
 
@@ -63,7 +67,33 @@ Game art lives in `assets/` (art) and binds by id from content; FantasyUI art by
 
 **Potions are generated, not authored (M5).** One draught per stat a potion may raise, brewed per bracket: magnitude and price come from curves, so the shelf keeps up with an endless tower without anyone maintaining a table. Speed has no draught and cannot have one — `UpgradableStatId` excludes it, so a Speed potion is not expressible (Brief §6).
 
-"Add 10 floors of content" = extend a band or add one, add enemies/materials to pools, rerun `content:validate` + balance simulator (BALANCE.md §10), eyeball the sim deltas, done — no engine work. This workflow is the definition of done for the content milestone: we will demonstrate it by adding a throwaway enemy + quest template end-to-end in review.
+"Add 10 floors of content" = extend a band or add one, add enemies/materials to pools, rerun `content:validate` + balance simulator (BALANCE.md §10), eyeball the sim deltas, done — no engine work.
+
+### 4a. Adding an enemy (as built, M8)
+
+Four edits, none of them logic:
+
+1. **`src/strings/en.ts`** — one line, `'enemy.lamplighter': 'Lamplighter'`. The key is typed, so a mistyped one fails the compiler rather than rendering blank.
+2. **`src/content/enemies/effects.ts`** — only if it needs a debuff that does not exist yet. Magnitudes stay under `NORMAL_DEBUFF_MAX`; the content test enforces the §3.2 gap between a normal floor's teeth and a boss's.
+3. **`src/content/enemies/index.ts`** — one object in `ENEMIES`: id, `nameKey`, `family`, `avatar`, a `profile` of multipliers over the floor curve, an optional `playerDebuff`, its `floors` range and a `weight`.
+4. **Its family must live somewhere.** An enemy is gated *twice* — by its own floor range and by the bands whose `families` include it. Author both or it never appears; the sweep in `src/content/floors/tower.sweep.test.ts` fails loudly if an enemy is unreachable, which is the mistake this gate is most likely to cause.
+
+Then `npm run content:validate` and `npm run sim`. Nothing under `src/domain/` is touched — a new enemy is picked, scaled, modified, fought, rendered and rewarded entirely by code that never learns its id.
+
+### 4b. Adding a quest template
+
+Three edits: a name in `src/strings/en.ts`, a template object in `src/content/quests/index.ts`, and — only if the objective is genuinely new — a member of `ObjectiveKind` plus the event that advances it. That last one is the single part of quest authoring that touches code, and it is deliberate: an objective is something the game must know how to *observe*.
+
+### 4c. The demonstration, kept honest
+
+ROADMAP M8 asks for a throwaway enemy and quest template added end to end "in review". A review happens once; the claim it checks has to hold forever. So the demonstration lives in CI instead, as `src/content/content.pipeline.test.ts`:
+
+- An enemy defined **only inside that test file** — in no shipped list, no string table, no registry — is turned into a combatant and fought to a real verdict, with its debuff reaching the hero through the same path every shipped enemy's does.
+- The same test drives **every shipped quest template** to completion from ordinary play events, and asserts that every `ObjectiveKind` the type allows is both used by the pool and observable in the event stream — so an author cannot ship a quest that can never be finished.
+
+If either ever fails, some rule has grown a hard-coded dependency on the content that ships today, and the failure lands in the commit that introduced it rather than in the next content pass.
+
+**Where M8 did touch the engine, and why.** Filling the roster surfaced two *pacing* rules that no amount of data could express: floors now draw only from their band's families, and a floor never serves the enemy the floor below served. Both live in `src/domain/tower/floors.ts` and were written once, for all content; neither knows an enemy id. Adding the thirty-first enemy after them is still four data edits.
 
 ## 5. Localization posture (Q24: English-only in 0.1)
 

@@ -1,10 +1,14 @@
 /**
  * The quest template pool (Brief §17, Q21).
  *
- * A starting pool wide enough that a board is rarely the same two days running,
- * and shaped so the three dailies ask for different *kinds* of play — climb,
- * spend, tinker — rather than three variations on "clear floors". The full EA
- * volume lands in M8; adding to it is a data edit (CONTENT_PIPELINE §4).
+ * Twenty templates — ten of each cadence — which is wide enough that a board is
+ * rarely the same two days running, and shaped so the three dailies ask for
+ * different *kinds* of play (climb, spend, tinker) rather than three variations
+ * on "clear floors". Four of the weeklies are hard, so the one hard slot §17
+ * reserves for ticket odds is not the same quest every week (Q21).
+ *
+ * Adding to the pool is a data edit: append a template, add its name to
+ * `src/strings/`, rerun `content:validate` (CONTENT_PIPELINE §4).
  *
  * Units carry the scaling: counts stay flat with depth because a floor is one
  * click at any depth, gold targets are priced in floors' worth of income, and
@@ -86,6 +90,37 @@ export const QUEST_TEMPLATES: readonly QuestTemplate[] = [
     icon: 'icon-potion',
   },
 
+  {
+    id: 'quest.daily.deep',
+    nameKey: 'quest.daily.deep',
+    cadence: 'daily',
+    difficulty: 'normal',
+    objective: 'reachFloor',
+    unit: 'depth',
+    base: 1.08,
+    icon: 'glyph-celestial-body',
+  },
+  {
+    id: 'quest.daily.bank',
+    nameKey: 'quest.daily.bank',
+    cadence: 'daily',
+    difficulty: 'normal',
+    objective: 'earnGold',
+    unit: 'goldFloors',
+    base: 16,
+    icon: 'icon-sack',
+  },
+  {
+    id: 'quest.daily.hunt',
+    nameKey: 'quest.daily.hunt',
+    cadence: 'daily',
+    difficulty: 'normal',
+    objective: 'defeatBosses',
+    unit: 'count',
+    base: 2,
+    icon: 'glyph-skull-wreath',
+  },
+
   // --- Weeklies: a week's worth, and one that is meant to hurt -------------
   {
     id: 'quest.weekly.climb',
@@ -146,6 +181,36 @@ export const QUEST_TEMPLATES: readonly QuestTemplate[] = [
     unit: 'depth',
     base: 1.35,
     icon: 'glyph-celestial-body',
+  },
+  {
+    id: 'quest.weekly.spend',
+    nameKey: 'quest.weekly.spend',
+    cadence: 'weekly',
+    difficulty: 'normal',
+    objective: 'spendGold',
+    unit: 'goldFloors',
+    base: 110,
+    icon: 'glyph-hourglass',
+  },
+  {
+    id: 'quest.weekly.draughts',
+    nameKey: 'quest.weekly.draughts',
+    cadence: 'weekly',
+    difficulty: 'normal',
+    objective: 'drinkPotions',
+    unit: 'count',
+    base: 10,
+    icon: 'glyph-health-potion',
+  },
+  {
+    id: 'quest.weekly.summit',
+    nameKey: 'quest.weekly.summit',
+    cadence: 'weekly',
+    difficulty: 'hard',
+    objective: 'reachFloor',
+    unit: 'depth',
+    base: 1.55,
+    icon: 'glyph-shooting-stars',
   },
   {
     id: 'quest.weekly.fortune',

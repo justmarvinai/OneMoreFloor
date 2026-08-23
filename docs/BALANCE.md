@@ -104,6 +104,13 @@ Daily objectives sized to one normal session, weeklies to a normal week, neither
 - **The anti-overshoot guard now sweeps both banners** through the gacha's own code path (§16.2's "no overshooting"). Pulls inherit the guarantee by generating through the same `generateItem` every drop and shelf uses; the sweep proves it rather than trusting it.
 - **The animation's bluff is a balance number, not a hidden one.** How high the reveal teases is drawn from `BLUFF_LADDER` and then raised to the outcome's own rarity — so the build may over-sell and can never under-sell. About a third of pulls stay honest; the full staging is rare enough to still mean something the twentieth time. The drawn rank is stored on the pull result, which makes the *animation* replayable from a save alongside the prize.
 
+## 9e. The roster, as authored (M8)
+
+- **Authored, not tuned.** Enemy profiles, boss multipliers, family weights and `MODIFIER_STRENGTH` are first-pass numbers chosen for *shape* — a Rubble Golem is slow and armoured, a Roost Harrier is fast and fragile — not for a target difficulty curve. M9's simulator gates are where they get their real values, and tuning them before the roster existed would have been tuning against a smaller game.
+- **Difficulty is asserted, not assumed.** The tower sweep compares decade to decade over five thousand floors: a single floor may dip when a fast, fragile enemy follows a hulking one, and it should be able to, but floor 500 may never be an easier fight than floor 400.
+- **Variety is a floor, not an average.** Every authored floor must offer at least three candidates and every ten-floor stretch must actually show four different enemies in a single run. Both are test assertions, so a future band edit that narrows a stretch below them fails rather than quietly making the climb repetitive.
+- **The boss sequence is the difficulty language.** Ten gates, each attacking a different stat from the one before it, is what makes depth feel like a curriculum rather than a multiplier. M9 may move the numbers; it should not collapse the sequence.
+
 ## 9a. First simulator findings (M3)
 
 The harness earned its place on the first run, before any tuning had been attempted. It found:

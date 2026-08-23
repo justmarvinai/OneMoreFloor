@@ -5,6 +5,24 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning wil
 
 ## [Unreleased]
 
+### Added — M8: a tower with somewhere to be
+
+- **Thirty enemies across eight families** (Brief §3.1, Q12) — vermin, brigands, beasts, constructs, arcane leftovers, undead, infernal and the aberrations deeper up, covering floors 1–100 with three or more candidates on every floor. Twenty-eight of them now wear artwork that genuinely *is* them rather than the placeholder silhouette.
+- **A family is now a place, not a caption.** A band names the families that live in it and the generator draws only from those, so the Undercroft is vermin and thieves, the Flooded Works is machinery and old spellwork, and Ember Reach is what the tower turns into when it burns. Six bands, five of them authored stretches and one deliberately endless.
+- **Ten bosses, one per gate from floor 10 to 100**, with the kits chosen as a *sequence* rather than individually: no two consecutive gates attack the same stat, so a player who has just learned to survive the Warden's armour cannot beat the Gutter King the same way. Read down the list and each asks a different question — armour, burst, tempo, a race, a starved resource, a grind, crits, raw damage, speed-and-shred, and finally all of it.
+- **Boss floors past 100 cycle the roster** instead of repeating the deepest boss forever. The pick is derived from the floor number, so it stays stable without being stored.
+- **Nine procedural modifiers** (up from five), each trading one stat for another rather than inflating both. Thirty enemies times nine modifiers is what the deep tower is actually made of.
+- **A wider effect vocabulary** — every stat now has a debuff on both sides of §3.2's line, which is what lets a band feel like somewhere instead of a rotation of the same four chips.
+- **Twenty quest templates**, ten per cadence, four of the weeklies hard — so the one hard slot §17 reserves for ticket odds is not the same quest every week (Q21).
+- **The tower sweep** (ROADMAP M8's exit criterion, now permanent CI): all five thousand floors generated and checked for dangling art or strings, non-finite stats, difficulty that stops rising, floors with too few candidates, enemies no player can reach, and a silhouette fallback that still resolves.
+- **The content pipeline, demonstrated in CI rather than in a review.** An enemy that exists only inside a test file is fought to a real verdict; every shipped quest template is driven to completion from ordinary play events; every objective the type allows is proved both used and observable. If content ever stops being data, the failure lands in the commit that caused it.
+
+### Changed — M8
+
+- **A floor no longer serves the enemy the floor below served.** Independent per-floor draws produce runs, and the first pacing pass over the new roster turned up four identical floors in a row at 26–29 — the loudest way an endless tower can read as unfinished. The rule rebuilds the chain from the start of each stretch (a boss floor resets it), so it stays pure, stateless and replayable.
+- **The Spire Rat is deliberately no longer the most likely floor-1 enemy.** It is the one enemy still wearing the §4.3 silhouette, and floor 1 is the worst place in the game to show placeholder art (⧗Q28).
+- **Bands, boss ranges and enemy floor ranges were retuned together** so that every authored enemy is reachable and no stretch drops below three candidates — both now assertions rather than intentions.
+
 ### Added — M7: the gacha
 
 - **Two banners, and both of them tell the truth** (Brief §16, Q20). The Rite of Embers chases Legendary steel; the Rite of the Fallen Star chases Mythical. Single pulls only, no pity counter, and every pull pays something — the worst night on the common rite is a real bundle of materials at your own tier, and the worst on the rare one is Epic gear.

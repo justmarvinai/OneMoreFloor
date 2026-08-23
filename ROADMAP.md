@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M7 are delivered**; M8 (content fill) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M8 are delivered**; M9 (balance) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -92,10 +92,16 @@ Pull resolution through brackets (§16.2; Q20: two banners, single pulls, every 
 
 **Awaiting your sign-off:** the taste gate. The reveal is built and its escalation is wired at every tier, but only Epic and below can be seen without a lucky night — say the word and I will add a developer path to stage a Legendary and a Mythical for review.
 
-## M8 — Content fill to EA volume (L)
+## M8 — Content fill to EA volume (L) — ✅ delivered 2026-08-23
 
 Author the Q12-agreed volume — ~30 enemy types across ~8 families (floors 1–100) and 10 bosses (floors 10–100) with effect kits, ~5 band themes, procedural modifiers beyond floor 100; quest template pool; polish pass on floor pacing floors 1–30 (first-session quality). Demonstrate the CONTENT_PIPELINE §4 workflow (throwaway enemy + quest added end-to-end in review).
 **Exit:** `content:validate` green; floors 1–5000 generate sane (automated sweep: stats monotone, no missing refs); every enemy renders (silhouette fallback confirmed working per §4.3).
+
+**As built:** thirty enemies across eight families and ten bosses, one per gate from floor 10 to 100, with the boss kits chosen as a *sequence* so no two consecutive gates ask the same question. Six band themes, and a band's family list is now load-bearing — the generator draws only from it, which is what turned a stretch of floors from a caption into a place. The exit criterion is a permanent test: `src/content/floors/tower.sweep.test.ts` generates all five thousand floors and asserts no dangling art or string, no non-finite stat, monotone difficulty decade over decade, at least three candidates on every authored floor, and every authored enemy reachable.
+
+**Found while filling the roster:** independent per-floor draws produce runs — the first pacing pass turned up four identical floors in a row on floor 26–29. Floors now avoid the enemy the floor below served, rebuilt from the start of each stretch so it stays pure and stateless. Both this and the family gate are engine rules written once for all content; the §4 demonstration (`content.pipeline.test.ts`) proves adding the next enemy is still a pure data edit.
+
+**Deferred to M9 as designed:** the roster is authored, not tuned. Boss profile multipliers, family weights and the modifier strength are first-pass numbers; M9's simulator gates are where they get their real values.
 
 ## M9 — Balance (L)
 

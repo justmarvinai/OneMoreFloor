@@ -4,7 +4,7 @@ OneMoreFloor is a single-player Fantasy-RPG roguelike tower-climber for the brow
 
 ## ✅ Phase gates — all passed
 
-Planning delivered, all of Q1–Q27 answered (`USER_QUESTIONS.md` is the decision ledger), and **development approved by the owner on 2026-08-22**. Build against `ROADMAP.md` in milestone order; **M0–M7 are complete** (foundation, save layer, item domain, combat, presentation, economy, quests/tutorial/upgrades, gacha). M8 (content fill) is next.
+Planning delivered, all of Q1–Q27 answered (`USER_QUESTIONS.md` is the decision ledger), and **development approved by the owner on 2026-08-22**. Build against `ROADMAP.md` in milestone order; **M0–M8 are complete** (foundation, save layer, item domain, combat, presentation, economy, quests/tutorial/upgrades, gacha, content fill). M9 (balance) is next.
 
 ## Source of truth & docs index
 
