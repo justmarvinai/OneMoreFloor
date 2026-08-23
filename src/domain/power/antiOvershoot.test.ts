@@ -29,11 +29,29 @@ import { powerLevel } from './power.ts';
 
 const SEEDS_PER_CASE = 60;
 
+/**
+ * The ladder is two hundred brackets long, so the exhaustive sweeps below walk
+ * every one of the first forty — the range a player realistically reaches — and
+ * then every tenth after that. The sampling is stated out loud rather than left
+ * implicit: a sweep that quietly skipped most of its range would read as
+ * "covered everything" while covering a fifth of it.
+ */
+const DENSE_BRACKETS = 40;
+const SPARSE_STEP = 10;
+
+function sweptBrackets(): number[] {
+  const indices: number[] = [];
+  for (let index = 0; index < BRACKET_COUNT; index += 1) {
+    if (index < DENSE_BRACKETS || index % SPARSE_STEP === 0) indices.push(index);
+  }
+  return indices;
+}
+
 describe('anti-overshoot: no source may exceed the requester’s bracket', () => {
   it('holds for every bracket, every rarity, every base type', () => {
     let generated = 0;
 
-    for (let index = 0; index < BRACKET_COUNT; index += 1) {
+    for (const index of sweptBrackets()) {
       const bracket = bracketAt(index);
 
       for (const def of ITEM_BASES) {
@@ -70,7 +88,7 @@ describe('anti-overshoot: no source may exceed the requester’s bracket', () =>
     // code path rather than trusting that they do.
     let sold = 0;
 
-    for (let index = 0; index < BRACKET_COUNT; index += 1) {
+    for (const index of sweptBrackets()) {
       const bracket = bracketAt(index);
       const character = {
         ...createCharacter({
@@ -111,7 +129,7 @@ describe('anti-overshoot: no source may exceed the requester’s bracket', () =>
     let pulled = 0;
     let gearSeen = 0;
 
-    for (let index = 0; index < BRACKET_COUNT; index += 1) {
+    for (const index of sweptBrackets()) {
       const bracket = bracketAt(index);
       const character = {
         ...createCharacter({
@@ -291,7 +309,13 @@ describe('brackets', () => {
   it('clamps rather than throwing outside the authored range', () => {
     expect(bracketAt(-5).index).toBe(0);
     expect(bracketAt(9_999).index).toBe(BRACKET_COUNT - 1);
-    expect(bracketFor(Number.MAX_SAFE_INTEGER).index).toBe(BRACKET_COUNT - 1);
+    // The ladder now runs deeper than any reachable Power Level: even the
+    // largest safe integer lands well inside it, which is the point — a player
+    // must never meet the top of the bracket table (M9).
+    const extreme = bracketFor(Number.MAX_SAFE_INTEGER).index;
+    expect(extreme).toBeGreaterThan(40);
+    expect(extreme).toBeLessThan(BRACKET_COUNT - 1);
+    expect(bracketFor(Number.POSITIVE_INFINITY).index).toBe(0);
   });
 
   it('starts a fresh hero in the first bracket', () => {

@@ -22,12 +22,24 @@ export const MERCHANT_MILESTONE_FLOORS = 10;
 export const MERCHANT_STOCK_SIZE = { equipment: 8, magic: 6 } as const;
 
 /** Instant restock price, rising with the bracket like every other gold sink. */
-export const MERCHANT_REROLL_COST = { base: 140, bracketFactor: 1.36 } as const;
+export const MERCHANT_REROLL_COST = { base: 140, bracketFactor: 1.42 } as const;
 
 /**
- * Gold per point of an item's stat budget. `SELL_VALUE_FRACTION` is the other
- * half of this ratio: a piece sells for roughly a fifth of what it costs, which
- * keeps the backpack a decision rather than a free gold faucet (Q16).
+ * **Gold per point of an item's stat budget — the game's one price anchor** (M9).
+ *
+ * Every gold amount attached to an item goes through this: what a merchant asks,
+ * what one pays, what a gear level costs. Budget already grows with the bracket,
+ * so multiplying by a *second* per-bracket factor was double-counting the same
+ * exponential — the first M9 measurement watched a climber's purse reach twelve
+ * billion gold by their sixth session, almost all of it from selling spares.
+ * One anchor means prices and income can be compared by dividing two numbers.
+ */
+export const ITEM_GOLD_PER_BUDGET = 3.2;
+
+/**
+ * What a merchant charges as a fraction of an item's worth, and what they pay.
+ * A piece sells for a fifth of what it costs, which keeps the backpack a
+ * decision rather than a free gold faucet (Q16).
  */
 export const BUY_PRICE_FRACTION = 0.9;
 

@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M8 are delivered**; M9 (balance) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M9 are delivered**; M10 (hardening & ship) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -103,10 +103,20 @@ Author the Q12-agreed volume — ~30 enemy types across ~8 families (floors 1–
 
 **Deferred to M9 as designed:** the roster is authored, not tuned. Boss profile multipliers, family weights and the modifier strength are first-pass numbers; M9's simulator gates are where they get their real values.
 
-## M9 — Balance (L)
+## M9 — Balance (L) — ✅ delivered 2026-08-23
 
 Simulator-driven tuning across archetypes to BALANCE.md §10's gates: death-wall placement, re-climb-in-minutes, class parity band, gold always-slightly-short (§14), gear 1–10 cheap / 11–15 push (§10.1), rarity arc (§9.2), ticket cadence (§8 of BALANCE.md). Manual playtests at 1080p/2K bracketing the sim.
 **Exit:** all sim gates green with the tuned config committed + documented; a full manual first-session playtest (you + me) signs off the feel.
+
+**As built:** the simulator became the authority. Thirteen gates in `tools/sim/gates.test.ts` now assert what the brief states as feel — where the first wall sits, how long a re-climb takes, that no class is a trap pick, that gold never covers the shopping list, that the rarity arc holds, that the round cap never fires — and `npm run sim` is its own CI step. Each gate was verified to fail on a deliberately broken config before being trusted.
+
+**What the first honest measurement found** (all documented in BALANCE.md §9f): gear could lift its own bracket, so a climber's power plateaued at a fixed point *independent of depth* and the first wall sat at floor 80 instead of 15–25. Prices multiplied the bracket exponential twice, so a purse reached twelve billion gold by the sixth session. Experience was polynomial against exponential income, so the level cap arrived in three sittings. Three "band-relative" percentages grew slower than the stats they normalise, so mitigation, crit and double-attack would all have pinned at their caps a few hundred floors in. And bosses were the entire game: ~97% win rates on normal floors against ~22% on gates.
+
+**Measured after tuning:** first wall median floor 16 (IQR 10–20), first sitting reaches floor ~37, re-climbs take 20–90 seconds, class win-rate spread 5.6 points with every class between 42% and 48%, no archetype's purse ever covers its wanted pile, and the round cap fired zero times in ~2,700 fights.
+
+**Found in the manual playtest:** a hero nine floors in was wearing one item with six better ones in the backpack and nothing on screen said so. The character dot now lights when a bag item beats what is worn — the most actionable thing in the game (§20.5).
+
+**Awaiting your sign-off:** the feel. The numbers are where §10 asks, but "does the first session pull?" is yours to judge — the exit criterion says so explicitly.
 
 ## M10 — Hardening & ship (M)
 

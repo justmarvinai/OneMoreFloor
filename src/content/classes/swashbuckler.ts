@@ -24,8 +24,8 @@ export const swashbuckler: ClassDef = {
   },
   weaponRule: 'dual_one_handed',
   weaponDescriptionKey: 'class.swashbuckler.weapon',
-  baseStats: { strength: 13, defense: 6, hp: 85, resource: 12, luck: 13 },
-  statGrowthPerLevel: { strength: 2.1, defense: 1.0, hp: 9, resource: 1.7, luck: 2.0 },
+  baseStats: { strength: 15, defense: 9, hp: 104, resource: 12, luck: 13 },
+  statGrowthPerLevel: { strength: 2.4, defense: 1.5, hp: 12, resource: 1.7, luck: 2.2 },
   art: { portrait: 'class-swashbuckler', glyph: 'glyph-broken-shackle' },
   difficulty: 3,
 };

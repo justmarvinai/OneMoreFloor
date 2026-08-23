@@ -24,8 +24,8 @@ export const hunter: ClassDef = {
   },
   weaponRule: 'two_handed',
   weaponDescriptionKey: 'class.hunter.weapon',
-  baseStats: { strength: 12, defense: 7, hp: 90, resource: 11, luck: 12 },
-  statGrowthPerLevel: { strength: 1.9, defense: 1.2, hp: 10, resource: 1.6, luck: 1.9 },
+  baseStats: { strength: 13, defense: 8, hp: 98, resource: 11, luck: 13 },
+  statGrowthPerLevel: { strength: 2.0, defense: 1.4, hp: 11, resource: 1.6, luck: 2.0 },
   art: { portrait: 'class-hunter', glyph: 'glyph-bow-and-arrow' },
   difficulty: 2,
 };

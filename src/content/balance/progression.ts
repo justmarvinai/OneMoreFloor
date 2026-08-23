@@ -53,12 +53,22 @@ export const BATTLE_SPEED_MULTIPLIERS: readonly number[] = [1, 2, 4, 8];
 /**
  * XP required to go from `level` to `level + 1`.
  *
- * Polynomial rather than exponential: levels should keep arriving at a readable
- * pace all the way to the ascension caps, since a level-up is one of the small
- * rewards that keeps a session feeling productive (Brief §1). The knee factor
- * steepens things past each cap so ascension stays a real wall.
+ * **Exponential at the same rate the tower pays experience** (M9). It was
+ * polynomial, and polynomial cost against exponential income is a race the
+ * player wins by default: the first M9 measurement had heroes at the level-100
+ * ascension cap inside three sittings. Matching the rates makes level track
+ * *depth* instead of outrunning it, so a level-up stays one of the small rewards
+ * that make a session feel productive (Brief §1) rather than a formality.
+ *
+ * The knee factor steepens things past each ascension cap, so ascension stays a
+ * real wall rather than a checkbox.
  */
-export const XP_TO_NEXT_LEVEL = { base: 55, coefficient: 24, exponent: 1.52 } as const;
+export const XP_TO_NEXT_LEVEL = {
+  kind: 'exponential',
+  base: 130,
+  factor: 1.66,
+  period: 10,
+} as const;
 
 /** Extra XP multiplier per hero-ascension tier already earned. */
 export const XP_ASCENSION_KNEE = 1.85;

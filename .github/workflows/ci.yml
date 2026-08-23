@@ -39,6 +39,9 @@ jobs:
       - name: Validate content
         run: npm run content:validate
 
+      - name: Balance gates (BALANCE.md §10)
+        run: npm run sim
+
       - name: Build
         run: npm run build
 

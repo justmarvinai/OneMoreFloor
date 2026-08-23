@@ -33,6 +33,23 @@ export const BOSS_MULTIPLIER = {
   speed: 1.15,
 } as const;
 
+/**
+ * How much of a boss's *excess* over a normal floor is actually applied, by
+ * depth (M9).
+ *
+ * The multipliers above are what a boss is worth at full strength. Applying them
+ * from floor 10 made the very first gate the wall for almost every simulated
+ * hero — the M9 measurement put the median first death at floor 10 with the
+ * ninetieth percentile there too, against §10's 15–25 target. A fresh hero has
+ * barely any gear at the first gate, so a 2.6× health pool is a cliff rather
+ * than a step.
+ *
+ * So the excess ramps in: the first gate is a lesson, floor 60 onwards is the
+ * full wall. This scales only the part *above* a normal floor, so a boss is
+ * never weaker than the floor below it.
+ */
+export const BOSS_RAMP = { fromFloor: 10, toFloor: 60, start: 0.04 } as const;
+
 /** How hard a boss's own kit hits, growing slowly with depth. */
 export const BOSS_KIT_SCALING = { base: 1, factor: 1.18, period: 50 } as const;
 

@@ -66,12 +66,23 @@ describe('gear level (Brief §10.1)', () => {
     expect(firstTen / total).toBeLessThan(0.15);
   });
 
-  it('charges more for rarer gear and for deeper brackets', () => {
+  it('charges more for rarer gear and for a bigger piece', () => {
     expect(gearLevelCost(item({ rarity: 'mythic' }))).toBeGreaterThan(
       gearLevelCost(item({ rarity: 'common' })),
     );
-    expect(gearLevelCost(item({ bracketAtDrop: 12 }))).toBeGreaterThan(
-      gearLevelCost(item({ bracketAtDrop: 2 })),
+    // Depth reaches the price through *budget*, not through the bracket index.
+    // Charging by both was double-counting the same exponential (BALANCE §9f).
+    expect(gearLevelCost(item({ budget: 400 }))).toBeGreaterThan(
+      gearLevelCost(item({ budget: 40 })),
+    );
+  });
+
+  it('prices a piece by what it is worth, not by where it dropped', () => {
+    // The M9 fix, asserted directly: two identical pieces cost the same to
+    // improve whatever bracket they came from. A second per-bracket multiplier
+    // on top of budget made late-game gold meaningless within a few sessions.
+    expect(gearLevelCost(item({ bracketAtDrop: 30 }))).toBe(
+      gearLevelCost(item({ bracketAtDrop: 1 })),
     );
   });
 
@@ -149,13 +160,13 @@ describe('sell value (Q16)', () => {
     expect(sellValue(item({ budget: 0.0001 }))).toBeGreaterThanOrEqual(1);
   });
 
-  it('pays more for better and deeper gear', () => {
+  it('pays more for better and bigger gear', () => {
     expect(sellValue(item({ rarity: 'mythic' }))).toBeGreaterThan(
       sellValue(item({ rarity: 'common' })),
     );
-    expect(sellValue(item({ bracketAtDrop: 20 }))).toBeGreaterThan(
-      sellValue(item({ bracketAtDrop: 1 })),
-    );
+    // Deeper gear sells for more because it *is* worth more: budget carries the
+    // depth, so the sale price rides the same anchor as every other price.
+    expect(sellValue(item({ budget: 900 }))).toBeGreaterThan(sellValue(item({ budget: 90 })));
   });
 
   it('pays far less than upgrading the same piece costs', () => {

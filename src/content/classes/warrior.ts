@@ -24,8 +24,8 @@ export const warrior: ClassDef = {
   },
   weaponRule: 'one_hand_shield_or_two_handed',
   weaponDescriptionKey: 'class.warrior.weapon',
-  baseStats: { strength: 10, defense: 12, hp: 120, resource: 10, luck: 5 },
-  statGrowthPerLevel: { strength: 1.6, defense: 2.0, hp: 14, resource: 1.4, luck: 0.8 },
+  baseStats: { strength: 10, defense: 11, hp: 124, resource: 10, luck: 5 },
+  statGrowthPerLevel: { strength: 1.6, defense: 1.8, hp: 13, resource: 1.4, luck: 0.8 },
   art: { portrait: 'class-warrior', glyph: 'glyph-crossed-swords' },
   difficulty: 1,
 };
