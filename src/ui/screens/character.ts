@@ -43,7 +43,7 @@ import {
   totalStatsOf,
 } from '@/domain/character/character.ts';
 import { EQUIP_SLOT_IDS, type Character, type EquipSlotId } from '@/domain/character/types.ts';
-import { availableSlots } from '@/domain/items/equip.ts';
+import { availableSlots, canEquip, type EquipCheck } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
 import { powerLevel } from '@/domain/power/power.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
@@ -53,6 +53,8 @@ import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { itemSlot, itemTooltip } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
+import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
+import { refuse } from '@/ui/toasts.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 /**
@@ -85,6 +87,10 @@ export interface CharacterScreenOptions {
   /** Wall-clock time, for potion timers (Q9). */
   now: number;
   onSelectItem: (uid: string) => void;
+  /** Put a backpack piece on — the drop end of a drag from the bag. */
+  onEquip: (uid: string) => void;
+  /** Take a worn piece off, by dragging it back into the bag. */
+  onUnequip: (slot: EquipSlotId) => void;
   onBuyStat: (stat: UpgradableStatId) => void;
   onAscend: () => void;
 }
@@ -95,7 +101,7 @@ export interface CharacterScreen {
 }
 
 export function createCharacterScreen(options: CharacterScreenOptions): CharacterScreen {
-  const { character, now, onSelectItem, onBuyStat, onAscend } = options;
+  const { character, now, onSelectItem, onEquip, onUnequip, onBuyStat, onAscend } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -154,26 +160,22 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
    * that it is simply empty. A socket that explains nothing is the commonest way
    * a character sheet stops being readable (§20.4/§20.5).
    *
-   * `Paperdoll` renders its sockets in the order it was given them, per column,
-   * and puts no id on the cells — so this walks the columns in the same order to
-   * pair each socket with its element, and stamps the id on while it is there.
-   * The M5 pass addressed them with a `[data-slot-id]` selector that matched
-   * nothing, which is why locked sockets have been silent since they shipped.
-   * Recorded as an upstream wish (UI_FANTASYUI_MAP §10).
+   * `Paperdoll` stamps `data-equip` on each socket, which is what pairs them
+   * with their slots. Our own `data-slot-id` goes on beside it: the generated
+   * slot-icon stylesheet and the smoke tests both address sockets by it, and
+   * one hook we control is steadier than a vendored attribute we do not.
    */
-  const cells: Record<'left' | 'right' | 'bottom', HTMLElement[]> = {
-    left: columnCells(paperdoll.el, '.fui-doll__col--left'),
-    right: columnCells(paperdoll.el, '.fui-doll__col--right'),
-    bottom: columnCells(paperdoll.el, '.fui-doll__row'),
-  };
-  const taken: Record<'left' | 'right' | 'bottom', number> = { left: 0, right: 0, bottom: 0 };
+  const sockets = new Map<EquipSlotId, HTMLElement>();
+  for (const cell of paperdoll.el.querySelectorAll<HTMLElement>('[data-equip]')) {
+    const slot = cell.dataset.equip as EquipSlotId | undefined;
+    if (!slot) continue;
+    cell.dataset.slotId = slot;
+    sockets.set(slot, cell);
+  }
 
   for (const slot of EQUIP_SLOT_IDS) {
-    const column = SLOT_LAYOUT[slot];
-    const cell = cells[column][taken[column]];
-    taken[column] += 1;
+    const cell = sockets.get(slot);
     if (!cell) continue;
-    cell.dataset.slotId = slot;
 
     if (!unlocked.has(slot)) {
       setTip(cell, t('character.lockedSlot', { tier: tierUnlocking(slot) }));
@@ -382,18 +384,86 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
    * only `tip.title` to the tooltip, so a backpack full of gear said nothing but
    * its own name.
    */
+  const releases: Array<() => void> = [];
+
   for (const [index, item] of character.inventory.entries()) {
     const cell = backpack.el.children[index];
     if (!(cell instanceof HTMLElement)) continue;
     const slot = requireItemDef(item.defId).slot;
+    // Which socket this piece is looking for, named on the cell itself. The drag
+    // needs no such hint — the payload carries the uid and the socket does the
+    // checking — but the drop test does, and a hook we set beats one inferred
+    // from tooltip prose.
+    cell.dataset.itemSlot = slot;
     setTip(
       cell,
       itemTooltip(item, {
         showSellValue: true,
         compareTo: character.equipment[slot] ?? null,
-        hint: t('item.inspect'),
+        hint: t('item.dragToEquip'),
       }),
     );
+    releases.push(makeItemDraggable(cell, () => ({ uid: item.uid, from: 'backpack' })));
+  }
+
+  /**
+   * Drag a piece out of the bag and onto the socket it belongs in.
+   *
+   * Clicking still opens the gear dialog — the drag is a shortcut for the one
+   * action people reach for most, not a replacement for the screen that also
+   * upgrades and sells. A socket that will not take what is over it says so
+   * before the mouse comes up, and says *why* after it (§20.5): a drop that
+   * silently does nothing is the worst possible answer.
+   */
+  for (const [slot, cell] of sockets) {
+    if (!unlocked.has(slot)) continue;
+    releases.push(
+      makeDropTarget(cell, {
+        accepts: (drag) => drag.from === 'backpack' && equipCheck(drag.uid, slot).ok,
+        onDrop: (drag) => {
+          if (drag.from !== 'backpack') return;
+          const check = equipCheck(drag.uid, slot);
+          if (!check.ok) {
+            refuse(t('item.cannotEquip'), t(`item.refused.${check.reason}` as StringKey));
+            return;
+          }
+          onEquip(drag.uid);
+        },
+      }),
+    );
+  }
+
+  // And back the other way: a worn piece dropped in the bag comes off.
+  releases.push(
+    makeDropTarget(backpack.el, {
+      accepts: (drag) => drag.from === 'worn',
+      onDrop: (drag) => {
+        if (drag.from !== 'worn' || !drag.slot) return;
+        if (character.inventory.length >= INVENTORY_CAPACITY) {
+          refuse(t('item.bagFull'), t('item.bagFullHint'));
+          return;
+        }
+        onUnequip(drag.slot);
+      },
+    }),
+  );
+
+  for (const [slot, cell] of sockets) {
+    const worn = character.equipment[slot];
+    if (!worn) continue;
+    releases.push(makeItemDraggable(cell, () => ({ uid: worn.uid, from: 'worn', slot })));
+  }
+
+  /** Whether this backpack item may go in that socket, and why not. */
+  function equipCheck(uid: string, slot: EquipSlotId): EquipCheck {
+    const item = character.inventory.find((candidate) => candidate.uid === uid);
+    if (!item) return { ok: false, reason: 'wrongSlot' };
+    const mainhand = character.equipment.mainhand;
+    return canEquip(requireItemDef(item.defId), slot, {
+      classId: character.identity.classId,
+      ascension: character.progression.ascension,
+      mainhand: mainhand ? requireItemDef(mainhand.defId) : null,
+    });
   }
 
   const backpackPanel = track(
@@ -455,17 +525,11 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
   return {
     el,
     destroy() {
+      for (const release of releases) release();
       for (const part of parts) part.destroy();
       el.remove();
     },
   };
-}
-
-/** The socket cells of one paperdoll column, in the order they were rendered. */
-function columnCells(root: HTMLElement, selector: string): HTMLElement[] {
-  const column = root.querySelector(selector);
-  if (!column) return [];
-  return [...column.children].filter((child): child is HTMLElement => child instanceof HTMLElement);
 }
 
 /** The ascension tier that opens a slot, for the locked-slot explanation (§7). */

@@ -10,6 +10,7 @@ export const en = {
   'app.tagline': 'Climb the Lootspire. One more floor.',
   'app.enter': 'Enter the Spire',
   'app.build': 'Early Access {version} — foundation build',
+  'app.cast': 'Five heroes',
 
   'nav.hero.toCharacter': 'Open the character sheet',
   'nav.hero.here': 'You are looking at the character sheet',
@@ -520,6 +521,18 @@ export const en = {
   'character.lockedSlot': 'Unlocked at Ascension {tier}',
   'character.buffs': 'Active potions',
 
+  // --- Credits (Brief §21) ---
+  'credits.title': 'Credits',
+  'credits.subtitle': 'What this game is built out of, and who made it.',
+  'credits.licence': 'Licence',
+  'credits.source': 'Source',
+  'credits.fantasyui.title': 'FantasyUI',
+  'credits.fantasyui.body':
+    'Every window, button, socket and frame you have seen. Vendored into the game, so it runs with the network cable pulled.',
+  'credits.icons.title': 'Open Game Icons',
+  'credits.icons.body':
+    'The faint pictures in your empty gear sockets, showing what each one takes.',
+
   // --- Items (shared) ---
   'item.level': '+{level}',
   'item.levelFull': 'Level {level} / {max}',
@@ -539,6 +552,20 @@ export const en = {
   'item.equipped': 'Worn',
   'item.vsEquipped': 'If you wear this instead',
   'item.inspect': 'Click to equip, upgrade or sell',
+  'item.dragToEquip': 'Drag onto a socket to wear it, or click for more',
+  'item.dragToSell': 'Drag onto the shelf to sell it, or click for more',
+  'item.cannotEquip': 'Cannot wear that there',
+  'item.equipped.toast': '{name} equipped',
+  'item.unequipped.toast': '{name} taken off',
+  'item.bagFull': 'Your backpack is full',
+  'item.bagFullHint': 'Sell or use something before taking that off.',
+  'item.sellTitle': 'Sell {name}?',
+  'item.sellBody': 'The merchant offers {gold} gold. A sale cannot be undone.',
+  'item.sellConfirm': 'Sell for {gold}',
+  'item.sellCancel': 'Keep it',
+  'item.sold.toast': 'Sold {name} for {gold} gold',
+  'item.sellWornTitle': 'That is still on you',
+  'item.sellWornHint': 'Take it off first, then sell it from your backpack.',
   'item.wornHint': 'Click to upgrade, ascend or take off',
   'item.buyHint': 'Buy it to put it in your backpack',
   'item.emptySlot': 'Nothing worn here yet',

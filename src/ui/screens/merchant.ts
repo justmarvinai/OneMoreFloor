@@ -41,8 +41,11 @@ import { isActive } from '@/domain/potions/potions.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
-import { itemCard, itemSlot, itemTooltip, statLine } from '@/ui/itemView.ts';
+import { itemCard, itemName, itemSlot, itemTooltip, statLine } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
+import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
+import { openSellDialog } from '@/ui/sellDialog.ts';
+import { refuse } from '@/ui/toasts.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 /** Card ids are the shelf index for gear and the stat for a draught. */
@@ -57,6 +60,8 @@ export interface MerchantScreenOptions {
   onDrink: (stat: UpgradableStatId) => void;
   onReroll: () => void;
   onSelectItem: (uid: string) => void;
+  /** Sell a backpack piece — the drop end of a drag onto the shelf. */
+  onSell: (uid: string) => void;
 }
 
 export interface MerchantScreen {
@@ -65,7 +70,7 @@ export interface MerchantScreen {
 }
 
 export function createMerchantScreen(options: MerchantScreenOptions): MerchantScreen {
-  const { character, merchantId, now, onBuy, onDrink, onReroll, onSelectItem } = options;
+  const { character, merchantId, now, onBuy, onDrink, onReroll, onSelectItem, onSell } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -242,13 +247,38 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
     if (typeof item?.data === 'string') onSelectItem(item.data);
   });
 
+  const releases: Array<() => void> = [];
+
   // What the merchant would pay, before the click rather than after it.
   for (const [index, item] of character.inventory.entries()) {
     const cell = backpack.el.children[index];
-    if (cell instanceof HTMLElement) {
-      setTip(cell, itemTooltip(item, { showSellValue: true, hint: t('item.inspect') }));
-    }
+    if (!(cell instanceof HTMLElement)) continue;
+    setTip(cell, itemTooltip(item, { showSellValue: true, hint: t('item.dragToSell') }));
+    releases.push(makeItemDraggable(cell, () => ({ uid: item.uid, from: 'backpack' })));
   }
+
+  /**
+   * Drag a piece onto the shelf to sell it.
+   *
+   * The whole shop window is the target rather than a strip of it: a player
+   * throwing something at a merchant is not aiming, and a drop zone you have to
+   * find is a drop zone that does not work. It asks before it takes — a sale
+   * cannot be undone and a drag is a cheap gesture to make by accident.
+   */
+  releases.push(
+    makeDropTarget(shop.el, {
+      accepts: (drag) => drag.from === 'backpack',
+      onDrop: (drag) => {
+        if (drag.from !== 'backpack') {
+          refuse(t('item.sellWornTitle'), t('item.sellWornHint'));
+          return;
+        }
+        const item = character.inventory.find((candidate) => candidate.uid === drag.uid);
+        if (!item) return;
+        openSellDialog({ item, name: itemName(item), onConfirm: () => onSell(item.uid) });
+      },
+    }),
+  );
 
   const sellPanel = track(
     new Panel({
@@ -301,6 +331,7 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
     el,
     destroy() {
       rowObserver.disconnect();
+      for (const release of releases) release();
       for (const part of parts) part.destroy();
       el.remove();
     },

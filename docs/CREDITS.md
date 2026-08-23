@@ -29,12 +29,18 @@ strips each source file's black backdrop and repaints the glyph as
 per-icon table, with the source path and author for each, is in
 `public/art/slots/ATTRIBUTION.md`.
 
-> **Worth the owner's attention before a wider release.** CC BY asks for
-> attribution "in the manner specified by the author" — for a game, that
-> normally means a credits surface a *player* can reach, not only a file in the
-> repository. EA 0.1 has no credits screen, and adding one is beyond what this
-> round was asked for. If the icons stay, a credits entry in the Account screen
-> would close it properly.
+## Where a player sees this
+
+CC BY asks for attribution "in the manner specified by the author" — for a game
+that normally means a surface a *player* can reach, not only a file in the
+repository. Since the third polish round the Account screen carries a **Credits**
+panel with the same entries, fed from `src/content/credits/index.ts`. That module
+is the single source: adding an asset means adding an entry there and a section
+here, and the smoke suite asserts both entries are on screen with their licences.
+
+Sources are printed as plain text rather than links. The game makes no network
+request after its own load (Brief §21) and the build asserts it, so an off-origin
+`href` in the bundle would be a defect even if nothing ever clicked it.
 
 ## Fonts
 
