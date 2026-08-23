@@ -1,6 +1,6 @@
 # OneMoreFloor — Combat Specification (EA 0.1)
 
-> Status: **planning — all feeding questions resolved 2026-08-22** (Q6 charge-and-burst approved, Q14 portrait-card confirmed, Q26 class direction approved — see the `USER_QUESTIONS.md` ledger). All numbers here remain **provisional handles for the balance config**, tuned in ROADMAP M9 (§3.7). Brief cited as §n.
+> Status: **as built, EA 0.1 (M3 engine, M4 presentation, M9 tuning).** Q6 charge-and-burst, Q14 portrait cards and Q26 class direction are all shipped as described. Numbers here illustrate shape only; the tuned values live in `src/content/balance/` (§3.7). Brief cited as §n.
 
 ## 1. Fundamentals
 

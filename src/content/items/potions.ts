@@ -9,10 +9,10 @@
  * a hand-written table would run out. A potion's identity is its stat; its tier
  * is which bracket it was brewed for.
  *
- * ⧗Q29: buying a potion drinks it — there is no potion inventory. The brief never
- * describes one, Q16 sized the backpack for gear, and stockpiling cheap draughts
- * to drink at a deeper bracket would be §13's overshoot in another costume. The
- * owner has the question; the shop works either way.
+ * Q29 (owner, 2026-08-23): buying a potion drinks it — there is no potion
+ * inventory, and none is coming. The brief never describes one, Q16 sized the
+ * backpack for gear, and stockpiling cheap draughts to drink at a deeper bracket
+ * would be §13's overshoot in another costume.
  */
 import { POTION_MAGNITUDE, POTION_PRICE } from '@/content/balance/potions.ts';
 import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';

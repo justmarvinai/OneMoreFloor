@@ -1,6 +1,6 @@
 # OneMoreFloor — Roadmap to Early Access 0.1
 
-> Status: **Phases 1–3 complete — development is underway.** All questions answered and folded in (2026-08-22), and the owner approved development the same day. **M0–M9 are delivered**; M10 (hardening & ship) is next. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
+> Status: **Early Access 0.1 is built.** All questions answered and folded in (Q1–Q29; the ledger has none open), the owner approved development on 2026-08-22, and **M0–M10 are delivered**. What remains is the owner's own action: deploying it, per `docs/DEPLOY.md`. Brief cited as §n (see `docs/GAME_BRIEF.md`); decisions cited as Qn (see `USER_QUESTIONS.md`).
 
 **The bar for "shipped":** §2.1 verbatim — every feature in §3–§21 fully implemented, balanced, animated, reachable; no placeholders, no stub screens, no dead ends over many hours of play. Every milestone below carries exit criteria; M10 re-audits the whole game against §2.1 feature by feature.
 
@@ -59,7 +59,7 @@ The game becomes visible and playable: tower screen (`StageTrail` treatment, flo
 
 **Deferred by design:** Battle Speed above x1 needs the account upgrade that M6 builds, so the x2/x4/x8 review happens there (the tiers are wired and tested; only the shop is missing). The hub's other destinations stay disabled until their milestones — each says what it is rather than going quiet (§20.5).
 
-**Open question:** ⧗Q28 asks the owner how enemies should look until their own art arrives; ten of thirteen now wear fitting FantasyUI art, three keep the silhouette. Nothing is blocked on the answer.
+**Q28 (answered 2026-08-23):** fitting FantasyUI art where the library has something that genuinely *is* the enemy, the documented silhouette where it does not. M8 grew that from ten of thirteen to thirty-nine of forty.
 
 ## M5 — Character screen, inventory, merchants (L) — ✅ delivered 2026-08-22
 
@@ -70,7 +70,7 @@ Character screen per reference (UI_FANTASYUI_MAP §4): paperdoll + locked ascens
 
 Two decisions worth recording. **Potions do not count toward Power Level** — a drinkable bracket jump would let a player potion up, pull loot they cannot hold, and let the buff lapse, which is §13's overshoot wearing a different hat. And **a shelf restocks when the hero changes bracket**, on top of Q17's clock and floor milestone: goods rolled for a weaker hero are not merely stale, they are visibly unbuyable.
 
-**Open question:** ⧗Q29 asks whether potions should be carried and drunk later; the build buys-and-drinks, which is the simplest reading that satisfies every line of §12 and closes the stockpiling loophole. Nothing is blocked on the answer.
+**Q29 (answered 2026-08-23):** buying a draught drinks it. No potion inventory, and the stockpiling loophole stays closed.
 
 ## M6 — Quests, tutorial, account upgrades (M) — ✅ delivered 2026-08-22
 
@@ -118,10 +118,14 @@ Simulator-driven tuning across archetypes to BALANCE.md §10's gates: death-wall
 
 **Awaiting your sign-off:** the feel. The numbers are where §10 asks, but "does the first session pull?" is yours to judge — the exit criterion says so explicitly.
 
-## M10 — Hardening & ship (M)
+## M10 — Hardening & ship (M) — ✅ delivered 2026-08-23
 
 §2.1 audit: walk §3–§21 feature-by-feature against the build; kill every dead end/stub. Save-torture (fault-injection, SAVE_SCHEMA §11), perf pass, cross-browser (A9 set), fresh-profile + long-profile regression, Playwright suite complete (ARCHITECTURE §7), CHANGELOG for 0.1, deploy checklist, Electron-forward smoke (relative paths / offline run — ARCHITECTURE §6).
 **Exit:** EA 0.1 live on Vercel; the §2.1 sentence is true and demonstrated: hours of play, something always claimable, no unimplemented button anywhere.
+
+**As built.** The audit is written down in `docs/EA_0.1_AUDIT.md`, one row per requirement with a *proof* column naming a test rather than making a claim; it found three unfinished edges (a favicon 404, five silent merchant refusals, a silent Claim button) and the class of bug behind two of them is now a permanent smoke test — **every greyed control must say why**. Torturing the save layer with injected IndexedDB failures found a real bug that reading it had not: a mid-write failure let the browser commit what had already succeeded, so a crash could strand an account pointing at a character that was never created. The perf pass cleared four plausible culprits on frame pacing — the animation was never the problem, the main thread is 95% idle through a fight — and then found two real ones by measuring the other axes: every screen the player left was still in memory (six routes handed the shell an element instead of a screen, so `destroy()` never ran), and the build shipped a source map of the whole TypeScript source. Both are fixed, and the leak has a permanent smoke test. `docs/DEPLOY.md` is the checklist for going live.
+
+**Not delivered here, and deliberately:** the deploy itself. It needs the owner's Vercel account; nothing in this repository holds a credential and nothing in CI deploys. The exit criterion's "live on Vercel" is one owner action away, and `docs/DEPLOY.md` is that action written out.
 
 ---
 

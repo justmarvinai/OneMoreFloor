@@ -14,7 +14,19 @@ export default defineConfig({
   build: {
     target: 'es2022',
     outDir: 'dist',
-    sourcemap: true,
+    /**
+     * No source map in the deployed build. The map is a full copy of the
+     * TypeScript source of a commercial game (Brief §0.1), and `sourcemap: true`
+     * both emits it and points at it from the bundle — one click in DevTools and
+     * the game is open source by accident.
+     *
+     * Nothing needs it in production: there is no backend and no telemetry (§21),
+     * so no error tracker is on the other end to consume one. When a player sends
+     * a minified stack trace, rebuild that tagged commit locally with
+     * `--sourcemap` and read it there — the build is deterministic, so the frames
+     * line up (docs/DEPLOY.md §4).
+     */
+    sourcemap: false,
   },
   server: {
     port: 5173,

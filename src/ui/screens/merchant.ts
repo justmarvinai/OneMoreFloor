@@ -36,7 +36,7 @@ import {
 import { isActive } from '@/domain/potions/potions.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
-import { itemCard, itemSlot } from '@/ui/itemView.ts';
+import { itemCard, itemSlot, statLine } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
@@ -76,11 +76,25 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   const shelf = stockOf(merchantId, character, state, bracket);
   const categories: ShopCategory[] = [];
 
+  /**
+   * A row's detail line, carrying the reason it cannot be bought.
+   *
+   * `ShopPanel` greys out anything dearer than the purse, correctly and
+   * silently. §20.5 wants the refusal to *say why*, and every other price in the
+   * game prints its shortfall (`CostButton` does), so the shortfall goes on the
+   * card rather than leaving the player to do the subtraction.
+   */
+  const withReason = (detail: string, price: number, sold = false): string => {
+    if (sold) return t('merchant.sold');
+    if (price <= gold) return detail;
+    return `${detail} · ${t('merchant.short', { missing: price - gold })}`;
+  };
+
   const gear: ItemCardData[] = shelf.map((entry) => ({
     ...itemCard(entry.item, entry.price),
     id: String(entry.index),
     disabled: entry.sold,
-    ...(entry.sold ? { detail: t('merchant.sold') } : {}),
+    detail: withReason(statLine(entry.item), entry.price, entry.sold),
   }));
 
   if (gear.length > 0) {
@@ -98,12 +112,15 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
         name: t(potion.nameKey),
         type: t('potion.tier', { tier: potion.tier + 1 }),
         price: potion.price,
-        detail: `${t('potion.effect', {
-          percent: Math.round(potion.magnitude * 100),
-          stat: t(`stat.${potion.stat}` as StringKey),
-        })} · ${
-          isActive(character.potions, potion.stat, now) ? t('potion.replace') : t('potion.drink')
-        }`,
+        detail: withReason(
+          `${t('potion.effect', {
+            percent: Math.round(potion.magnitude * 100),
+            stat: t(`stat.${potion.stat}` as StringKey),
+          })} · ${
+            isActive(character.potions, potion.stat, now) ? t('potion.replace') : t('potion.drink')
+          }`,
+          potion.price,
+        ),
       })),
     });
   }

@@ -4,11 +4,13 @@ Instructions for any AI agent (or human) picking up tasks in this repo. **`CLAUD
 
 ## Phase gate (mirrors CLAUDE.md — currently binding)
 
-Planning is delivered and every question is answered (`USER_QUESTIONS.md` is the decision ledger, resolved 2026-08-22), but the owner has **not yet given the explicit Phase 3 "start development" go** (Brief §22). Until then: documentation work only. **No game code.**
+Planning is delivered, every question is answered (`USER_QUESTIONS.md` is the decision ledger — Q1–Q29, none open), the owner approved development on 2026-08-22, and **M0–M10 are built: Early Access 0.1 is complete**. Deploying it is the owner's action (`docs/DEPLOY.md`).
+
+Work from here is reworks, changes and fixes on a finished game rather than milestone order, which changes two things about "done": the save schema now has players' data behind it, so a shape change carries its migration *and* its captured-blob fixture in the same commit (SAVE_SCHEMA §4); and `CHANGELOG.md` has a released `[0.1.0]` section, so new entries go under `[Unreleased]` and released ones are history rather than drafts.
 
 ## Work lanes
 
-Once development is approved, work is cut along the module boundaries in `docs/ARCHITECTURE.md` §3 — the lanes below exist so tasks stay parallelizable and reviewable, not as job titles:
+Work is cut along the module boundaries in `docs/ARCHITECTURE.md` §3 — the lanes below exist so tasks stay parallelizable and reviewable, not as job titles:
 
 | Lane | Owns | Key docs |
 |---|---|---|
@@ -22,7 +24,7 @@ Cross-lane contracts (store shape, CombatScript, content schemas, bracket functi
 
 ## Task protocol
 
-1. **Slice vertically inside a milestone** (`ROADMAP.md` order is binding): a task delivers a testable behavior ("gear ascension consumes materials and adds a stat slot"), not a layer ("write the item types").
+1. **Slice vertically** — a task delivers a testable behavior ("gear ascension consumes materials and adds a stat slot"), not a layer ("write the item types"). While milestones were open, `ROADMAP.md` order was binding; now that they are all delivered, the ordering constraint is whatever the owner asked for.
 2. **Before coding:** read the milestone's exit criteria + the sections of the docs your task cites; check `USER_QUESTIONS.md` — decisions there are binding; if your task hits an ambiguity the ledger doesn't cover, **file a new question and raise it**, don't guess (§0.3).
 3. **Definition of done for every task:** behavior implemented per doc; tests for it (domain work = unit tests; save work = fixture tests; UI work = smoke coverage); full verification suite green (`CLAUDE.md` list); `CHANGELOG.md` entry; affected docs updated in the same change; no balance literals outside config; no new dependencies (ARCHITECTURE §2 policy) without prior sign-off.
 4. **Review posture:** re-read your diff against the Hard Rules list in `CLAUDE.md` before handing off — those are the defects that are cheap now and brutal in six months.

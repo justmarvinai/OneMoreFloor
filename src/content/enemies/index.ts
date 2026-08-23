@@ -21,7 +21,7 @@
  * a basilisk eye — the enemy wears it, because a screen of identical grey
  * silhouettes reads as unfinished (§2.1). Where nothing fits, the silhouette
  * stands: a mismatched portrait reads as a bug, the fallback reads as art still
- * to come. ⧗Q28 asks the owner which way to close the gap.
+ * to come — the interim the owner confirmed in Q28.
  */
 import {
   BLOODRAGE,
@@ -66,7 +66,7 @@ export const ENEMIES: readonly EnemyDef[] = [
     floors: [1, 14],
     // Weighted below its neighbours on purpose: the Spire Rat is the one enemy
     // still wearing the §4.3 silhouette, and floor 1 is the worst place in the
-    // game to show placeholder art (⧗Q28). It is common, not the default.
+    // game to show placeholder art (Q28). It is common, not the default.
     weight: 6,
   },
   {

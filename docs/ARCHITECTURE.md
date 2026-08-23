@@ -1,6 +1,6 @@
 # OneMoreFloor — Technical Architecture (EA 0.1)
 
-> Status: **planning — all feeding questions resolved (see `USER_QUESTIONS.md` ledger); awaiting Phase 3 development approval** (Brief §22). No game code exists yet; this document is the blueprint it will be built from. Requirements are cited from `docs/GAME_BRIEF.md` as §n, decisions as Qn.
+> Status: **as built, EA 0.1 (M0–M10).** This began as the blueprint; the code now matches it, and where the two ever disagree the code is the defect. Requirements are cited from `docs/GAME_BRIEF.md` as §n, decisions as Qn.
 
 ## 1. Constraints this architecture serves
 
@@ -78,6 +78,7 @@ tools/                    # balance simulator CLI, content validators (run via V
 - **Game loop:** there is none in the per-frame sense. The game is **event-driven**: user actions dispatch store actions; combat is resolved instantly as a pure function producing an **event script** (see `docs/COMBAT.md` §6) which the combat screen then *performs* over time via WAAPI; timers (potions, quest resets, merchant restock) are wall-clock checks on a coarse 1 s tick plus on-focus recompute.
 - **Saving:** autosave on every meaningful state transition (fight resolved, purchase, equip, level-up), debounced; plus on `visibilitychange`/`pagehide`. Details and integrity strategy in `docs/SAVE_SCHEMA.md` §5–6.
 - **Performance budget:** 60 fps during combat choreography at 2560×1440 on a MacBook Air (§20.6). Compositor-friendly animation only (transform/opacity/filter); no layout-thrashing properties in animation paths; particle counts capped by config. Screens are constructed on entry and `destroy()`ed on exit (FantasyUI's lifecycle contract) — no leaked timers/listeners (its own audit tooling models this discipline; we adopt it).
+- **Whoever holds a screen destroys it.** The router owns the screen it mounted; the shell owns the screen in its main panel. This is stated as a rule because the natural-looking shortcut breaks it silently: passing `createTowerScreen({...}).el` compiles, renders and looks harmless, but the screen object is unreferenced from that moment on, so nothing calls its `destroy()` and every component inside it keeps whatever it registered. M10 measured that at ~41 listeners and ~91 retained DOM nodes per screen visit, unbounded. Anything that takes a screen takes the screen, never its element — `ShellOptions.main` is typed `Screen` for exactly this reason, and a smoke test walks the whole game repeatedly and fails on any growth.
 
 ## 5. Cross-cutting policies
 

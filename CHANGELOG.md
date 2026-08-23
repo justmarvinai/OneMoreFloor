@@ -1,9 +1,85 @@
 # Changelog
 
 All notable changes to OneMoreFloor are documented here, maintained from the first commit onward (Brief §22).
-Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning will follow the game's release naming (next planned release: **Early Access 0.1**).
+Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows the game's release naming.
 
 ## [Unreleased]
+
+Nothing yet — 0.1.0 is the current head.
+
+## [0.1.0] — Early Access 0.1 — 2026-08-23
+
+The game the brief describes, finished (§2.1): a hero of one of five classes
+climbs an endless tower, dies, raids back, and spends what they earned on gear,
+stats, draughts, upgrades and the summoning rites — with quests and a tutorial
+around it, all of it in the browser, all of it offline, none of it a placeholder.
+
+**What EA 0.1 is.** Ten milestones' worth of work, listed in full below, from the
+save layer up. It runs at 1080p and 2K in current Chrome, Edge, Firefox and
+Safari; it needs no account, no server and no network after the first load; and
+the whole of it — every screen, every refusal, every number — is covered by 500+
+unit tests, 30 Playwright smoke tests and a balance simulator that CI runs on
+every commit.
+
+**What it is not, on purpose** (§2.2): silent — there is no audio of any kind;
+online — no backend, no accounts, no multiplayer, ever; monetised — no payments,
+no ads, and the gacha spends only tickets the player earned; mobile — the build
+gates below 1280 px and says why; or packaged — the Electron wrap comes later,
+and the build is already location-independent so that it will be packaging rather
+than a port.
+
+### Hardening — M10
+
+- **A feature-by-feature audit of §3–§21 against the running build**, written down
+  in `docs/EA_0.1_AUDIT.md` with a *proof* column that names a test rather than
+  making a claim. It found three unfinished edges and all three are fixed: a
+  `/favicon.ico` 404 on every page load (the Lootspire now has an icon, drawn in
+  the game's own palette), five silent refusals on the merchant shelf, and a
+  silent Claim button on every unfinished quest. **Every greyed control in the
+  game must now say why it is greyed** — a permanent smoke test, so the next
+  silent refusal fails CI rather than shipping.
+- **A save-layer bug found by torturing it, not by reading it.** A new
+  fault-injection harness fails IndexedDB operations one at a time across the
+  whole write path. It found that a failure mid-write let the browser commit
+  whatever had already succeeded: a crash at the wrong moment could leave an
+  account pointing at a character that was never created. The write now aborts
+  its transaction explicitly, and the harness stays in CI.
+- **Every screen the player left was still in memory.** Six of the eight routes
+  handed the shell a screen's *element* rather than the screen, so nothing ever
+  called its `destroy()` — about 41 listeners and 91 DOM nodes retained per screen
+  visit, growing for as long as the session lasted. Fights never leaked; only
+  walking the game did, and that asymmetry is what named the bug. The shell now
+  owns its screen and tears it down: fifty-four screen visits now end with the
+  browser holding exactly what it held after the first. A smoke test walks the
+  game five times over and fails if that stops being true — verified by reverting
+  the fix and watching it fail.
+- **Frame pacing measured rather than guessed**, and the honest result is that the
+  animation was never the problem — 74 KB of gzipped code, ~2.5 MB fetched to be
+  playing, and a main thread that is **95% idle through a fight** with no long
+  task at any point. Skip — every remaining beat applied in one burst, the
+  hardest thing the presentation can be asked to do — costs 20 ms, which is what
+  makes x8 safe by construction. Four plausible culprits were measured and
+  cleared, including one change that is correct but fixed nothing measurable, and
+  is recorded that way.
+- **The deployed build no longer ships a source map.** `sourcemap: true` emitted a
+  1 MB map *and* pointed the bundle at it, publishing the full TypeScript source
+  of a commercial game to anyone who opened DevTools. There is no error tracker
+  to consume one (§21), so production builds no longer emit it;
+  `docs/DEPLOY.md` §5 says how to read a player's stack trace without one.
+- **The Electron-forward promise is now a test, not an intention** (ARCHITECTURE
+  §6): every URL the build emits must be relative, and the only remote-looking
+  string in the whole bundle must be the SVG namespace. A build that would break
+  a `file://` load fails CI.
+- **Cross-browser CI.** The smoke suite runs on Chromium, Firefox and WebKit — the
+  A9 browser floor — instead of Chromium alone, and the balance simulator is a CI
+  step rather than a thing to remember.
+- **`docs/DEPLOY.md`**, the checklist for putting it live: what to verify before,
+  what to click after, and what to do when it goes wrong (roll back first — and
+  the one change, a schema bump, that a rollback cannot undo).
+- **Q28 and Q29 answered** by the owner and folded in: enemies keep FantasyUI art
+  where the library genuinely has them and the documented silhouette where it does
+  not; buying a draught drinks it, and no potion inventory is coming. The
+  decision ledger has no open questions left.
 
 ### Changed — M9: the tuning pass
 
@@ -79,7 +155,7 @@ have separated from each other.
 ### Changed — M8
 
 - **A floor no longer serves the enemy the floor below served.** Independent per-floor draws produce runs, and the first pacing pass over the new roster turned up four identical floors in a row at 26–29 — the loudest way an endless tower can read as unfinished. The rule rebuilds the chain from the start of each stretch (a boss floor resets it), so it stays pure, stateless and replayable.
-- **The Spire Rat is deliberately no longer the most likely floor-1 enemy.** It is the one enemy still wearing the §4.3 silhouette, and floor 1 is the worst place in the game to show placeholder art (⧗Q28).
+- **The Spire Rat is deliberately no longer the most likely floor-1 enemy.** It is the one enemy still wearing the §4.3 silhouette, and floor 1 is the worst place in the game to show placeholder art (Q28).
 - **Bands, boss ranges and enemy floor ranges were retuned together** so that every authored enemy is reachable and no stretch drops below three candidates — both now assertions rather than intentions.
 
 ### Added — M7: the gacha
@@ -135,7 +211,7 @@ have separated from each other.
 - **Save schema v3:** characters gained their running potions and each merchant's shelf. A migrated save starts with an empty potion rack and two shelves stamped at the epoch, so the first visit stocks them at the hero's real bracket instead of one guessed at migration time.
 - **Potions never move Power Level.** They raise what the hero *fights with*, never what the game thinks they are worth — a drinkable bracket jump would let a player potion up, pull loot they cannot hold and let the buff lapse, which is the overshoot §13 exists to prevent.
 - **A merchant restocks when the hero changes bracket**, on top of Q17's six-hour clock and best-floor milestone. Goods rolled for a weaker hero are not merely stale; they are visibly unbuyable, and leaving them there makes the shop look broken rather than patient.
-- **⧗Q29 filed:** buying a draught drinks it. The brief never describes a potion inventory, Q16 sized the backpack for gear, and stockpiling cheap draughts to drink at a deeper bracket would be the overshoot problem in another costume. The owner has the question; nothing is blocked on it.
+- **Buying a draught drinks it** (filed as Q29, confirmed by the owner 2026-08-23). The brief never describes a potion inventory, Q16 sized the backpack for gear, and stockpiling cheap draughts to drink at a deeper bracket would be the overshoot problem in another costume.
 
 ### Added — M4: the game becomes visible
 
@@ -147,7 +223,7 @@ have separated from each other.
 - **The aftermath** (COMBAT.md §8): a victory screen with what the floor gave, loot cards framed by rarity, and "One More Floor" that walks straight into the next fight without a detour. A level-up gets its own beat first. A death leads with what you *kept* — level, gear, gold, materials, every floor record — and offers the Quick-Raid back up, because death is meant to be a launchpad, not a slap.
 - **Native tooltips are now impossible in the running game** (§20.4). Six vendored FantasyUI components set a `title` attribute; a lint rule cannot see them and editing them would be the silent fork the project forbids. A runtime service adopts every `title` the app produces into a FantasyUI `Tooltip` instead, and a smoke test asserts the document never contains one — so the ban is a property of the shipped game, not just of our source.
 - **Bands have a look.** Each floor band carries backdrop art (Q11: FantasyUI's own, for now), painted behind both the trail and the arena, so a stretch of the tower reads as a place rather than a number range. Swapping in the owner's scene art later is one field per band.
-- **Enemies have faces.** Ten of the thirteen enemies and bosses now wear FantasyUI art that genuinely is them — a stone golem, a demon lord, a brute. The three with nothing fitting in the library keep the documented silhouette, because a wrong portrait reads as a bug while the fallback reads as art still to come (§4.3). **⧗Q28** asks the owner which way to close the gap; nothing is blocked on the answer.
+- **Enemies have faces.** Ten of the thirteen enemies and bosses now wear FantasyUI art that genuinely is them — a stone golem, a demon lord, a brute. The three with nothing fitting in the library keep the documented silhouette, because a wrong portrait reads as a bug while the fallback reads as art still to come (§4.3). Q28 asked the owner which way to close the gap; the answer, on 2026-08-23, was to keep doing exactly this, and M8 grew the ratio to thirty-nine of forty.
 
 ### Fixed — M4
 

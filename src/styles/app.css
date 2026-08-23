@@ -648,7 +648,40 @@ body {
   order: 3;
 }
 
-.omf-combat__card.is-charged .fui-unit {
+/*
+ * "Resource full, the signature is ready" — a pulse on a *composited* layer.
+ *
+ * This used to animate `filter: brightness()` on the unit card itself: identical
+ * to look at, but a filter cannot be composited, so it repainted a 240 px
+ * portrait every frame, forever, on two cards at once. Animating an overlay's
+ * opacity is the same effect where the compositor can do it.
+ *
+ * Honest footnote from M10's performance pass: this **did not measurably change
+ * frame pacing**. It is the right way to write the effect and it is cheaper in
+ * principle; it was not the cause of anything. The jank that prompted the look
+ * turned out to be software rasterisation in a GPU-less container — the main
+ * thread is 95% idle through a fight (docs/EA_0.1_AUDIT.md).
+ */
+.omf-combat__card {
+  position: relative;
+}
+
+.omf-combat__card::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 10px;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--fui-gold, #d8b26a) 42%, transparent) 0%,
+    transparent 68%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 240ms ease-out;
+}
+
+.omf-combat__card.is-charged::after {
   animation: omf-charged 900ms ease-in-out infinite;
 }
 
@@ -665,10 +698,10 @@ body {
 @keyframes omf-charged {
   0%,
   100% {
-    filter: brightness(1);
+    opacity: 0.25;
   }
   50% {
-    filter: brightness(1.35);
+    opacity: 0.85;
   }
 }
 

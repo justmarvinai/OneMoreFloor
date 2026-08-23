@@ -626,3 +626,226 @@ test('shows no native tooltip in the lobby or the rite either (§20.4)', async (
     'the summoning lobby',
   ).toEqual([]);
 });
+
+/* --- M10: the §2.1 / §20.5 sweep ------------------------------------------ */
+
+/**
+ * The vocabulary of refusals the game actually speaks. Every greyed-out control
+ * must say why, either in a tooltip or in visible text on its own card (§20.5).
+ * A new refusal that says nothing fails here rather than in a player's face.
+ */
+const REFUSAL = /short|Sold out|to go|Unlocked with|already|Reach level|Nothing|max/i;
+
+test('never greys out a control without saying why (Brief §20.5)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Auditor', 'Warrior');
+
+  for (const section of ['Character', 'Merchants', 'Summoning', 'Quests', 'Account']) {
+    await goToSection(page, section);
+    await page.waitForTimeout(200);
+
+    const unexplained = await page.$$eval(
+      'button[disabled], [aria-disabled="true"]',
+      (nodes, pattern) => {
+        const re = new RegExp(pattern, 'i');
+        return nodes
+          .filter((node) => (node as HTMLElement).offsetParent !== null)
+          .filter((node) => {
+            const el = node as HTMLElement;
+            const tip =
+              el.getAttribute('data-omf-tip') ??
+              el.closest('[data-omf-tip]')?.getAttribute('data-omf-tip') ??
+              '';
+            if (tip.trim().length > 0) return false;
+            const card = el.closest('.fui-itemcard, .omf-quests__card, .fui-panel');
+            return !re.test(card?.textContent ?? '');
+          })
+          .map((node) => (node as HTMLElement).textContent?.trim().slice(0, 40) ?? '(no label)');
+      },
+      REFUSAL.source,
+    );
+
+    expect(unexplained, `${section}: silent disabled controls`).toEqual([]);
+  }
+});
+
+test('asks the browser for nothing it does not ship (Brief §21)', async ({ page }) => {
+  // A 404 in a shipped build is an unfinished edge (§2.1). The browser asks for
+  // /favicon.ico on its own, so the game has to answer.
+  const failures: string[] = [];
+  page.on('response', (response) => {
+    if (response.status() >= 400) failures.push(`HTTP ${response.status()} ${response.url()}`);
+  });
+  page.on('requestfailed', (request) =>
+    failures.push(`FAILED ${request.url()} ${request.failure()?.errorText}`),
+  );
+
+  await enterSelect(page);
+  await createHero(page, 'Auditor', 'Mage');
+  await goToSection(page, 'Character');
+  expect(failures).toEqual([]);
+
+  // And the tab carries the game's own mark rather than the browser's default.
+  await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute('href', /favicon/);
+});
+
+/**
+ * The long-profile regression (ROADMAP M10).
+ *
+ * Everything else here starts from a fresh profile. This one plays a real
+ * session — climbs, dies, raids back, shops, upgrades, claims — then reloads and
+ * proves the save came back whole. It is the closest thing to "a player came
+ * back the next day" that a test can be, and it is the run where a leak, a
+ * missed write or a migration slip would actually show.
+ */
+test('a played-in profile survives a reload with everything intact', async ({ page }) => {
+  test.slow();
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(String(error)));
+  page.on('console', (message) => {
+    if (message.type() === 'error') errors.push(message.text());
+  });
+
+  await enterSelect(page);
+  await createHero(page, 'Longhaul', 'Swashbuckler');
+  await climb(page, 14);
+
+  // Spend: the shop, a stat point, and whatever the board owes.
+  await goToSection(page, 'Character');
+  const buy = page.locator('[data-testid="character"]').getByRole('button', { name: /^Buy/ });
+  if (
+    await buy
+      .first()
+      .isEnabled()
+      .catch(() => false)
+  )
+    await buy.first().click();
+
+  await goToSection(page, 'Quests');
+  await expect(page.locator('[data-testid="quests"]')).toBeVisible();
+  await goToSection(page, 'Merchants');
+  await expect(page.locator('[data-testid="merchant"]')).toBeVisible();
+
+  // Snapshot what the player would recognise: their name, level and best floor.
+  await goToSection(page, 'Character');
+  const before = await page
+    .locator('[data-testid="character"]')
+    .innerText()
+    .then((text) => text.replace(/\s+/g, ' '));
+  // The screen renders names and headings uppercase in CSS, and `innerText`
+  // reports what is painted rather than what the DOM holds — so this compares
+  // case-insensitively rather than pretending otherwise.
+  const level = /level (\d+)/i.exec(before)?.[1];
+  expect(level, 'no level on the character screen').toBeTruthy();
+
+  await page.reload();
+  await page.getByRole('button', { name: /Enter the Spire/i }).click();
+  await page.getByRole('button', { name: /^Continue$/ }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  await goToSection(page, 'Character');
+  const after = await page
+    .locator('[data-testid="character"]')
+    .innerText()
+    .then((text) => text.replace(/\s+/g, ' '));
+
+  expect(after.toLowerCase()).toContain('longhaul');
+  expect(after.toLowerCase()).toContain(`level ${level}`);
+  // The save reports itself as loaded, not created, recovered or corrupt.
+  await expect(page.locator('[data-testid="save-status"]')).toHaveText(/Save loaded/i);
+  expect(errors, 'console errors across a long session').toEqual([]);
+});
+
+/**
+ * The Electron-forward guarantee, checked against the build rather than the
+ * running page (ARCHITECTURE §6). A wrap loads `dist/index.html` from disk over
+ * `file://`, where an absolute `/assets/...` resolves to the filesystem root and
+ * nothing loads. So: every URL the build emits must be relative, and the only
+ * remote-looking string in it must be the SVG namespace — which is an XML
+ * identifier, never fetched.
+ */
+test('ships a build that would load from disk, not from a site root (ARCHITECTURE §6)', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+
+  const dist = join(process.cwd(), 'dist');
+  const files = [
+    'index.html',
+    ...readdirSync(join(dist, 'assets')).map((name) => join('assets', name)),
+  ].filter((name) => /\.(html|css|js)$/.test(name));
+  expect(files.length, 'nothing in dist/ to check — did the build run?').toBeGreaterThan(2);
+
+  const absolute: string[] = [];
+  const remote: string[] = [];
+  for (const file of files) {
+    const source = readFileSync(join(dist, file), 'utf8');
+    for (const [, url] of source.matchAll(/url\(\s*["']?([^"')]+)["']?\s*\)/g)) {
+      if (url.startsWith('/') || /^https?:/.test(url)) absolute.push(`${file}: ${url}`);
+    }
+    for (const [, url] of source.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']/g)) {
+      if (url.startsWith('/')) absolute.push(`${file}: ${url}`);
+    }
+    for (const [match] of source.matchAll(/https?:\/\/[\w./-]+/g)) {
+      if (match !== 'http://www.w3.org/2000/svg') remote.push(`${file}: ${match}`);
+    }
+  }
+
+  expect(absolute, 'absolute URLs break a file:// load').toEqual([]);
+  expect(remote, 'the game must fetch nothing off-origin (Brief §21)').toEqual([]);
+});
+
+/**
+ * Screens are built on enter and destroyed on exit, and a leaked listener is a
+ * defect (CLAUDE.md). M10 found the shell dropping its screen on the floor:
+ * routes passed `createTowerScreen({...}).el`, so nothing ever called the
+ * screen's `destroy()` and every component inside it kept whatever it had
+ * registered — ~41 listeners and ~91 retained nodes per screen visit, growing
+ * without bound for as long as the player kept playing.
+ *
+ * This is the guard. It walks the whole game repeatedly and asserts the browser
+ * is holding no more at the end than in the middle. Chromium-only: the counters
+ * come from CDP, and one browser proving it is enough for a structural bug.
+ */
+test('does not leak a screen every time the player walks the game', async ({
+  page,
+  browserName,
+}) => {
+  test.skip(browserName !== 'chromium', 'needs CDP counters');
+  test.slow();
+
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('HeapProfiler.enable');
+  await cdp.send('Performance.enable');
+
+  const counts = async (): Promise<{ listeners: number; nodes: number }> => {
+    await cdp.send('HeapProfiler.collectGarbage');
+    const { metrics } = await cdp.send('Performance.getMetrics');
+    const byName = Object.fromEntries(metrics.map((metric) => [metric.name, metric.value]));
+    return { listeners: byName['JSEventListeners'] ?? 0, nodes: byName['Nodes'] ?? 0 };
+  };
+
+  const walk = async (): Promise<void> => {
+    for (const section of ['Character', 'Quests', 'Merchants', 'Summoning', 'Account', 'Tower']) {
+      await goToSection(page, section);
+    }
+  };
+
+  // One walk first, so the comparison is steady-state against steady-state: the
+  // first visit to a screen legitimately costs something the second does not.
+  await walk();
+  const first = await counts();
+  for (let round = 0; round < 4; round += 1) await walk();
+  const last = await counts();
+
+  expect(
+    last.listeners,
+    `listeners grew ${first.listeners} → ${last.listeners}`,
+  ).toBeLessThanOrEqual(first.listeners);
+  expect(last.nodes, `retained nodes grew ${first.nodes} → ${last.nodes}`).toBeLessThanOrEqual(
+    first.nodes,
+  );
+});

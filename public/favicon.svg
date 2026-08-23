@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OneMoreFloor">
+  <!--
+    The Lootspire, as small as it goes. Drawn rather than cropped from a piece of
+    key art: at sixteen pixels a painted scene is mud, and a favicon has one job —
+    be recognisable in a row of twenty tabs. Gold on near-black is the game's own
+    dark-ember palette (UI_FANTASYUI_MAP §1).
+  -->
+  <rect width="64" height="64" rx="12" fill="#12100f" />
+  <g fill="#d8b26a">
+    <!-- Three tapering tiers, widest at the base: a tower you climb. -->
+    <path d="M17 54h30l-3-10H20z" />
+    <path d="M21 41h22l-2.6-10H23.6z" />
+    <path d="M25 28h14l-2.2-9h-9.6z" />
+  </g>
+  <!-- The lit top: where the player is trying to get to, and never will. -->
+  <circle cx="32" cy="13" r="5" fill="#ffd47a" />
+  <circle cx="32" cy="13" r="9" fill="#ffd47a" opacity="0.22" />
+</svg>

@@ -4,7 +4,9 @@ OneMoreFloor is a single-player Fantasy-RPG roguelike tower-climber for the brow
 
 ## ✅ Phase gates — all passed
 
-Planning delivered, all of Q1–Q27 answered (`USER_QUESTIONS.md` is the decision ledger), and **development approved by the owner on 2026-08-22**. Build against `ROADMAP.md` in milestone order; **M0–M9 are complete** (foundation, save layer, item domain, combat, presentation, economy, quests/tutorial/upgrades, gacha, content fill, balance). M10 (hardening & ship) is next.
+Planning delivered, all of Q1–Q29 answered (`USER_QUESTIONS.md` is the decision ledger, and it has no open questions), and **development approved by the owner on 2026-08-22**. **M0–M10 are complete** (foundation, save layer, item domain, combat, presentation, economy, quests/tutorial/upgrades, gacha, content fill, balance, hardening) — **Early Access 0.1 is built**, and the one thing left in `ROADMAP.md` is the owner deploying it (`docs/DEPLOY.md`).
+
+Work after this point is reworks, changes and fixes on a shipped game, not milestone order. Two things change what "done" means: the save schema now has players' data behind it (a shape change needs its migration *and* its captured-blob fixture in the same commit — SAVE_SCHEMA §4), and `CHANGELOG.md` has a released `[0.1.0]` section, so new work goes under `[Unreleased]` and released entries are history, not drafts.
 
 ## Source of truth & docs index
 
@@ -13,13 +15,15 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 | Doc | Contents |
 |---|---|
 | `ROADMAP.md` | Phase gates, milestones M0–M10, exit criteria |
-| `USER_QUESTIONS.md` | Decision ledger (Q1–Q27 resolved, A1–A15 confirmed) + where new questions get filed |
+| `USER_QUESTIONS.md` | Decision ledger (Q1–Q29 resolved, A1–A15 confirmed) + where new questions get filed |
 | `docs/ARCHITECTURE.md` | Stack + justification, module layout, policies, Electron forward-compat |
 | `docs/SAVE_SCHEMA.md` | IndexedDB design, versioning/migrations, recovery, clock tamper rules |
 | `docs/BALANCE.md` | Formula shapes, Power Level, brackets/anti-overshoot, simulator |
 | `docs/COMBAT.md` | Resolution engine, CombatScript, presentation spec |
 | `docs/UI_FANTASYUI_MAP.md` | Screen×component inventory, custom-component allowlist |
 | `docs/CONTENT_PIPELINE.md` | Data-driven content: types, ids, validation, workflows |
+| `docs/EA_0.1_AUDIT.md` | The §2.1 audit: every requirement, where it lives, and the test that proves it |
+| `docs/DEPLOY.md` | The owner's deploy checklist — before, after, and rolling back |
 
 ## Hard rules (from the brief — violating any is a defect)
 
@@ -41,7 +45,7 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 - Every save-shape change bumps `CURRENT_SCHEMA_VERSION` and ships its migration + captured-blob fixture test **in the same commit** (SAVE_SCHEMA §4).
 - Combat/gacha/merchant randomness resolves through named seed streams so outcomes are replayable (ARCHITECTURE §5).
 - All player-facing text goes through `src/strings/` (Q24: English-only 0.1, i18n-ready from day one) — no literals in logic/content.
-- Screens follow FantasyUI's lifecycle: construct on enter, `destroy()` on exit; leaked listeners/timers are defects.
+- Screens follow FantasyUI's lifecycle: construct on enter, `destroy()` on exit; leaked listeners/timers are defects. **Whoever holds a screen destroys it** — pass the screen, never its `.el` (ARCHITECTURE §4); the shortcut compiles and leaks every screen the player leaves.
 - Verification (run **all** of these before declaring work done): `npm run typecheck · lint · format:check · test · content:validate · sim · build · smoke`. CI runs the same list in the same order. Balance/content changes also rerun the simulator once it exists (BALANCE.md §10).
 - Adding a FantasyUI component: add its name to `fui.components.json`, run `npm run vendor:fui` (needs a local `fantasyuis` clone; `FUI_SRC` overrides the path), commit the vendored output. Dependencies resolve automatically; never hand-copy.
 

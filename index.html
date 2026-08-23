@@ -8,6 +8,16 @@
       name="description"
       content="OneMoreFloor — a single-player Fantasy-RPG roguelike tower-climber."
     />
+    <!--
+      Icons are declared relatively so the built game stays location-independent
+      for the later Electron wrap (ARCHITECTURE §6). `favicon.ico` also sits at
+      the site root, because the browser asks for that one by absolute path on
+      its own — without it every player's console carries a 404, which is exactly
+      the kind of unfinished edge §2.1 forbids.
+    -->
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <title>OneMoreFloor</title>
   </head>
   <body>
