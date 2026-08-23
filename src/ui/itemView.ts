@@ -13,10 +13,70 @@
 import type { ItemCardData, SlotItem, TooltipOptions, TooltipStat } from '@/ui/fui/index.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { itemStats } from '@/domain/items/derive.ts';
+import { itemPower } from '@/domain/power/power.ts';
 import { sellValue } from '@/domain/items/upgrade.ts';
 import { GEAR_ASCENSION_MAX, GEAR_LEVEL_MAX, type ItemInstance } from '@/domain/items/types.ts';
-import { STAT_IDS } from '@/domain/stats.ts';
+import { STAT_IDS, type StatId } from '@/domain/stats.ts';
 import { t, type StringKey } from '@/strings/index.ts';
+
+/**
+ * What swapping one piece for another would do.
+ *
+ * `newSlot` is the empty-socket case and is deliberately its own verdict rather
+ * than a very large upgrade: "better by 31 power" is a comparison, and there is
+ * nothing to compare against.
+ */
+export type SwapVerdict = 'upgrade' | 'downgrade' | 'sidegrade' | 'newSlot';
+
+export interface StatSwap {
+  stat: StatId;
+  from: number;
+  to: number;
+}
+
+export interface GearComparison {
+  verdict: SwapVerdict;
+  /** Signed change in Power Level if the swap happens. */
+  powerDelta: number;
+  /** Only the stats that actually move. */
+  swaps: StatSwap[];
+}
+
+/**
+ * The one answer to "is this better?", wherever it is asked.
+ *
+ * Every surface that shows a piece of gear needs the same verdict — the
+ * tooltip, the marker on a bag slot, the shop row — and three surfaces each
+ * deciding for themselves is three chances to disagree in front of the player.
+ * Pass `null` for an empty socket.
+ */
+export function compareGear(candidate: ItemInstance, worn: ItemInstance | null): GearComparison {
+  const next = itemStats(candidate);
+  const current = worn ? itemStats(worn) : null;
+
+  const swaps: StatSwap[] = [];
+  for (const stat of STAT_IDS) {
+    const to = next[stat];
+    const from = current ? current[stat] : 0;
+    if (to !== from) swaps.push({ stat, from, to });
+  }
+
+  const powerDelta = itemPower(candidate) - (worn ? itemPower(worn) : 0);
+  const verdict: SwapVerdict = !worn
+    ? 'newSlot'
+    : powerDelta > 0
+      ? 'upgrade'
+      : powerDelta < 0
+        ? 'downgrade'
+        : 'sidegrade';
+
+  return { verdict, powerDelta, swaps };
+}
+
+/** True when wearing this would raise the hero's Power Level. */
+export function isUpgrade(comparison: GearComparison): boolean {
+  return comparison.verdict === 'upgrade' || comparison.verdict === 'newSlot';
+}
 
 export function itemName(item: ItemInstance): string {
   return t(requireItemDef(item.defId).nameKey as StringKey);
@@ -71,67 +131,87 @@ export interface ItemTooltipOptions {
   /** Marked as the piece currently worn in that slot. */
   worn?: boolean;
   /**
-   * The piece already worn in this item's slot. When given, the card ends with
-   * what changes if this one goes on instead — which is the question a player
-   * hovering a drop is actually asking. Pass `null` for an empty slot; leave it
-   * out entirely when there is nothing to compare against (a shop's sell list,
-   * the gacha reveal).
+   * The piece already worn in this item's slot. When given, the card **leads**
+   * with what changes if this one goes on instead — which is the question a
+   * player hovering a drop is actually asking, and the one the first pass
+   * answered last, under the piece's own stats, in deltas with no context. Pass
+   * `null` for an empty socket; leave it out entirely when there is nothing to
+   * compare against (a shop's sell list, the gacha reveal).
    */
   compareTo?: ItemInstance | null;
   /** Action line pinned to the bottom, e.g. "Click to inspect". */
   hint?: string;
 }
 
-/** The full stat block, as the game's only tooltip (Brief §20.4). */
+/** The verdict line's words and colour, from a comparison. */
+function verdictRow(comparison: GearComparison, slot: string): TooltipStat {
+  const { verdict, powerDelta } = comparison;
+  const signed = powerDelta > 0 ? `+${powerDelta}` : String(powerDelta);
+
+  if (verdict === 'newSlot') {
+    return {
+      label: t('item.compare.empty'),
+      value: t('item.compare.power', { delta: `+${powerDelta}` }),
+      tone: 'good',
+    };
+  }
+  if (verdict === 'sidegrade') {
+    return { label: t('item.compare.sidegrade'), value: slot, tone: 'plain' };
+  }
+  return {
+    label: t(verdict === 'upgrade' ? 'item.compare.upgrade' : 'item.compare.downgrade'),
+    value: t('item.compare.power', { delta: signed }),
+    tone: verdict === 'upgrade' ? 'good' : 'bad',
+  };
+}
+
+/**
+ * The full stat block, as the game's only tooltip (Brief §20.4).
+ *
+ * When there is something to compare against, the card is *about the swap*: the
+ * verdict first, then each stat that moves written as `24 → 31` rather than as a
+ * bare delta. Printing the piece's own stats as well would say every number
+ * twice — the right-hand side of each arrow already is the piece's stat.
+ */
 export function itemTooltip(item: ItemInstance, options: ItemTooltipOptions = {}): TooltipOptions {
   const def = requireItemDef(item.defId);
+  const slotLabel = t(`slot.${def.slot}` as StringKey);
   const requires: string[] = [];
   if (options.worn) requires.push(t('item.equipped'));
 
-  const stats: TooltipStat[] = [
-    ...itemStatRows(item),
+  // `compareTo` is absent when there is no socket in play at all; `null` means
+  // the socket is there and empty, which is a comparison with a known answer.
+  const comparing = options.compareTo !== undefined && !options.worn;
+  const comparison = comparing ? compareGear(item, options.compareTo ?? null) : null;
+
+  const stats: TooltipStat[] = [];
+
+  if (comparison) {
+    stats.push(verdictRow(comparison, slotLabel));
+    for (const swap of comparison.swaps) {
+      stats.push({
+        label: t(`stat.${swap.stat}` as StringKey),
+        value: t('item.compare.swap', { from: swap.from, to: swap.to }),
+        tone: swap.to > swap.from ? 'good' : 'bad',
+      });
+    }
+  } else {
+    stats.push(...itemStatRows(item));
+  }
+
+  stats.push(
     { label: t('item.levelFull', { level: item.level, max: GEAR_LEVEL_MAX }), value: '' },
     { label: t('item.ascension', { stars: item.ascension, max: GEAR_ASCENSION_MAX }), value: '' },
-  ];
-
-  // Only worth printing against something. For an empty slot the stats above
-  // already *are* the gain, and repeating them under a heading is noise.
-  if (options.compareTo && !options.worn) {
-    stats.push(...comparisonRows(item, options.compareTo));
-  }
+  );
 
   return {
     title: itemName(item),
     rarity: item.rarity,
     subtitle: t(`rarity.${item.rarity}` as StringKey),
-    slotLabel: t(`slot.${def.slot}` as StringKey),
+    slotLabel,
     stats,
     ...(requires.length > 0 ? { requires } : {}),
     ...(options.showSellValue ? { price: sellValue(item) } : {}),
     ...(options.hint ? { hint: options.hint } : {}),
   };
-}
-
-/**
- * "If you wear this instead" — one row per stat that would move, signed and
- * coloured. Nothing is printed when the swap changes nothing, because a wall of
- * zeroes is worse than silence.
- */
-function comparisonRows(item: ItemInstance, worn: ItemInstance): TooltipStat[] {
-  const next = itemStats(item);
-  const current = itemStats(worn);
-
-  const rows: TooltipStat[] = [];
-  for (const stat of STAT_IDS) {
-    const delta = next[stat] - current[stat];
-    if (delta === 0) continue;
-    rows.push({
-      label: t(`stat.${stat}` as StringKey),
-      value: delta > 0 ? `+${delta}` : String(delta),
-      tone: delta > 0 ? 'good' : 'bad',
-    });
-  }
-  if (rows.length === 0) return [];
-
-  return [{ label: t('item.vsEquipped'), value: '' }, ...rows];
 }

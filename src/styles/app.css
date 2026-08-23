@@ -1026,36 +1026,318 @@ body > .fui-tooltip .fui-tooltip__price {
   margin-bottom: 10px;
 }
 
+/**
+ * The floor preview.
+ *
+ * The panel is tall and was laid out as if it were short: everything centred in
+ * the middle with a hand's width of nothing above and below it. It is a column
+ * now — who is fighting, the numbers they are fighting with, what the floor
+ * throws in — and the middle section takes the slack, so the button stays where
+ * the eye expects it at any height.
+ */
 .omf-tower__preview {
   display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* --- who is fighting --- */
+.omf-tower__matchup {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 8px;
+}
+
+.omf-tower__face {
+  display: flex;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 5px;
   text-align: center;
 }
 
-.omf-tower__preview-title {
-  margin: 0;
-  font-size: 1.15rem;
+.omf-tower__face-name {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 0.92rem;
+  line-height: 1.25;
 }
 
-.omf-tower__stats {
+.omf-tower__face-note {
+  font-size: 0.76rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-tower__vs-mark {
+  align-self: center;
+  padding-top: 26px;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  color: var(--fui-ink-faint);
+}
+
+/* --- the numbers both sides bring --- */
+.omf-tower__compare {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  /* The rows share out the panel's slack rather than clustering in the middle of
+     it — five rows and a band of nothing above and below reads as a bug. */
+  justify-content: space-evenly;
+  gap: 9px;
+  padding: 12px 12px 14px;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 26%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 7%);
+}
+
+.omf-tower__compare-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+}
+
+.omf-tower__compare-side {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fui-ink-dim);
+}
+
+.omf-tower__compare-side:last-child {
+  text-align: right;
+}
+
+.omf-tower__compare-title {
+  color: var(--fui-accent-soft);
+}
+
+/**
+ * One stat, both sides, one bar.
+ *
+ * A tug-of-war rather than two bars: each row is normalised against its own
+ * pair, so health — where the numbers differ by an order of magnitude — reads
+ * exactly as clearly as speed, where they differ by two. The numbers stay
+ * printed either side, because a bar is an impression and a fight is decided by
+ * arithmetic.
+ */
+.omf-tower__cmp {
+  display: grid;
+  grid-template-columns: 3.6em 1fr 3.6em;
+  align-items: baseline;
+  gap: 8px;
+  cursor: default;
+}
+
+.omf-tower__cmp-label {
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: var(--fui-ink-dim);
+}
+
+.omf-tower__cmp-mine,
+.omf-tower__cmp-theirs {
+  font-size: 0.86rem;
+  color: var(--fui-ink-dim);
+}
+
+.omf-tower__cmp-theirs {
+  text-align: right;
+}
+
+/* Only the side that is actually ahead is lit. Colouring both makes the row a
+   decoration; colouring one makes it a verdict. */
+.omf-tower__cmp[data-lead='you'] .omf-tower__cmp-mine {
+  font-weight: 700;
+  color: var(--fui-success, #7bd88f);
+}
+
+.omf-tower__cmp[data-lead='them'] .omf-tower__cmp-theirs {
+  font-weight: 700;
+  color: var(--fui-danger, #d9705f);
+}
+
+.omf-tower__cmp-bar {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  height: 5px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--fui-danger, #d9705f) 62%, transparent);
+}
+
+.omf-tower__cmp-fill {
+  display: block;
+  width: var(--omf-share, 50%);
+  height: 100%;
+  border-radius: 3px 0 0 3px;
+  background: color-mix(in srgb, var(--fui-success, #7bd88f) 72%, transparent);
+}
+
+/* --- what clearing it is worth --- */
+.omf-tower__pays {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: default;
+}
+
+.omf-tower__pays-row {
+  display: flex;
   gap: 6px;
 }
 
-.omf-tower__modifier,
+.omf-tower__pays-row .fui-chip {
+  flex: 1;
+  justify-content: center;
+}
+
+/* --- what the floor throws in --- */
+.omf-tower__threats {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
 .omf-tower__effects-label {
   margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.8;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--fui-accent-soft);
 }
 
 .omf-tower__modifier {
+  margin: 0;
+  font-size: 0.85rem;
   color: var(--fui-gold, #d8b26a);
-  opacity: 1;
+}
+
+.omf-tower__effects-none {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--fui-ink-faint);
+}
+
+/* An icon with no name beside it is a puzzle, and the whole reason for stating
+   this before the fight is that the player can act on it. */
+.omf-tower__threat {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: default;
+}
+
+.omf-tower__threat .fui-buffs {
+  flex: none;
+}
+
+.omf-tower__threat-name {
+  font-size: 0.85rem;
+  color: var(--fui-ink-dim);
+}
+
+/**
+ * You are here.
+ *
+ * Twenty identical numbered discs give a player nothing to find themselves by,
+ * and the hero's own face is the fastest possible answer. It sits on the disc
+ * rather than beside it so the path still reads as a path.
+ */
+.omf-tower__here {
+  position: absolute;
+  right: -10px;
+  bottom: -10px;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--fui-gold, #d8b26a);
+  border-radius: 50%;
+  background: center 22% / cover no-repeat;
+  box-shadow:
+    0 0 12px rgb(0 0 0 / 70%),
+    0 0 14px color-mix(in srgb, var(--fui-gold, #d8b26a) 55%, transparent);
+  pointer-events: none;
+}
+
+/* A boss floor should be visible from the bottom of the screen, not only once
+   you are standing under it. */
+.omf-tower__trail .omf-tower__boss .fui-trail__disc {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--fui-gold, #d8b26a) 70%, transparent),
+    0 0 18px rgb(0 0 0 / 65%);
+}
+
+.omf-tower__trail .omf-tower__boss .fui-trail__num {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-tower__trail .omf-tower__boss .fui-trail__note {
+  color: var(--fui-gold, #d8b26a);
+}
+
+/* --- Gear that beats what you are wearing --------------------------------- */
+
+/**
+ * The upgrade mark.
+ *
+ * A twenty-slot bag means twenty hovers to find the one piece worth wearing,
+ * and a player who has to do that stops doing it. The mark is the same verdict
+ * the tooltip leads with (`compareGear`), said without being asked — a green
+ * chevron in the corner of the slot, and a lit edge so a full bag can be read
+ * at a glance rather than slot by slot.
+ */
+.omf-upgrade {
+  position: relative;
+}
+
+.fui-inv .omf-upgrade {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fui-success, #7bd88f) 60%, transparent);
+}
+
+.omf-upgrade__mark {
+  position: absolute;
+  z-index: 4;
+  top: -5px;
+  right: -5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #8fe0a2, #3f9c5c);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 70%);
+  pointer-events: none;
+}
+
+/* The chevron is drawn rather than iconised: at 15px an asset is a smudge, and
+   this is the one shape a triangle can only be. */
+.omf-upgrade__mark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 0;
+  height: 0;
+  border-right: 4px solid transparent;
+  border-bottom: 6px solid #082010;
+  border-left: 4px solid transparent;
+}
+
+/* A shop row has room to say it in words, so it gets a wash rather than a badge
+   — the word "Upgrade" is already on the row's own detail line. A wash and not
+   an edge: `ItemCard` paints its own rarity edge in the same property, and the
+   two would take turns winning. */
+.fui-shop__list .omf-upgrade {
+  background: color-mix(in srgb, var(--fui-success, #7bd88f) 9%, transparent);
 }
 
 /* --- Character screen (Brief §6/§9/§10, UI_FANTASYUI_MAP §4) -------------- */

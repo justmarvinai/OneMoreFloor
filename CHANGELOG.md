@@ -5,6 +5,51 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Changed — the tower, and telling good gear from bad
+
+- **The floor preview answers the question the screen exists to ask.** It listed
+  the enemy's five stats and stopped, which is half an answer — a number means
+  nothing without the number it is measured against. Standing on a floor, the
+  player is asking *can I take this?*, so both sides of the fight are now next to
+  each other: the matchup at the top, then a stat-by-stat comparison with a
+  tug-of-war bar per stat, normalised against its own pair so health reads as
+  clearly as speed. Only the side that is actually ahead is coloured; colouring
+  both makes the row a decoration, colouring one makes it a verdict.
+- **What a floor pays, before the fight.** A boss is several floors' pay in one
+  go and nothing said so until the aftermath. The figures come from the reward
+  curves with the dice left out, so the preview can never drift from what the
+  floor actually hands over.
+- **Floor effects are named.** "This floor imposes" was a row of unlabelled
+  squares, which is a puzzle — and the whole point of stating it before the fight
+  is that the player can act on it. Each effect now sits beside its own name,
+  with the full card on hover.
+- **The trail says where you are and what is dangerous.** It keeps its identity —
+  stone wall, winding path, numbered discs — and gains the two things it could
+  not say for itself: your hero's own face on the disc they are standing on, and
+  a gold ring on boss floors, so a boss is visible from the bottom of the screen
+  rather than only once you are under it. Band captions now state a range
+  ("Floors 1–14") instead of the band's first floor, which read as a floor
+  number and was simply confusing.
+- **A gear tooltip leads with the verdict.** The comparison used to be printed
+  *last*, under the piece's own stats, as bare deltas — and only when the socket
+  was already occupied, so the commonest case (an empty socket) showed nothing
+  at all. Now the first line under the item's name says Upgrade, Worse,
+  Sidegrade or "Nothing worn there", and by how much power; every stat that moves
+  is written as `24 → 31` rather than as a delta with no context.
+- **Upgrades are marked without hovering.** A twenty-slot bag meant twenty hovers
+  to find the one piece worth wearing, and a player who has to do that stops
+  doing it. A bag slot that beats what is worn now carries a chevron, and a
+  merchant's shelf row says "Upgrade" on its own line. All three surfaces read
+  one function (`compareGear`) over one measure (`itemPower`), so they cannot
+  disagree with each other in front of the player.
+
+### Fixed
+
+- The smoke suite's fight helper matched the Quick-Raid split button's caret
+  ("More fight floor 1 options") as well as the button that starts the fight, so
+  any test that reached the tower with cleared floors below it failed on a strict
+  locator. Anchored.
+
 ### Changed — the rail
 
 - **The sidebar says what it knows.** It is the only thing on screen at all

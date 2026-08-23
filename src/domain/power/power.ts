@@ -46,6 +46,19 @@ function gearScore(equipped: readonly ItemInstance[]): number {
   return equipped.reduce((total, item) => total + affixBudget(item) * upgradeMultiplier(item), 0);
 }
 
+/**
+ * One piece's contribution to Power Level, in the units the game prints.
+ *
+ * This is the same arithmetic `gearScore` does per item, weighted and rounded so
+ * the figure means the same thing as the number on the rail: swap a piece that
+ * scores 40 for one that scores 58 and the hero's Power Level rises by 18. It
+ * exists so "is this better?" has *one* answer everywhere it is asked — the
+ * tooltip, the upgrade marker on a bag slot, and the shop row all read it.
+ */
+export function itemPower(item: ItemInstance): number {
+  return Math.round(affixBudget(item) * upgradeMultiplier(item) * POWER_WEIGHTS.gear);
+}
+
 function statScore(stats: StatBlock): number {
   const sum = STAT_IDS.reduce((total, stat) => total + stats[stat], 0);
   return sum * POWER_STAT_SCALE;

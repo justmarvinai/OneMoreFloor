@@ -87,6 +87,20 @@ export function bandForFloor(floor: number): FloorBand {
   return current;
 }
 
+/**
+ * The floors a band covers, as `[from, to]`. `to` is `null` for the last band,
+ * which runs to the top of an endless tower (§1).
+ *
+ * A band declares only where it begins — it runs until the next one starts —
+ * so anything that wants to *say* how far a band reaches has to look at its
+ * neighbour. Doing that here keeps the arithmetic beside the data it depends on
+ * rather than in whichever screen last needed a caption.
+ */
+export function bandRange(band: FloorBand): [number, number | null] {
+  const next = FLOOR_BANDS.find((candidate) => candidate.from > band.from);
+  return [band.from, next ? next.from - 1 : null];
+}
+
 /** Every tenth floor is a Boss Floor (Brief §3.1). */
 export function isBossFloor(floor: number): boolean {
   return floor > 0 && floor % 10 === 0;

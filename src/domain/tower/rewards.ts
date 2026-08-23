@@ -87,6 +87,37 @@ function droppableSlots(ascension: AscensionTier): Set<string> {
   ]);
 }
 
+/** What a floor is worth, before luck touches it — for the pre-fight preview. */
+export interface FloorRewardEstimate {
+  /** Gold at the middle of the variance band. */
+  gold: number;
+  /** XP at the middle of the variance band. */
+  xp: number;
+  /** Chance the floor drops a piece of equipment at all, 0–1. */
+  itemChance: number;
+}
+
+/**
+ * The same curves `rollFloorReward` uses, with the dice left out.
+ *
+ * A player deciding whether a boss is worth the walk wants a figure, and the
+ * only honest figure before the roll is its middle: the variance band is
+ * symmetrical (§ balance/rewards), so the midpoint *is* the expectation. It
+ * lives here rather than in the screen so the preview can never drift from what
+ * the floor actually pays — one curve, two callers.
+ */
+export function floorRewardEstimate(floor: number, isBoss: boolean): FloorRewardEstimate {
+  const multiplier = isBoss ? BOSS_REWARD_MULTIPLIER : 1;
+  return {
+    gold: Math.max(
+      1,
+      Math.round(evaluate({ kind: 'exponential', ...FLOOR_GOLD }, floor) * multiplier),
+    ),
+    xp: Math.max(1, Math.round(evaluate({ kind: 'exponential', ...FLOOR_XP }, floor) * multiplier)),
+    itemChance: isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : EQUIPMENT_DROP_CHANCE,
+  };
+}
+
 export function rollFloorReward(input: RollRewardInput): FloorReward {
   const { floor, isBoss, bracket, rng } = input;
   const multiplier = isBoss ? BOSS_REWARD_MULTIPLIER : 1;
