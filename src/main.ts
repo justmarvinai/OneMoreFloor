@@ -503,7 +503,10 @@ export async function boot(mount: HTMLElement): Promise<void> {
             active: 'records',
             onSwitch: leaveCharacter,
             onNavigate: goTo,
-            main: createRecordsScreen({ character: requireCharacter() }),
+            main: createRecordsScreen({
+              character: requireCharacter(),
+              account: store.get().account!,
+            }),
           }),
 
         upgrades: () =>

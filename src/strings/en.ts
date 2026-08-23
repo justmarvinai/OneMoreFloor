@@ -492,6 +492,31 @@ export const en = {
   'records.best': 'Best ever',
   'records.runsHint': 'The last {count} runs, newest first.',
 
+  // The bestiary: what the account has met, and what it has not.
+  'bestiary.title': 'Bestiary',
+  'bestiary.hint': '{seen} of {total} met. What the account has seen stays seen.',
+  'bestiary.unknown': '?????',
+  'bestiary.unknownTip':
+    'Nothing has met this one yet. Climb to floors {from}–{to} and it will name itself.',
+  'bestiary.unknownTipOpen': 'Nothing has met this one yet. It waits from floor {from} upward.',
+  'bestiary.killsLabel': 'slain',
+  'bestiary.floors': 'Floors {from}–{to}',
+  'bestiary.floorsOpen': 'Floor {from} and above',
+  'bestiary.floorsLabel': 'Found on',
+  'bestiary.boss': 'Gatekeeper',
+  'bestiary.slain': 'Slain',
+  'bestiary.inflicts': 'Inflicts',
+
+  // Enemy families, named for the first time by the bestiary.
+  'family.vermin': 'Vermin',
+  'family.brigand': 'Brigands',
+  'family.beast': 'Beasts',
+  'family.construct': 'Constructs',
+  'family.arcane': 'Arcane',
+  'family.undead': 'Undead',
+  'family.infernal': 'Infernal',
+  'family.aberration': 'Aberrations',
+
   // --- Auto-climb (Q32) ---
   'tower.auto.label': 'Auto-climb',
   'tower.auto.off': 'Off',

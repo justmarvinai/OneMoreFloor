@@ -11,22 +11,27 @@
  * question — *what have I actually seen?* — and a rail entry per list would be
  * two destinations that a player always visits together.
  */
-import { OrnateHeader, Panel, StatChip, h } from '@/ui/fui/index.ts';
+import { OrnateHeader, Panel, Portrait, StatChip, h } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { commas } from '@/ui/fui/index.ts';
 import { RUN_HISTORY_LIMIT } from '@/domain/tower/run.ts';
-import { getEnemy } from '@/content/enemies/index.ts';
-import type { Character } from '@/domain/character/types.ts';
+import { FAMILY_NAMES, getEnemy } from '@/content/enemies/index.ts';
+import { bestiaryEntries, bestiaryProgress } from '@/domain/account/bestiary.ts';
+import type { BestiaryEntry } from '@/domain/account/bestiary.ts';
+import type { Account, Character } from '@/domain/character/types.ts';
 import type { Screen } from '@/app/router.ts';
+import { effectTooltip } from '@/ui/combat/effectChips.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
 export interface RecordsScreenOptions {
   character: Character;
+  /** The bestiary belongs to the account, not to the hero standing in it (Q4). */
+  account: Account;
 }
 
 export function createRecordsScreen(options: RecordsScreenOptions): Screen {
-  const { character } = options;
+  const { character, account } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -106,11 +111,115 @@ export function createRecordsScreen(options: RecordsScreenOptions): Screen {
     }),
   );
 
+  /**
+   * One creature, met or not.
+   *
+   * An unmet entry keeps its portrait — greyed, through `Portrait`'s own
+   * `inactive` — and loses its name, because the silhouette is the invitation
+   * and the name is the reward. Its floors stay visible either way: a bestiary
+   * that will not say *where* is a list of things you cannot go and find.
+   */
+  const beastCard = (entry: BestiaryEntry): HTMLElement => {
+    const { def, seen, kills, isBoss } = entry;
+    const [from, to] = def.floors;
+    // A boss's range is its one floor, and the last authored gate keeps standing
+    // for every gate above it, so the deepest ones read as open-ended.
+    const open = to >= 100;
+    const floors = open ? t('bestiary.floorsOpen', { from }) : t('bestiary.floors', { from, to });
+    const name = seen ? t(def.nameKey) : t('bestiary.unknown');
+
+    const portrait = track(
+      new Portrait({
+        art: def.avatar,
+        shape: 'square',
+        size: 64,
+        fit: 'cover',
+        inactive: !seen,
+      }),
+    );
+
+    const card = h(
+      'li',
+      {
+        class: 'omf-records__beast',
+        dataset: { testid: `beast-${def.id}`, seen: String(seen), boss: String(isBoss) },
+      },
+      h('div', { class: 'omf-records__beast-art' }, portrait.el),
+      h(
+        'div',
+        { class: 'omf-records__beast-text' },
+        h('span', { class: 'omf-records__beast-name fui-title', text: name }),
+        h('span', {
+          class: 'omf-records__beast-family',
+          text: isBoss ? t('bestiary.boss') : t(FAMILY_NAMES[def.family]),
+        }),
+        h('span', { class: 'omf-records__beast-floors', text: floors }),
+      ),
+      ...(seen
+        ? [
+            h(
+              'span',
+              { class: 'omf-records__beast-kills fui-num' },
+              h('span', { text: commas(kills) }),
+              h('span', {
+                class: 'omf-records__beast-kills-label',
+                text: t('bestiary.killsLabel'),
+              }),
+            ),
+          ]
+        : []),
+    );
+
+    if (seen) {
+      // The debuff's own sentence rather than its name: "Spite" tells a player
+      // nothing they can plan around, and this card is where planning happens.
+      const debuff = def.playerDebuff ? effectTooltip(def.playerDebuff) : null;
+      setTip(card, {
+        title: t(def.nameKey),
+        subtitle: isBoss ? t('bestiary.boss') : t(FAMILY_NAMES[def.family]),
+        stats: [
+          { label: t('bestiary.floorsLabel'), value: floors },
+          { label: t('bestiary.slain'), value: commas(kills) },
+          ...(debuff?.title
+            ? [{ label: t('bestiary.inflicts'), value: debuff.title, tone: 'bad' as const }]
+            : []),
+        ],
+        ...(debuff?.flavor ? { flavor: debuff.flavor } : {}),
+      });
+    } else {
+      setTip(
+        card,
+        open ? t('bestiary.unknownTipOpen', { from }) : t('bestiary.unknownTip', { from, to }),
+      );
+    }
+
+    return card;
+  };
+
+  const met = bestiaryProgress(account);
+  const bestiaryPanel = track(
+    new Panel({
+      title: t('bestiary.title'),
+      subtitle: t('bestiary.hint', { seen: met.seen, total: met.total }),
+      variant: 'default',
+      width: '100%',
+      height: '100%',
+      scroll: true,
+      content: [
+        h(
+          'ul',
+          { class: 'omf-records__beasts', dataset: { testid: 'bestiary' } },
+          ...bestiaryEntries(account).map(beastCard),
+        ),
+      ],
+    }),
+  );
+
   const el = h(
     'div',
     { class: 'omf-records', dataset: { fuiTheme: 'stone-vine', testid: 'records' } },
     track(new OrnateHeader({ title: t('records.title'), subtitle: t('records.subtitle') })).el,
-    h('div', { class: 'omf-records__body' }, runsPanel.el),
+    h('div', { class: 'omf-records__body' }, runsPanel.el, bestiaryPanel.el),
   );
 
   return {

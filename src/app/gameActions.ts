@@ -58,6 +58,7 @@ import {
 import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
+import { recordKills } from '@/domain/account/bestiary.ts';
 import {
   canPull,
   pull,
@@ -181,6 +182,26 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     ];
   }
 
+  /**
+   * Write what the hero killed into the account's bestiary.
+   *
+   * Only cleared floors count — an enemy that killed you is one you met, but a
+   * bestiary that fills up from losing would be a list of what has beaten you.
+   * Kills belong to the account rather than the character (Q4): what a player
+   * has seen of the tower is knowledge, and a reset does not unlearn it.
+   */
+  async function recordSightings(floors: readonly FloorResult[]): Promise<void> {
+    const account = store.get().account;
+    if (!account) return;
+
+    const killed = floors.filter((floor) => floor.cleared).map((floor) => floor.generated.enemy.id);
+    const updated = recordKills(account, killed);
+    if (updated === account) return;
+
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
+  }
+
   /** The bag's size right now — an account upgrade, so it is read, not assumed. */
   function capacity(): number {
     return backpackCapacity(store.get().account ?? { backpackSlots: 0 });
@@ -247,6 +268,7 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const result = fightFloor(active(), floor, clock().now());
       const character = withQuests(result.character, floorEvents(result));
       await commit(character);
+      await recordSightings([result]);
       return { ...result, character };
     },
 
@@ -270,6 +292,8 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const events = result.floors.flatMap(floorEvents);
       const character = withQuests(result.character, events);
       await commit(character);
+      // One account write for the whole raid rather than one per floor.
+      await recordSightings(result.floors);
       return { ...result, character };
     },
 

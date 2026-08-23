@@ -1433,6 +1433,29 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
 });
 
+test('the bestiary fills in as the tower is met, and keeps its gaps', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Nothing met yet: every entry is a gap, and a gap does not give its name away.
+  await goToSection(page, 'Records');
+  const bestiary = page.locator('[data-testid="bestiary"]');
+  await expect(bestiary).toBeVisible();
+  await expect(bestiary.locator('[data-seen="true"]')).toHaveCount(0);
+  await expect(bestiary.locator('[data-seen="false"]').first()).toContainText('?????');
+
+  // Four floors is four kills, and the roster starts naming itself.
+  await goToSection(page, 'Tower');
+  await climb(page, 4);
+  await goToSection(page, 'Records');
+  const met = bestiary.locator('[data-seen="true"]');
+  expect(await met.count(), 'four floors met nothing').toBeGreaterThan(0);
+  await expect(met.first()).toContainText(/slain/i);
+  // And the tower it has not seen is still shown, because the gaps are the point.
+  expect(await bestiary.locator('[data-seen="false"]').count()).toBeGreaterThan(0);
+});
+
 test('a finished run becomes a line in the records, and the record gets a ghost', async ({
   page,
 }) => {

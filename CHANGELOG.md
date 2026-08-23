@@ -7,6 +7,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **A bestiary, on the Records screen.** Every authored creature has an entry
+  from the first visit, and an unmet one shows as a gap rather than being absent:
+  a list that grows out of nothing says nothing about how much tower is left, and
+  the gaps are the reason to keep climbing. What a gap withholds is the name —
+  that is the reward for the first kill — while its family and the floors it
+  lives on stay visible, because a bestiary that will not say *where* is a list of
+  things you cannot go and find. Kills belong to the **account**, so a hero's
+  reset does not unlearn what the player has seen.
 - **Milestone rewards every 25 floors.** A floor whose number divides by 25 pays
   a chest on top of its ordinary reward — gold and XP many times a normal
   floor's, a fistful of materials, and a lucky ticket every fourth one. It is

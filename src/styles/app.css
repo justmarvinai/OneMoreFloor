@@ -1311,11 +1311,31 @@ body > .fui-tooltip .fui-tooltip__price {
   box-sizing: border-box;
 }
 
+/**
+ * Runs on the left, the bestiary on the right.
+ *
+ * The two lists answer the same question from opposite ends — *how far have I
+ * got* and *what is up there* — so they share a screen; they get their own
+ * columns rather than stacking because a run list is short and wide and a
+ * bestiary is long and narrow, and stacked they would each waste the other's
+ * space. `minmax(0, …)` on both so a long enemy name cannot push the grid wider
+ * than the frame.
+ */
 .omf-records__body {
   display: grid;
   flex: 1;
   min-height: 0;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   gap: var(--omf-gap);
+}
+
+/* Below a wide desktop the pair stacks: two narrow columns squeeze the run
+   lines into ellipses and the bestiary into a single file. */
+@media (width <= 1500px) {
+  .omf-records__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
 }
 
 .omf-records__best {
@@ -1349,7 +1369,7 @@ body > .fui-tooltip .fui-tooltip__price {
  */
 .omf-records__run {
   display: grid;
-  grid-template-columns: 6.5em minmax(0, 1fr) 7em 6em;
+  grid-template-columns: 6.5em minmax(0, 1fr) auto auto;
   align-items: baseline;
   gap: 12px;
   padding: 7px 10px;
@@ -2709,4 +2729,110 @@ body > .fui-tooltip .fui-tooltip__price {
   margin: 0;
   max-width: 46ch;
   opacity: 0.8;
+}
+
+/* --- The bestiary -------------------------------------------------------- */
+
+/**
+ * One card per creature, met or not.
+ *
+ * `auto-fill` rather than `auto-fit`: an almost-empty bestiary should read as a
+ * grid with gaps in it, not as two cards stretched across the panel — the shape
+ * of what is still missing is the point of the screen.
+ */
+.omf-records__beasts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.omf-records__beast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 22%);
+}
+
+/* A gatekeeper is a different kind of thing, and the frame says so. */
+.omf-records__beast[data-boss='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 42%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 34%), rgb(0 0 0 / 26%));
+}
+
+/* Unmet: the silhouette is the invitation, so it stays — quietly. */
+.omf-records__beast[data-seen='false'] {
+  border-style: dashed;
+  border-color: rgb(255 255 255 / 8%);
+  background: rgb(0 0 0 / 12%);
+}
+
+.omf-records__beast-art {
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.omf-records__beast[data-seen='false'] .omf-records__beast-art {
+  opacity: 0.5;
+}
+
+.omf-records__beast-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.omf-records__beast-name {
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fui-ink);
+}
+
+.omf-records__beast[data-seen='false'] .omf-records__beast-name {
+  letter-spacing: 0.22em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-records__beast-family {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+}
+
+.omf-records__beast[data-boss='true'] .omf-records__beast-family {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-records__beast-floors {
+  font-size: 0.7rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-records__beast-kills {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 0.92rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-records__beast-kills-label {
+  font-family: var(--fui-font-ui);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
 }
