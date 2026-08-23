@@ -2150,9 +2150,12 @@ body > .fui-tooltip .fui-tooltip__price {
   overflow-y: auto;
 }
 
+/* Three cards since Q30 added the backpack. `auto-fit` rather than a fixed
+   three, so the rack still reads on a narrow window and would take a fourth
+   without a second edit here. */
 .omf-upgrades__cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--omf-gap);
   align-items: start;
 }

@@ -46,7 +46,7 @@ import {
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { potionFor } from '@/content/items/potions.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+import { backpackCapacity } from '@/domain/character/account.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { equippedItems, totalStatsOf } from '@/domain/character/character.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
@@ -418,8 +418,9 @@ export function createShell(options: ShellOptions): Shell {
     );
 
     const used = current.inventory.length;
-    const full = used >= INVENTORY_CAPACITY;
-    bagChip.set(`${used} / ${INVENTORY_CAPACITY}`);
+    const capacity = backpackCapacity(store.get().account ?? { backpackSlots: 0 });
+    const full = used >= capacity;
+    bagChip.set(`${used} / ${capacity}`);
     bagChip.el.dataset.tone = full ? 'bad' : 'neutral';
     setTip(
       bagChip.el,
@@ -427,8 +428,8 @@ export function createShell(options: ShellOptions): Shell {
         ? t('rail.bagFullTip')
         : t('rail.bagTip', {
             used,
-            capacity: INVENTORY_CAPACITY,
-            free: INVENTORY_CAPACITY - used,
+            capacity,
+            free: capacity - used,
           }),
     );
 

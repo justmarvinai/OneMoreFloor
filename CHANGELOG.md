@@ -5,6 +5,27 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Added
+
+- **Backpack size is an account upgrade.** 20 sockets up to 50, in steps of
+  five, bought with gold from the playing character's purse like the other two
+  and kept by the account through a reset. §15 said "exactly two account
+  upgrades, do not add more"; the owner asked for a third and the decision is
+  recorded as Q30 in `USER_QUESTIONS.md` rather than folded in silently. What
+  that brief line was protecting still holds: the upgrade kind is a closed union,
+  so a fourth cannot appear without an edit in one file and a line in the ledger.
+
+### Changed
+
+- Save schema **v6**. One bump carries the whole polish round's new state:
+  accounts gained a backpack size and a bestiary; characters gained saved
+  loadouts, a rite wish list, curses, and — inside `tower` — milestones claimed,
+  run history, the auto-climb mode and the run's running totals. Every default is
+  the honest one for a save that predates the feature: nothing is guessed, and a
+  returning player's next milestone is waiting rather than already spent.
+- The backpack's size is passed to the code that enforces it rather than read
+  from a constant, so every call site says *which* bag it means.
+
 ### Changed — the drop economy
 
 - **The tower pays in currency; gear is an event.** Equipment fell on about a

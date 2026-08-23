@@ -35,6 +35,8 @@ import { t } from '@/strings/index.ts';
 
 export interface GachaScreenOptions {
   character: Character;
+  /** Backpack size, since a full bag refuses a rite (Q16). */
+  capacity: number;
   onPull: (banner: BannerId) => void;
 }
 
@@ -44,7 +46,7 @@ export interface GachaScreen {
 }
 
 export function createGachaScreen(options: GachaScreenOptions): GachaScreen {
-  const { character, onPull } = options;
+  const { character, capacity, onPull } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -71,7 +73,7 @@ export function createGachaScreen(options: GachaScreenOptions): GachaScreen {
 
   function card(banner: BannerConfig): HTMLElement {
     const held = currencyHeld(character, banner.id);
-    const refusal = canPull(character, banner.id);
+    const refusal = canPull(character, banner.id, capacity);
     const currency = t(`currency.${banner.currency}`);
 
     const pull = track(

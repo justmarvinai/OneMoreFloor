@@ -60,11 +60,15 @@ export function currencyHeld(character: Character, banner: BannerId): number {
   return character.currencies[bannerConfig(banner).currency];
 }
 
-export function canPull(character: Character, banner: BannerId): true | PullRefusal {
+export function canPull(
+  character: Character,
+  banner: BannerId,
+  capacity: number,
+): true | PullRefusal {
   if (currencyHeld(character, banner) < 1) return 'noCurrency';
   // Gear has to land somewhere, and a pull that quietly evaporated would be the
   // worst possible way to spend the rarest currency in the game (Q16).
-  if (isFull(character)) return 'backpackFull';
+  if (isFull(character, capacity)) return 'backpackFull';
   return true;
 }
 

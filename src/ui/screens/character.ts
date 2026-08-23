@@ -32,7 +32,7 @@ import {
 } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+
 import { potionFor } from '@/content/items/potions.ts';
 import { statReadouts } from '@/domain/combat/readouts.ts';
 import {
@@ -84,6 +84,8 @@ const SLOT_LAYOUT: Readonly<Record<EquipSlotId, 'left' | 'right' | 'bottom'>> = 
 };
 
 export interface CharacterScreenOptions {
+  /** Backpack size — an account upgrade, so the screen is told rather than assuming. */
+  capacity: number;
   character: Character;
   /** Wall-clock time, for potion timers (Q9). */
   now: number;
@@ -102,7 +104,8 @@ export interface CharacterScreen {
 }
 
 export function createCharacterScreen(options: CharacterScreenOptions): CharacterScreen {
-  const { character, now, onSelectItem, onEquip, onUnequip, onBuyStat, onAscend } = options;
+  const { character, capacity, now, onSelectItem, onEquip, onUnequip, onBuyStat, onAscend } =
+    options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -367,7 +370,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
   const backpack = track(
     new InventoryGrid({
       cols: 5,
-      size: INVENTORY_CAPACITY,
+      size: capacity,
       items: character.inventory.map((item) => itemSlot(item)),
       slotSize: 'md',
       draggable: false,
@@ -463,7 +466,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       accepts: (drag) => drag.from === 'worn',
       onDrop: (drag) => {
         if (drag.from !== 'worn' || !drag.slot) return;
-        if (character.inventory.length >= INVENTORY_CAPACITY) {
+        if (character.inventory.length >= capacity) {
           refuse(t('item.bagFull'), t('item.bagFullHint'));
           return;
         }
@@ -494,7 +497,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     new Panel({
       title: t('character.backpack', {
         used: character.inventory.length,
-        capacity: INVENTORY_CAPACITY,
+        capacity,
       }),
       variant: 'default',
       width: '100%',

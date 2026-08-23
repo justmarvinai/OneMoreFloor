@@ -21,6 +21,7 @@ import { requireItemDef } from '@/content/items/index.ts';
 import { canEquip } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
 import { canAscend } from '@/domain/character/character.ts';
+import { backpackCapacity } from '@/domain/character/account.ts';
 import type { Account, Character } from '@/domain/character/types.ts';
 import { claimableCount } from '@/domain/quests/quests.ts';
 import { BANNERS } from '@/content/balance/gacha.ts';
@@ -51,7 +52,9 @@ export function computeBadges(character: Character, now: number, account?: Accou
     // lights when a rite can actually be performed, not when a ticket is merely
     // held. A full backpack refuses the pull, and a dot that led to a refusal
     // would be the kind of lie that teaches players to ignore dots.
-    gacha: BANNERS.some((banner) => canPull(character, banner.id) === true),
+    gacha: account
+      ? BANNERS.some((banner) => canPull(character, banner.id, backpackCapacity(account)) === true)
+      : false,
     upgrades: account ? canAffordAnUpgrade(account, character.currencies.gold) : false,
   };
 }

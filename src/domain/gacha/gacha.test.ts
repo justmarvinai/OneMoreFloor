@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BANNERS, bannerConfig, bannerOdds } from '@/content/balance/gacha.ts';
-import { INVENTORY_CAPACITY } from '@/domain/items/inventory.ts';
+import { STARTING_BACKPACK_SLOTS as INVENTORY_CAPACITY } from '@/content/balance/account.ts';
 import { createCharacter } from '@/domain/character/character.ts';
 import { availableSlots } from '@/domain/items/equip.ts';
 import { requireItemDef } from '@/content/items/index.ts';
@@ -161,8 +161,8 @@ describe('gacha pulls', () => {
 
   it('refuses without the currency, and says which one is missing', () => {
     const broke = hero({ currencies: { gold: 10_000, tickets: 0, luckyTickets: 3 } });
-    expect(canPull(broke, 'ticket')).toBe('noCurrency');
-    expect(canPull(broke, 'lucky')).toBe(true);
+    expect(canPull(broke, 'ticket', INVENTORY_CAPACITY)).toBe('noCurrency');
+    expect(canPull(broke, 'lucky', INVENTORY_CAPACITY)).toBe(true);
     expect(currencyHeld(broke, 'lucky')).toBe(3);
   });
 
@@ -175,7 +175,7 @@ describe('gacha pulls', () => {
         uid: `filler-${index}`,
       })),
     };
-    expect(canPull(stuffed, 'ticket')).toBe('backpackFull');
+    expect(canPull(stuffed, 'ticket', INVENTORY_CAPACITY)).toBe('backpackFull');
   });
 
   it('spends the banner’s own currency and nothing else', () => {

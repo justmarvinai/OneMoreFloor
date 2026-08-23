@@ -17,6 +17,8 @@ describe('createAccount', () => {
       slotsUnlocked: 1,
       activeSlotId: null,
       tutorialCompleted: false,
+      backpackSlots: 20,
+      bestiary: {},
     });
   });
 });

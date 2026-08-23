@@ -1,10 +1,12 @@
 /**
- * The two account upgrades (Brief §15).
+ * The account upgrades (Brief §15, extended by Q30).
  *
- * "Exactly two account upgrades exist in EA 0.1. Do not add more." — so the
- * upgrade *kind* is a two-member union rather than a registry, and a third one
- * is not expressible without editing this file and reading the brief line
- * directly above it.
+ * §15 said "exactly two account upgrades exist in EA 0.1. Do not add more",
+ * which is why the kind is a small union rather than a registry: a new one is
+ * not expressible without editing this file and reading the brief line above
+ * it. The owner added the **third** — backpack size — in the fifth polish
+ * round, and that is recorded in USER_QUESTIONS as Q30 rather than assumed. The
+ * union stays a union for exactly the same reason it was one before.
  *
  * Upgrades belong to the account and survive a character reset (Q4), but gold
  * belongs to a character — there is no account purse. So a purchase is paid by
@@ -13,13 +15,16 @@
  */
 import {
   ACCOUNT_SLOT_PRICE,
+  BACKPACK_SLOT_PRICE,
+  BACKPACK_SLOT_STEP,
   BATTLE_SPEED_BY_TIER,
   BATTLE_SPEED_PRICE,
   MAX_ACCOUNT_SLOTS,
+  MAX_BACKPACK_SLOTS,
 } from '@/content/balance/account.ts';
 import type { Account, BattleSpeedTier, Character } from '../character/types.ts';
 
-export type UpgradeId = 'battleSpeed' | 'accountSlot';
+export type UpgradeId = 'battleSpeed' | 'accountSlot' | 'backpack';
 
 export interface UpgradeOffer {
   id: UpgradeId;
@@ -49,10 +54,24 @@ export function slotCost(account: Account): number | null {
   return slot === null ? null : (ACCOUNT_SLOT_PRICE[slot] ?? null);
 }
 
-/** Both offers, priced against the purse actually paying (Q4). */
+/** The backpack size the next purchase would reach, or null at the ceiling. */
+export function nextBackpackSize(account: Account): number | null {
+  const next = account.backpackSlots + BACKPACK_SLOT_STEP;
+  return next > MAX_BACKPACK_SLOTS ? null : next;
+}
+
+export function backpackCost(account: Account): number | null {
+  const next = nextBackpackSize(account);
+  // A size with no price cannot be bought, which is what makes the table the
+  // ceiling rather than a second check that can drift away from it.
+  return next === null ? null : (BACKPACK_SLOT_PRICE[next] ?? null);
+}
+
+/** Every offer, priced against the purse actually paying (Q4). */
 export function offersFor(account: Account, purse: number): UpgradeOffer[] {
   const speed = battleSpeedCost(account);
   const slot = slotCost(account);
+  const bag = backpackCost(account);
   return [
     {
       id: 'battleSpeed',
@@ -65,6 +84,12 @@ export function offersFor(account: Account, purse: number): UpgradeOffer[] {
       cost: slot,
       nextStep: nextSlot(account),
       affordable: slot !== null && purse >= slot,
+    },
+    {
+      id: 'backpack',
+      cost: bag,
+      nextStep: nextBackpackSize(account),
+      affordable: bag !== null && purse >= bag,
     },
   ];
 }
@@ -89,14 +114,21 @@ export function buyUpgrade(
   character: Character,
   id: UpgradeId,
 ): PurchaseOutcome | PurchaseRefusal {
-  const cost = id === 'battleSpeed' ? battleSpeedCost(account) : slotCost(account);
+  const cost =
+    id === 'battleSpeed'
+      ? battleSpeedCost(account)
+      : id === 'accountSlot'
+        ? slotCost(account)
+        : backpackCost(account);
   if (cost === null) return 'maxed';
   if (character.currencies.gold < cost) return 'notEnoughGold';
 
   const upgraded: Account =
     id === 'battleSpeed'
       ? { ...account, battleSpeedTier: nextBattleSpeedTier(account)! }
-      : { ...account, slotsUnlocked: nextSlot(account)! };
+      : id === 'accountSlot'
+        ? { ...account, slotsUnlocked: nextSlot(account)! }
+        : { ...account, backpackSlots: nextBackpackSize(account)! };
 
   return {
     account: upgraded,
@@ -113,4 +145,4 @@ export function battleSpeedOf(account: Account): number {
   return BATTLE_SPEED_BY_TIER[account.battleSpeedTier];
 }
 
-export { MAX_ACCOUNT_SLOTS };
+export { MAX_ACCOUNT_SLOTS, MAX_BACKPACK_SLOTS };

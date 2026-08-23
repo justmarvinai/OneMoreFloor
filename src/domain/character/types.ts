@@ -65,6 +65,30 @@ export interface CharacterProgression {
   ascension: AscensionTier;
 }
 
+/** How the tower climbs itself while the player watches, or does not. */
+export type AutoClimbMode = 'off' | 'watching' | 'background';
+
+/**
+ * A finished run, kept so a death is data rather than only a setback.
+ *
+ * Trimmed to what a history list actually shows: nobody wants a replay, they
+ * want to see whether they are getting further and what keeps stopping them.
+ */
+export interface RunRecord {
+  /** Deepest floor cleared in that run. */
+  floor: number;
+  /** When it ended, from the clock service. */
+  endedAt: number;
+  /** Enemy id that ended it, absent when the run was abandoned rather than lost. */
+  killedBy?: string;
+  /** The floor the fatal fight was on. */
+  diedOn: number;
+  /** Gold banked across the whole run. */
+  gold: number;
+  /** Fights resolved in the run, raids included. */
+  fights: number;
+}
+
 export interface TowerProgress {
   /** Where this run has reached. Resets to 1 on death (Brief §3.3). */
   currentRunFloor: number;
@@ -72,6 +96,32 @@ export interface TowerProgress {
   highestFloorEverCleared: number;
   /** Seed for the current run, so a run's floors are stable (ARCHITECTURE §5). */
   runSeed: string;
+  /**
+   * Milestone floors whose chest has been taken. Milestones are per *record*
+   * rather than per run — the tower runs strictly upward (Q23), so a floor
+   * cleared for the first time is the only moment one can be earned.
+   */
+  milestonesClaimed: number[];
+  /** Finished runs, newest first and capped. */
+  history: RunRecord[];
+  /** Whether the tower is climbing itself, and whether the player is watching. */
+  autoClimb: AutoClimbMode;
+  /** Gold and fights banked in the run so far, for the record it becomes. */
+  runGold: number;
+  runFights: number;
+}
+
+/**
+ * A saved gear set (§9.1 has fourteen sockets; swapping by hand is fourteen
+ * drags).
+ *
+ * Pieces are held by uid rather than copied: a preset is a *reference* to gear
+ * the hero owns, so selling a piece cannot leave a preset holding a ghost — it
+ * simply has one fewer socket to fill when applied.
+ */
+export interface Loadout {
+  name: string;
+  equipment: Partial<Record<EquipSlotId, string>>;
 }
 
 /**
@@ -125,6 +175,22 @@ export interface Character {
    * There is no pity counter in 0.1 (Q20) and this is not one.
    */
   gachaPulls: number;
+  /** Saved gear sets, newest last. */
+  loadouts: Loadout[];
+  /**
+   * The socket the rites should favour when they pay in gear.
+   *
+   * Not a pity counter and not a guarantee (Q20): it re-rolls the *slot* of a
+   * gear prize, never its rarity or its budget, so the odds printed on the rate
+   * table stay exactly true.
+   */
+  wishlist: EquipSlotId | null;
+  /**
+   * Curses the player has taken on: harder enemies for better loot (§13's
+   * bracket still binds — a curse widens what the tower *offers*, never what an
+   * item may be worth).
+   */
+  curses: string[];
 }
 
 /** Battle Speed tiers (Brief §15.1, shaped by Q19): x1 → x2 → x4 → x8. */
@@ -142,4 +208,15 @@ export interface Account {
   activeSlotId: SlotId | null;
   /** The tutorial's one-time reward is per account (Brief §18). */
   tutorialCompleted: boolean;
+  /**
+   * Backpack size, bought in steps (§15 — the owner added this upgrade in the
+   * fifth polish round; see USER_QUESTIONS Q30).
+   */
+  backpackSlots: number;
+  /**
+   * Enemies this account has beaten, by id, with how many times. Per account
+   * rather than per character: a bestiary is a collection, and a collection that
+   * a hero's reset erases is not one (§3.3 destroys nothing owned).
+   */
+  bestiary: Record<string, number>;
 }

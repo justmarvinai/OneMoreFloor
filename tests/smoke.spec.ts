@@ -520,7 +520,9 @@ test('puts three dailies and three weeklies up, one of them hard (Q21)', async (
   await expect(moved.first()).toBeVisible();
 });
 
-test('sells the two account upgrades, and only those two (Brief §15)', async ({ page }) => {
+test('sells the three account upgrades, and only those three (Brief §15, Q30)', async ({
+  page,
+}) => {
   test.slow();
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');
@@ -532,8 +534,10 @@ test('sells the two account upgrades, and only those two (Brief §15)', async ({
   // Scoped to the upgrade rack, not the whole screen: §15's guarantee is that
   // there are exactly two things to *buy*, and the screen also carries the
   // credits panel, which sells nothing.
+  await expect(screen.getByRole('heading', { name: 'Backpack' })).toBeVisible();
+  // Three since Q30 added the backpack; still a closed set, not a registry.
   const cards = screen.locator('.omf-upgrades__cards .fui-panel');
-  await expect(cards).toHaveCount(2);
+  await expect(cards).toHaveCount(3);
 
   // Earn until the cheap upgrade is within reach, then buy it. A `CostButton`
   // that cannot be paid for stays pressable and says how short you are, so the

@@ -54,6 +54,7 @@ import { openGearDialog, type GearDialog } from './ui/gearDialog.ts';
 import type { ShellSection } from './ui/shell.ts';
 import type { MerchantId } from './domain/merchants/merchants.ts';
 import { canPull, type BannerId } from './domain/gacha/gacha.ts';
+import { backpackCapacity } from './domain/character/account.ts';
 import { clock } from './app/time.ts';
 import type { Character } from './domain/character/types.ts';
 import type { FloorResult, QuickRaidResult } from './domain/tower/run.ts';
@@ -116,6 +117,9 @@ export async function boot(mount: HTMLElement): Promise<void> {
     let pendingFight: { hero: Character; result: FloorResult } | null = null;
     /** The raid the summary screen reports. */
     let pendingRaid: QuickRaidResult | null = null;
+
+    /** The bag's size, which the rites and the shell both have to agree on. */
+    const bagSize = (): number => backpackCapacity(store.get().account ?? { backpackSlots: 0 });
 
     const requireCharacter = (): Character => {
       const character = store.get().activeCharacter;
@@ -195,7 +199,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
         rite = startReveal({
           mount,
           result: outcome.value,
-          canRepeat: canPull(outcome.character, banner) === true,
+          canRepeat: canPull(outcome.character, banner, bagSize()) === true,
           onAgain: () => {
             rite = null;
             startRite(banner);
@@ -288,6 +292,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
         onNavigate: goTo,
         main: createMerchantScreen({
           character: requireCharacter(),
+          capacity: bagSize(),
           merchantId: id,
           now: clock().now(),
           onBuy: (index) => void session.buyFromMerchant(id, index).then(refreshScreen),
@@ -372,6 +377,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createCharacterScreen({
               character: requireCharacter(),
+              capacity: bagSize(),
               now: clock().now(),
               onSelectItem: inspectItem,
               onEquip: (uid) => {
@@ -402,6 +408,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createGachaScreen({
               character: requireCharacter(),
+              capacity: bagSize(),
               onPull: startRite,
             }),
           }),

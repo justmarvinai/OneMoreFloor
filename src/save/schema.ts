@@ -17,8 +17,15 @@ import type { Persisted } from './integrity.ts';
  * Version history — every entry has a migration and a captured fixture:
  *   1. Account and character records (M1).
  *   2. Characters gained equipment, inventory, currencies and materials (M2).
+ *   3. Characters gained running potions and each merchant's shelf (M5).
+ *   4. Characters gained their quest boards (M6).
+ *   5. Characters gained their gacha pull counter (M7).
+ *   6. The fifth polish round, in one step: accounts gained a backpack size and
+ *      a bestiary; characters gained saved loadouts, a rite wish list, curses,
+ *      and — inside `tower` — milestones claimed, run history, the auto-climb
+ *      mode and the run's running totals.
  */
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;
 
 export const DATABASE_NAME = 'onemorefloor';
 

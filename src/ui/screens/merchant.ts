@@ -28,7 +28,7 @@ import {
   type SlotItem,
 } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+
 import type { Character } from '@/domain/character/types.ts';
 import {
   nextRestockAt,
@@ -61,6 +61,8 @@ import { t, type StringKey } from '@/strings/index.ts';
 const POTION_PREFIX = 'potion:';
 
 export interface MerchantScreenOptions {
+  /** Backpack size — an account upgrade, so the screen is told rather than assuming. */
+  capacity: number;
   character: Character;
   /** Which counter this is. The rail chose it; the screen does not offer a swap. */
   merchantId: MerchantId;
@@ -79,7 +81,8 @@ export interface MerchantScreen {
 }
 
 export function createMerchantScreen(options: MerchantScreenOptions): MerchantScreen {
-  const { character, merchantId, now, onBuy, onDrink, onReroll, onSelectItem, onSell } = options;
+  const { character, capacity, merchantId, now, onBuy, onDrink, onReroll, onSelectItem, onSell } =
+    options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -267,7 +270,7 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   const backpack = track(
     new InventoryGrid({
       cols: 4,
-      size: INVENTORY_CAPACITY,
+      size: capacity,
       items: character.inventory.map((item) => itemSlot(item)),
       slotSize: 'md',
       draggable: false,

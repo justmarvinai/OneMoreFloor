@@ -11,31 +11,37 @@
  *  - **Selling is the pressure valve**, at the configured fraction of an item's
  *    worth — a minor faucet that keeps the pack honest without denting §14.
  */
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
 import type { Character } from '../character/types.ts';
 import { sellValue } from './upgrade.ts';
 import type { ItemInstance } from './types.ts';
 
-export { INVENTORY_CAPACITY };
-
-export function inventoryCapacity(): number {
-  return INVENTORY_CAPACITY;
+/**
+ * Capacity is passed in rather than read from a constant.
+ *
+ * The bag is an account upgrade now (§15, Q30), which makes its size a *number
+ * the caller knows* — `backpackCapacity(account)` — rather than a fact about the
+ * game. Passing it keeps the domain free of account plumbing and makes every
+ * call site say which bag it means, which matters the moment two heroes on one
+ * account are both holding things.
+ */
+export function freeSlots(character: Character, capacity: number): number {
+  return Math.max(0, capacity - character.inventory.length);
 }
 
-export function freeSlots(character: Character): number {
-  return Math.max(0, INVENTORY_CAPACITY - character.inventory.length);
-}
-
-export function isFull(character: Character): boolean {
-  return freeSlots(character) === 0;
+export function isFull(character: Character, capacity: number): boolean {
+  return freeSlots(character, capacity) === 0;
 }
 
 export type AddResult =
   { ok: true; character: Character } | { ok: false; reason: 'full'; character: Character };
 
 /** Put an item in the pack, or say why not. */
-export function addToInventory(character: Character, item: ItemInstance): AddResult {
-  if (isFull(character)) return { ok: false, reason: 'full', character };
+export function addToInventory(
+  character: Character,
+  item: ItemInstance,
+  capacity: number,
+): AddResult {
+  if (isFull(character, capacity)) return { ok: false, reason: 'full', character };
   return { ok: true, character: { ...character, inventory: [...character.inventory, item] } };
 }
 

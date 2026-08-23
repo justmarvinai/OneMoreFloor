@@ -18,6 +18,7 @@ import {
   gearLevelCost,
   levelUp,
 } from '@/domain/items/upgrade.ts';
+import { backpackCapacity } from '@/domain/character/account.ts';
 import { equipFromInventory, unequip, type LoadoutRefusal } from '@/domain/items/loadout.ts';
 import {
   addToInventory,
@@ -177,6 +178,11 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     ];
   }
 
+  /** The bag's size right now — an account upgrade, so it is read, not assumed. */
+  function capacity(): number {
+    return backpackCapacity(store.get().account ?? { backpackSlots: 0 });
+  }
+
   function active(): Character {
     const character = store.get().activeCharacter;
     if (!character) throw new Error('[actions] no active character');
@@ -250,13 +256,13 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     },
 
     async equip(uid) {
-      const result = equipFromInventory(active(), uid);
+      const result = equipFromInventory(active(), uid, capacity());
       if (!result.ok) return { ok: false, reason: result.reason };
       return { ok: true, value: result.displaced, character: await commit(result.character) };
     },
 
     async unequipSlot(slot) {
-      const result = unequip(active(), slot);
+      const result = unequip(active(), slot, capacity());
       if (!result.ok) return { ok: false, reason: result.reason };
       return { ok: true, value: result.displaced, character: await commit(result.character) };
     },
@@ -367,9 +373,9 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       if (!entry) return { ok: false, reason: 'notFound' };
       if (entry.sold) return { ok: false, reason: 'soldOut' };
       if (character.currencies.gold < entry.price) return { ok: false, reason: 'notEnoughGold' };
-      if (isFull(character)) return { ok: false, reason: 'backpackFull' };
+      if (isFull(character, capacity())) return { ok: false, reason: 'backpackFull' };
 
-      const added = addToInventory(spendGold(character, entry.price), entry.item);
+      const added = addToInventory(spendGold(character, entry.price), entry.item, capacity());
       if (!added.ok) return { ok: false, reason: 'backpackFull' };
 
       const next = withQuests(
@@ -465,7 +471,7 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
     async pullBanner(banner) {
       const character = active();
-      const refusal = canPull(character, banner);
+      const refusal = canPull(character, banner, capacity());
       if (refusal !== true) {
         return { ok: false, reason: refusal === 'noCurrency' ? 'noCurrency' : 'backpackFull' };
       }
