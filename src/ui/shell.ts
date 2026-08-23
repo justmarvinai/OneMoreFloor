@@ -19,6 +19,7 @@ import type { AppStore } from '@/app/state.ts';
 import type { Screen } from '@/app/router.ts';
 import { clock } from '@/app/time.ts';
 import { computeBadges, type Badges } from '@/ui/badges.ts';
+import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
 export type ShellSection = 'tower' | 'character' | 'merchants' | 'gacha' | 'quests' | 'upgrades';
@@ -182,6 +183,30 @@ export function createShell(options: ShellOptions): Shell {
     text: saveStatusText(store),
   });
 
+  /**
+   * The portrait is the shortest route to the character sheet, and players reach
+   * for it before they reach for the rail. It is a real `button` rather than a
+   * clickable `div` so it is tab-reachable and answers the keyboard, and it is
+   * inert on the sheet itself — a control that navigates to where you already
+   * are is a dead end (§2.1).
+   */
+  const heroLink = h('button', {
+    class: 'omf-shell__portrait',
+    attrs: { type: 'button' },
+    dataset: { testid: 'hero-portrait' },
+  });
+  heroLink.appendChild(portrait.el);
+  const heroTip = active === 'character' ? t('nav.hero.here') : t('nav.hero.toCharacter');
+  if (active === 'character') heroLink.disabled = true;
+  else heroLink.addEventListener('click', () => onNavigate('character'));
+
+  // `Portrait` sets its own `title` with the hero's name, which the tooltip
+  // service would adopt onto the inner element and serve in place of this one —
+  // and the name is already printed directly underneath. Claiming the attribute
+  // first is what keeps the control's own explanation on top.
+  setTip(heroLink, heroTip);
+  setTip(portrait.el, heroTip);
+
   const el = h(
     'div',
     { class: 'omf-shell', dataset: { fuiTheme: 'stone-vine', testid: 'hub' } },
@@ -191,7 +216,7 @@ export function createShell(options: ShellOptions): Shell {
       h(
         'div',
         { class: 'omf-shell__hero' },
-        portrait.el,
+        heroLink,
         h('p', {
           class: 'omf-shell__name fui-title',
           dataset: { testid: 'hero-name' },

@@ -164,12 +164,89 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
     h('div', { class: 'omf-tower__side' }, side.el),
   );
 
+  const releaseDrag = dragToScroll(trail.el.querySelector('.fui-trail__scroller'));
+
   return {
     el,
     destroy() {
+      releaseDrag();
       for (const part of parts) part.destroy();
       el.remove();
     },
+  };
+}
+
+/** How far the pointer must travel before a press counts as a drag, in pixels. */
+const DRAG_SLOP = 4;
+
+/**
+ * Grab the tower and pull it. A wheel works, but a path you can take hold of is
+ * how a tower *feels* like a place rather than a list, and it is the first thing
+ * a player tries on a scrolling illustration.
+ *
+ * The slop threshold is what keeps it honest: below it nothing has happened and
+ * the press is still a click on whatever floor is under the cursor; past it the
+ * scroller takes pointer capture and the click is swallowed, so a drag that
+ * happens to end over a floor node never starts a fight nobody asked for.
+ */
+function dragToScroll(scroller: HTMLElement | null): () => void {
+  if (!scroller) return () => {};
+
+  let pointer: number | null = null;
+  let startY = 0;
+  let startTop = 0;
+  let dragging = false;
+
+  const down = (event: PointerEvent): void => {
+    // Left button only, and never a drag that starts on a control.
+    if (event.button !== 0) return;
+    pointer = event.pointerId;
+    startY = event.clientY;
+    startTop = scroller.scrollTop;
+    dragging = false;
+  };
+
+  const move = (event: PointerEvent): void => {
+    if (pointer !== event.pointerId) return;
+    const travelled = event.clientY - startY;
+    if (!dragging) {
+      if (Math.abs(travelled) < DRAG_SLOP) return;
+      dragging = true;
+      scroller.classList.add('is-dragging');
+      scroller.setPointerCapture(event.pointerId);
+    }
+    scroller.scrollTop = startTop - travelled;
+    event.preventDefault();
+  };
+
+  const end = (event: PointerEvent): void => {
+    if (pointer !== event.pointerId) return;
+    if (dragging && scroller.hasPointerCapture(event.pointerId)) {
+      scroller.releasePointerCapture(event.pointerId);
+    }
+    pointer = null;
+    // The click that follows a drag belongs to the drag, not to a floor.
+    if (dragging) scroller.addEventListener('click', swallow, { capture: true, once: true });
+    dragging = false;
+    scroller.classList.remove('is-dragging');
+  };
+
+  const swallow = (event: Event): void => {
+    event.stopPropagation();
+    event.preventDefault();
+  };
+
+  scroller.addEventListener('pointerdown', down);
+  scroller.addEventListener('pointermove', move);
+  scroller.addEventListener('pointerup', end);
+  scroller.addEventListener('pointercancel', end);
+
+  return () => {
+    scroller.removeEventListener('pointerdown', down);
+    scroller.removeEventListener('pointermove', move);
+    scroller.removeEventListener('pointerup', end);
+    scroller.removeEventListener('pointercancel', end);
+    scroller.removeEventListener('click', swallow, { capture: true });
   };
 }
 

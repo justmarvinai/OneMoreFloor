@@ -36,7 +36,8 @@ import {
 import { isActive } from '@/domain/potions/potions.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
-import { itemCard, itemSlot, statLine } from '@/ui/itemView.ts';
+import { requireItemDef } from '@/content/items/index.ts';
+import { itemCard, itemSlot, itemTooltip, statLine } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
@@ -139,6 +140,56 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
       class: 'omf-shop__panel',
     }),
   );
+  /**
+   * Every row on the shelf carries its full card on hover — what the piece is,
+   * what it gives, and what it would change about the hero if it went on. A shop
+   * row that shows one stat and a price makes the player buy first and find out
+   * afterwards, which is the wrong order (§11).
+   *
+   * `ShopPanel` builds the rows itself and rebuilds them whenever the tab or the
+   * purse changes, so the tips are re-attached from an observer rather than once
+   * at construction. Rows are matched to stock by position *within the category
+   * the tab strip says is showing* — `Tabs` stamps `data-id` and `aria-selected`
+   * on its buttons, which is the same rendered-attribute contract the rail
+   * already relies on for its nav ids.
+   */
+  const showingCategory = (): ShopCategory | undefined => {
+    const selected = shop.el
+      .querySelector('.fui-shop__tabs [aria-selected="true"]')
+      ?.getAttribute('data-id');
+    return selected ? categories.find((c) => c.id === selected) : categories[0];
+  };
+
+  const tipRows = (): void => {
+    const category = showingCategory();
+    if (!category) return;
+    const rows = shop.el.querySelectorAll<HTMLElement>('.fui-shop__list .fui-itemcard');
+    rows.forEach((row, index) => {
+      const card = category.items[index];
+      if (!card?.id) return;
+
+      if (card.id.startsWith(POTION_PREFIX)) {
+        setTip(row, `${card.name} — ${card.detail ?? ''}`);
+        return;
+      }
+
+      const entry = shelf[Number(card.id)];
+      if (!entry) return;
+      setTip(
+        row,
+        itemTooltip(entry.item, {
+          compareTo: character.equipment[requireItemDef(entry.item.defId).slot] ?? null,
+          hint: entry.sold ? t('merchant.sold') : t('item.buyHint'),
+        }),
+      );
+    });
+  };
+
+  const rowObserver = new MutationObserver(tipRows);
+  const list = shop.el.querySelector('.fui-shop__list');
+  if (list) rowObserver.observe(list, { childList: true });
+  tipRows();
+
   shop.on<ItemCardData>('shop:buy', (card) => {
     if (card.id?.startsWith(POTION_PREFIX)) {
       onDrink(card.id.slice(POTION_PREFIX.length) as UpgradableStatId);
@@ -202,10 +253,18 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
     if (typeof item?.data === 'string') onSelectItem(item.data);
   });
 
+  // What the merchant would pay, before the click rather than after it.
+  for (const [index, item] of character.inventory.entries()) {
+    const cell = backpack.el.children[index];
+    if (cell instanceof HTMLElement) {
+      setTip(cell, itemTooltip(item, { showSellValue: true, hint: t('item.inspect') }));
+    }
+  }
+
   const sellPanel = track(
     new Panel({
       title: t('merchant.sellTitle'),
-      variant: 'surface',
+      variant: 'default',
       width: '100%',
       height: '100%',
       scroll: true,
@@ -244,6 +303,7 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   return {
     el,
     destroy() {
+      rowObserver.disconnect();
       for (const part of parts) part.destroy();
       el.remove();
     },

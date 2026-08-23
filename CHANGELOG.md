@@ -5,7 +5,53 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
-Nothing yet — 0.1.0 is the current head.
+### Fixed — first polish round
+
+- **Items said nothing but their own name.** `itemTooltip` has always built a full
+  stat block; the backpack passed only its *title* to the tooltip, so hovering a
+  piece of gear told you what it was called and no more. Every item surface in
+  the game now shows the whole card — rarity, slot, every stat, gear level and
+  ascension, what a merchant would pay — and, where there is a piece already in
+  that slot, **what changes if you wear this one instead**, signed and coloured.
+  That is the backpack, the paperdoll's sockets, both merchant shelves and the
+  sell grid.
+- **Gear sockets had never explained themselves.** They were addressed by a
+  `[data-slot-id]` selector that `Paperdoll` does not write, so the selector
+  matched nothing and the tooltips it was meant to attach — including "this slot
+  unlocks at ascension 3" — silently did not exist. Sockets are now paired with
+  their cells by walking the columns in order; the id is stamped on while we are
+  there, and a test fails if any socket goes quiet.
+- **Every screen was 32 pixels taller than the window.** The shared tooltip is
+  created at boot and parked on `<body>`, and `Tooltip` only leaves the page flow
+  once it has been positioned — so until the player's first hover it sat at the
+  end of the document, scrolling the tower's own title off the top of the screen.
+- **The character sheet was four floating blocks, two of them unframed.** It is
+  one framed window now, as the reference screen has it: sockets down both sides
+  of the portrait, weapons beneath, the hero's own strip under that, then the
+  stat rows. The hero's card no longer has a panel of its own to be squeezed in —
+  which is what put its XP bar through the bottom ornament and pushed the Ascend
+  button out of sight — and the socket columns are six and six rather than seven
+  and five, which is a row of height saved and one less lopsided doll.
+- **The merchant's shelf wore no frame** while every window around it did. It
+  wears the same stone now, and the sell panel with it.
+- **The tower's band marker was a photograph taped over the wall.** `StageTrail`
+  gives each chapter a full-width band carrying its own crop of the chapter art;
+  since the wall behind the path is *already* that art, the marker laid a second
+  copy across it with hard edges and the climb's own path running behind it. It
+  is a plaque now — a scrim that fades out in every direction, the name floating
+  on an unbroken wall. The wall itself stopped repeating a 520px tile, too: the
+  band art is a painted scene rather than a texture, and it was showing its joins
+  every few floors.
+
+### Added — first polish round
+
+- **The tower can be dragged.** Take hold of the climb and pull it up or down.
+  Past a four-pixel threshold the scroller captures the pointer and swallows the
+  click that follows, so a drag that happens to end over a floor never starts a
+  fight nobody asked for; below it, nothing has happened and the press is still
+  an ordinary click.
+- **The portrait in the rail opens the character sheet** — a real button, so it
+  answers the keyboard, and inert once you are already looking at the sheet.
 
 ## [0.1.0] — Early Access 0.1 — 2026-08-23
 

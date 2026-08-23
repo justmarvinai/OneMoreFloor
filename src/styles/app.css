@@ -82,6 +82,63 @@ body {
   min-width: 0;
 }
 
+/* The portrait is a control, and looks like one on hover (§20.5). */
+.omf-shell__portrait {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition:
+    transform 140ms ease-out,
+    filter 140ms ease-out;
+}
+
+.omf-shell__portrait:hover:not(:disabled),
+.omf-shell__portrait:focus-visible {
+  transform: translateY(-2px);
+  filter: brightness(1.12);
+}
+
+.omf-shell__portrait:disabled {
+  cursor: default;
+}
+
+/**
+ * The service's tooltip must never occupy layout.
+ *
+ * `Tooltip` is `position: relative` by default so it can be used as a static
+ * card, and switches to `position: fixed` via a `[style*='left']` attribute
+ * selector once `showAt()` has positioned it. Ours is created at boot and parked
+ * on `<body>`, so until the player's first hover it sat *in the page flow* at
+ * the end of the document — 32 empty pixels that made every screen taller than
+ * the viewport and scrolled the header of the tower off the top of it.
+ *
+ * Scoped to the service's own instance, so an inline card is unaffected.
+ * Recorded as an upstream wish (UI_FANTASYUI_MAP §10): the positioned mode wants
+ * a class, not an inline-style sniff.
+ */
+body > .fui-tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 900;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/**
+ * A hint is a sentence about a control, so it is set as body copy. The display
+ * face is reserved for tooltips that name something (`tooltips.ts`).
+ */
+.omf-tip__hint {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: var(--fui-ink, #e8e2d4);
+}
+
 .omf-shell__name {
   margin: 0;
   font-size: 1.05rem;
@@ -236,10 +293,61 @@ body {
  * The trail's own stretch of wall, from the band's backdrop art. Without it the
  * path floats in an empty box; with it the climb reads as happening somewhere.
  */
+/**
+ * The trail's own stretch of wall, from the band's backdrop art — one copy
+ * covering the frame rather than a 520px tile repeated down it.
+ *
+ * The band art is a painted scene, not a seamless texture, so repeating it laid
+ * a visible horizontal join across the climb every few floors. Covering instead
+ * costs the wall its parallax (the backdrop stays put while the path scrolls
+ * over it) and gains a wall with no joins in it, which is the better trade for a
+ * painted backdrop.
+ */
 .omf-tower__trail .fui-trail__scroller {
   background:
-    linear-gradient(rgb(10 12 16 / 82%), rgb(10 12 16 / 92%)),
-    var(--fui-tower-art, none) center / 520px repeat;
+    linear-gradient(rgb(10 12 16 / 78%), rgb(10 12 16 / 90%)),
+    var(--fui-tower-art, none) center / cover no-repeat;
+  cursor: grab;
+}
+
+/* Grab the tower and pull it (`dragToScroll` in the tower screen). */
+.omf-tower__trail .fui-trail__scroller.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+/**
+ * The band marker, as a plaque rather than a stripe.
+ *
+ * `StageTrail` draws each chapter as a full-width band carrying its own chapter
+ * art. In a campaign map, where every chapter is a different place, that reads
+ * correctly. In the tower it does not: the wall behind the path is *already* the
+ * band's art, so the divider laid a second copy of a different crop across it at
+ * 40% opacity, with hard top and bottom edges and the climb's own path running
+ * behind it. One band of the Lootspire looked like a photograph taped over
+ * another.
+ *
+ * So: no art of its own, and a scrim that fades out in every direction, leaving
+ * the wall continuous and the name floating on it. Recorded as an upstream wish
+ * (UI_FANTASYUI_MAP §10) — a trail whose chapters share one backdrop wants this
+ * treatment generally.
+ */
+.omf-tower__trail .fui-trail__chapter {
+  background: none;
+}
+
+.omf-tower__trail .fui-trail__chapter::before {
+  /* Fades out inside its own box in both directions, so the marker has no edges
+     — the earlier ellipse was taller than the divider and cut off square. */
+  background: radial-gradient(
+    ellipse 24% 52% at 50% 50%,
+    rgb(8 9 12 / 92%) 0%,
+    rgb(8 9 12 / 58%) 44%,
+    transparent 76%
+  );
+  opacity: 1;
+  mask: none;
+  -webkit-mask: none;
 }
 
 .omf-tower__record {
@@ -282,6 +390,11 @@ body {
 
 /* --- Character screen (Brief §6/§9/§10, UI_FANTASYUI_MAP §4) -------------- */
 
+/**
+ * One framed sheet and the backpack, as in `character_screen.png` (§20.3).
+ * Everything about the hero lives inside the sheet; the sheet scrolls as a whole
+ * rather than letting any block inside it be squeezed.
+ */
 .omf-character {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
@@ -290,36 +403,88 @@ body {
   min-height: 0;
 }
 
-.omf-character__main > .fui-doll {
-  align-self: center;
-}
-
-.omf-character__main,
+.omf-character__sheet,
 .omf-character__side {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
   min-height: 0;
-  overflow-y: auto;
 }
 
-.omf-character__side > :last-child {
+.omf-character__sheet > *,
+.omf-character__side > * {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+/**
+ * The sheet supplies the frame and the stone behind it, so the paperdoll's own
+ * surface would be a second window inside the first.
+ */
+.omf-character__doll .fui-doll {
+  /* Capped and centred: the sockets belong beside the figure, not pinned to the
+     far edges of a wide sheet with a lake of stone between them. */
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.omf-character__doll .fui-doll__fill {
+  display: none;
+}
+
+.omf-character__doll .fui-doll__figure {
+  min-height: 300px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.omf-character__doll .fui-doll__score {
+  display: none;
+}
+
+/* --- who the hero is, under the portrait --------------------------------- */
+
+.omf-character__hero {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 360px) auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 20px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 26%);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%);
 }
 
 .omf-character__identity {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.omf-character__progress {
+  min-width: 0;
 }
 
 .omf-character__level {
-  margin: 8px 0 4px;
-  font-size: 0.9rem;
+  margin: 0 0 4px;
+  font-size: 0.82rem;
   opacity: 0.8;
+}
+
+/* --- stats --------------------------------------------------------------- */
+
+.omf-character__statblock {
+  margin-top: 16px;
+}
+
+.omf-character__section {
+  margin: 0 0 10px;
+  padding-bottom: 6px;
+  font-size: 1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: 1px solid color-mix(in srgb, var(--fui-accent, #d8b26a) 32%, transparent);
 }
 
 .omf-character__stats {
@@ -459,6 +624,42 @@ body {
 .omf-shop__panel {
   width: 100% !important;
   max-width: none;
+}
+
+/**
+ * The shelf wears the same stone frame as every other window.
+ *
+ * `ShopPanel` paints the fill but no ornament, which is right for a component
+ * that might be dropped into a page that already has a frame around it. Ours
+ * never is — it sits on bare background beside framed panels, and an unframed
+ * window among framed ones reads as a rendering fault rather than a choice
+ * (§20.1). The frame is the Panel's own art and tokens, laid over the top; the
+ * padding grows to match so no row sits under the ornament.
+ */
+.omf-shop__panel::after {
+  content: '';
+  position: absolute;
+  inset: var(--fui-panel-frame-inset, 0);
+  z-index: 2;
+  pointer-events: none;
+  border-style: solid;
+  border-color: transparent;
+  border-width: var(--fui-panel-frame-bw);
+  border-image-source: var(--fui-panel-frame-src);
+  border-image-slice: var(--fui-panel-frame-sl);
+  border-image-repeat: stretch;
+}
+
+.omf-shop__panel .fui-shop__head {
+  padding: 38px 46px 12px;
+}
+
+.omf-shop__panel .fui-shop__tabs {
+  padding: 0 46px;
+}
+
+.omf-shop__panel .fui-shop__list {
+  padding: 12px 46px 42px;
 }
 
 .omf-shop__restock {

@@ -849,3 +849,112 @@ test('does not leak a screen every time the player walks the game', async ({
     first.nodes,
   );
 });
+
+/**
+ * The round-one polish pass, as tests.
+ *
+ * Each of these covers something that was broken in a way no existing test could
+ * see: a tooltip that carried a name and nothing else, gear sockets addressed by
+ * an attribute the component never wrote, and a portrait that looked like a
+ * button and wasn't.
+ */
+test('tells you what an item is, not just what it is called (Brief §20.4)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Two floors is enough to put something in the backpack.
+  await climb(page, 4);
+  await goToSection(page, 'Character');
+
+  const tooltip = page.locator('body > .fui-tooltip');
+  const filled = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
+  expect(await filled.count(), 'nothing dropped in four floors').toBeGreaterThan(0);
+
+  await filled.first().hover();
+  await expect(tooltip).toBeVisible();
+  const card = await tooltip.innerText();
+
+  // A name, what it is, where it goes, and at least one stat with a number.
+  expect(card.split('\n').length, `thin tooltip: ${card}`).toBeGreaterThan(3);
+  expect(card, 'no stat value in the card').toMatch(/[+-]\d/);
+
+  // A worn piece says so; an empty socket says what it is waiting for.
+  await page.locator('.fui-doll [data-slot-id="mainhand"]').hover();
+  await expect(tooltip).toContainText(/Worn/i);
+  await page.locator('.fui-doll [data-slot-id="helmet"]').hover();
+  await expect(tooltip).toContainText(/Helmet/i);
+});
+
+test('every gear socket explains itself, including the shut ones (§7, §20.5)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Character');
+
+  const sockets = page.locator('.fui-doll [data-slot-id]');
+  const count = await sockets.count();
+  expect(count, 'the paperdoll rendered no addressable sockets').toBe(14);
+
+  const silent: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const socket = sockets.nth(index);
+    const id = await socket.getAttribute('data-slot-id');
+    const tip = await socket.getAttribute('data-omf-tip');
+    if (!tip || tip.trim().length === 0) silent.push(id ?? '(unnamed)');
+  }
+  expect(silent, 'sockets with nothing to say').toEqual([]);
+
+  // The ascension sockets are shut at ascension 0, and say what opens them.
+  await expect(page.locator('.fui-doll [data-slot-id="artifact"]')).toHaveAttribute(
+    'data-omf-tip',
+    /ascension/i,
+  );
+});
+
+test('the portrait is the short way to the character sheet', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  await page.locator('[data-testid="hero-portrait"]').click();
+  await expect(page.locator('[data-testid="character"]')).toBeVisible();
+
+  // And it does not offer to take you where you already are (§2.1).
+  await expect(page.locator('[data-testid="hero-portrait"]')).toBeDisabled();
+});
+
+test('the tower can be dragged as well as scrolled (§3.1)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 6);
+
+  const scroller = page.locator('.fui-trail__scroller');
+  const box = await scroller.boundingBox();
+  expect(box, 'no trail to drag').not.toBeNull();
+  if (!box) return;
+
+  // The trail auto-scrolls to the floor you are standing on, which is usually
+  // the bottom of it — so drag toward whichever end still has room, rather than
+  // assuming the climb has somewhere further to go.
+  const before = await scroller.evaluate((el) => ({
+    top: el.scrollTop,
+    max: el.scrollHeight - el.clientHeight,
+  }));
+  expect(before.max, 'the trail does not scroll at all').toBeGreaterThan(0);
+  const downward = before.top > before.max / 2;
+
+  const startY = box.y + box.height * (downward ? 0.25 : 0.75);
+  await page.mouse.move(box.x + box.width * 0.2, startY);
+  await page.mouse.down();
+  for (let step = 1; step <= 8; step += 1) {
+    await page.mouse.move(box.x + box.width * 0.2, startY + (downward ? step * 30 : -step * 30));
+  }
+  await page.mouse.up();
+
+  const after = await scroller.evaluate((el) => el.scrollTop);
+  if (downward) expect(after).toBeLessThan(before.top);
+  else expect(after).toBeGreaterThan(before.top);
+  // A drag is not a click: it must not have walked into a fight.
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+});
