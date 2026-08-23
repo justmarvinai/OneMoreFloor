@@ -17,6 +17,8 @@ import {
   gearLevelCost,
 } from '@/domain/items/upgrade.ts';
 import { materialIdForTier } from '@/content/items/materials.ts';
+import { requireItemDef } from '@/content/items/index.ts';
+import { canEquip } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
 import { canAscend } from '@/domain/character/character.ts';
 import type { Account, Character } from '@/domain/character/types.ts';
@@ -56,6 +58,10 @@ function canAffordAnUpgrade(account: Account, gold: number): boolean {
 
 function hasCharacterAction(character: Character): boolean {
   if (canAscend(character)) return true;
+  // Found during M9's playtest: a hunter nine floors in was wearing one item
+  // with six better ones sitting in the bag, and nothing on screen said so. A
+  // drop the player has not put on is the most actionable thing in the game.
+  if (hasBetterGearInBag(character)) return true;
 
   const gold = character.currencies.gold;
   for (const stat of UPGRADABLE_STAT_IDS) {
@@ -67,6 +73,22 @@ function hasCharacterAction(character: Character): boolean {
     if (canAscendGear(item) && canAffordAscension(character, item)) return true;
   }
   return false;
+}
+
+/** A bag item that beats what is worn in its slot, and that this hero may wear. */
+function hasBetterGearInBag(character: Character): boolean {
+  return character.inventory.some((item) => {
+    const def = requireItemDef(item.defId);
+    const mainhand = character.equipment.mainhand;
+    const allowed = canEquip(def, def.slot, {
+      classId: character.identity.classId,
+      ascension: character.progression.ascension,
+      mainhand: mainhand ? requireItemDef(mainhand.defId) : null,
+    });
+    if (!allowed.ok) return false;
+    const worn = character.equipment[def.slot];
+    return !worn || item.budget > worn.budget;
+  });
 }
 
 function canAffordAscension(character: Character, item: ItemInstance): boolean {

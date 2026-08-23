@@ -14,7 +14,7 @@ import type { AscensionTier, Character, EquipSlotId } from '../character/types.t
 
 /** XP needed to go from `level` to `level + 1` at this ascension tier. */
 export function xpToNextLevel(level: number, ascension: AscensionTier): number {
-  const base = evaluate({ kind: 'polynomial', ...XP_TO_NEXT_LEVEL }, Math.max(1, level));
+  const base = evaluate(XP_TO_NEXT_LEVEL, Math.max(1, level));
   return Math.round(base * Math.pow(XP_ASCENSION_KNEE, ascension));
 }
 

@@ -22,10 +22,32 @@ import type { StatId } from '@/domain/stats.ts';
  * Growth is exponential so the curve stays meaningful at floor 10, floor 500 and
  * floor 5000 (Brief §3.7). Bracket 0 is the starting band.
  */
-export const BRACKET_COUNT = 40;
+/**
+ * How many brackets the ladder covers. The formula is unbounded — a bracket is
+ * computed, never authored — so this is the depth the *tests* sweep and the
+ * point past which the ladder stops growing. At the tuned rates it reaches
+ * roughly floor 1,100, well past any realistic EA 0.1 climb.
+ */
+export const BRACKET_COUNT = 200;
 
-/** Power Level at which each bracket begins. Bracket 0 starts at 0. */
-export const BRACKET_POWER_STEP = { base: 60, factor: 1.55, period: 1 } as const;
+/**
+ * Power Level at which each bracket begins.
+ *
+ * **The factor deliberately equals `BRACKET_BUDGET_FACTOR`, and the base sits
+ * above nine times `BRACKET_BASE_BUDGET`** (M9). Those two facts together are
+ * what stop gear from lifting its own bracket: gear is weight 1 in Power Level,
+ * so a hero wearing nine items of budget *b* carries about 9*b* of gear power,
+ * and if that were enough to reach the next bracket the loop would bootstrap
+ * itself — which is exactly what the first M9 measurement found. It plateaued a
+ * no-shop climber at bracket ~18 and put the first death wall at floor 80
+ * instead of the 15–25 §10 asks for.
+ *
+ * With the factors matched and the base above the loop's break-even, gear's
+ * contribution is self-limiting and **depth** decides the bracket (see
+ * `POWER_TOWER_CURVE`). That is the brief's own sentence made mechanical:
+ * Power Level decides the bracket, and the tower is most of Power Level.
+ */
+export const BRACKET_POWER_STEP = { base: 320, factor: 1.42, period: 1 } as const;
 
 /** Reference budget for bracket 0, growing by `BUDGET_FACTOR` per bracket. */
 export const BRACKET_BASE_BUDGET = 26;
@@ -102,17 +124,21 @@ export const GEAR_LEVEL_STAT_BONUS_PER_LEVEL = 0.04;
 export const GEAR_ASCENSION_STAT_BONUS: readonly number[] = [0, 0.08, 0.18, 0.3, 0.44, 0.6];
 
 /**
- * Gold cost to take a piece from `level` to `level + 1` (Brief §10.1).
+ * Gold cost to take a piece from `level` to `level + 1`, **as a multiple of the
+ * item's own worth** (Brief §10.1, retuned in M9).
  *
- * Levels 1–10 are a gentle polynomial the player upgrades freely; 11–15 turn
- * sharply exponential — the "worth pushing" wall, priced to stay reachable
- * rather than to feel like a toll gate.
+ * Dimensionless on purpose. The gold price is `budget × ITEM_GOLD_PER_BUDGET ×
+ * this`, so an upgrade automatically costs what the piece is worth at any depth
+ * and there is no second per-bracket factor to drift out of step with the first.
+ *
+ * Levels 1–10 are a gentle polynomial the player upgrades freely — about five
+ * times the item's worth in total, a session's income across a full set. 11–15
+ * turn sharply exponential and cost roughly nine times what 1–10 did: §10.1's
+ * "worth pushing", priced to be a goal rather than a toll gate.
  */
 export const GEAR_LEVEL_COST = {
-  /** Scales with the item's bracket, so upgrades keep pace with income. */
-  bracketFactor: 1.38,
-  early: { base: 40, coefficient: 26, exponent: 1.7 },
-  late: { base: 40, factor: 2.35, period: 1, offsetLevel: 10, offsetCost: 3_400 },
+  early: { base: 0.22, coefficient: 0.02, exponent: 1.75 },
+  late: { factor: 1.95, period: 1, offsetLevel: 10, offsetCost: 1.4 },
   lateStartsAt: 10,
 } as const;
 
@@ -137,13 +163,19 @@ export const GEAR_ASCENSION_COST: readonly {
   tiers: readonly number[];
   /** How many of each. */
   counts: readonly number[];
-  gold: number;
+  /**
+   * Gold as a multiple of the item's own worth (M9), like `GEAR_LEVEL_COST` —
+   * so a star costs what the piece is worth at any depth. All five together run
+   * to about 125× the item's value, roughly twice what taking it to level 15
+   * costs, which is right: a star also opens an affix slot.
+   */
+  goldMultiplier: number;
 }[] = [
-  { tiers: [0], counts: [4], gold: 200 },
-  { tiers: [0, 1], counts: [8, 3], gold: 900 },
-  { tiers: [0, 1], counts: [14, 8], gold: 3_200 },
-  { tiers: [1, 2], counts: [18, 10], gold: 11_000 },
-  { tiers: [1, 2], counts: [26, 16], gold: 38_000 },
+  { tiers: [0], counts: [4], goldMultiplier: 2.5 },
+  { tiers: [0, 1], counts: [8, 3], goldMultiplier: 6 },
+  { tiers: [0, 1], counts: [14, 8], goldMultiplier: 14 },
+  { tiers: [1, 2], counts: [18, 10], goldMultiplier: 32 },
+  { tiers: [1, 2], counts: [26, 16], goldMultiplier: 72 },
 ];
 
 /**

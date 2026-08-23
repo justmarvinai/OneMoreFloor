@@ -104,6 +104,81 @@ Daily objectives sized to one normal session, weeklies to a normal week, neither
 - **The anti-overshoot guard now sweeps both banners** through the gacha's own code path (§16.2's "no overshooting"). Pulls inherit the guarantee by generating through the same `generateItem` every drop and shelf uses; the sweep proves it rather than trusting it.
 - **The animation's bluff is a balance number, not a hidden one.** How high the reveal teases is drawn from `BLUFF_LADDER` and then raised to the outcome's own rarity — so the build may over-sell and can never under-sell. About a third of pulls stay honest; the full staging is rare enough to still mean something the twentieth time. The drawn rank is stored on the pull result, which makes the *animation* replayable from a save alongside the prize.
 
+## 9f. The tuning pass (M9) — what moved and why
+
+M9 is the milestone where the simulator stopped being a smoke test and became the
+authority. Every §10 gate below is now an assertion in `tools/sim/gates.test.ts`,
+run on every commit. The measurements that forced each change are recorded here
+because the *reasons* outlive the numbers.
+
+**Gear could lift its own bracket.** Gear is weight 1 in Power Level, Power Level
+picks the bracket, and the bracket decides how good the next drop is — a loop
+whose gain was above break-even. A no-shop climber's gear converged to bracket
+~18 *regardless of depth* and the first death wall sat at floor 80 against §10's
+15–25. Fixed by matching `BRACKET_POWER_STEP.factor` to `BRACKET_BUDGET_FACTOR`
+and putting the base above nine times `BRACKET_BASE_BUDGET`, which makes gear's
+own contribution self-limiting.
+
+**So depth had to become the thing that raises the bracket.** `POWER_TOWER_CURVE`
+went from a sub-linear polynomial to an exponential at ×1.82 per ten floors —
+a shade below the enemy curve's ×1.9. Matched exactly, the fight would be
+identical on every floor and nothing would ever stop a player. A whisker behind
+means the tower pulls a few percent ahead every ten floors, the gap compounds
+into a wall, and levels, stat points and gear upgrades are what push it back.
+That is the loop the whole economy exists to feed (§14).
+
+**Prices double-counted the same exponential.** An item's budget already grows
+with its bracket, and `buyPrice`, `sellValue` and `gearLevelCost` each multiplied
+it by a *second* per-bracket factor. Six sessions in, a climber's purse held
+twelve billion gold, most of it from selling spares. Every item price now goes
+through one anchor — `ITEM_GOLD_PER_BUDGET` — so prices and income can be
+compared by dividing two numbers. Gear level and star costs became dimensionless
+multiples of the item's own worth.
+
+**Experience outran the tower.** XP cost per level was polynomial while XP income
+was exponential, so heroes hit the level-100 ascension cap inside three sittings.
+`XP_TO_NEXT_LEVEL` is now exponential at the rate the tower pays experience, and
+level tracks depth rather than outrunning it.
+
+**Three "band-relative" percentages were not.** `DEFENSE_K`, `CRIT.reference` and
+`SPEED.reference` grew at ×1.42 per ten floors while the stats they normalise grow
+at ×1.9 — so mitigation, crit and double-attack all drifted upward and would have
+pinned at their caps a few hundred floors in, which is the precise failure the
+band-relative design exists to prevent. All three now grow at ×1.9.
+
+**Bosses were the entire game.** Measured win rates were ~97% on normal floors and
+~22% on boss floors: nine free floors and a brick wall, ten times over. Boss
+*excess* over a normal floor now ramps in (`BOSS_RAMP`) — the first gate is a
+lesson, floor 60 onwards is the full wall — and normal floors were made to bite
+via `ENEMY_BASE.strength`. The curve now reads 91–98% on normal floors, 62% at
+floor 10, 69% at floor 20 and 32% at floor 30.
+
+**Class parity was noise, one real bug, and a spread.** Measured properly (18
+depths × 8 seeds per class rather than one fight per depth) the spread was much
+smaller than the first reading suggested — but the Swashbuckler genuinely could
+not reach its signature: both of its resource events depend on Speed, which comes
+only from gear (§6), and its per-round trickle was too small to matter. Fill rates
+and class stat lines were adjusted; the measured spread is now under six points
+with every class between 42% and 48%.
+
+### The gates, as they stand
+
+| Gate | Target | Measured |
+|---|---|---|
+| First wall, no-shop climber | floors 15–25 (§10) | median **16**, IQR 10–20 |
+| First sitting depth | visible progress (§1) | median floor **37** in 80 fights |
+| Re-climb after death | minutes, not hours (§2) | **20–90 s** at ×1 speed |
+| Class win rate at matched depth | one band (§8) | spread **5.6 points**, all 42–48% |
+| Signature uptime | every class can reach it | **5–25%** of rounds |
+| Gold | always slightly short (§14) | purse never covers the wanted pile, in any archetype |
+| Gear levels | 1–10 free-flowing, 11–15 a push (§10.1) | 1–10 ≈ **5×** the item's worth, 11–15 ≈ **15×** that again |
+| Rarity arc | Epic early, Legendary later, Mythical an event (§9.2) | no Legendary in bracket 0; first Legendary ≈ floor **70**; Mythical < **0.1%** everywhere |
+| Ticket cadence | a pull is an event (§8) | ≈ **1–3** per sitting |
+| Endless guard | ~0 (COMBAT §3) | **0** of ~2,700 fights |
+
+Bands in the gates are deliberately wider than the tuned values. A gate that only
+passes at today's digits forbids tuning; a gate should catch a change of *shape*.
+
 ## 9e. The roster, as authored (M8)
 
 - **Authored, not tuned.** Enemy profiles, boss multipliers, family weights and `MODIFIER_STRENGTH` are first-pass numbers chosen for *shape* — a Rubble Golem is slow and armoured, a Roost Harrier is fast and fragile — not for a target difficulty curve. M9's simulator gates are where they get their real values, and tuning them before the roster existed would have been tuning against a smaller game.
@@ -124,3 +199,5 @@ The harness earned its place on the first run, before any tuning had been attemp
 ## 10. The balance simulator (how we tune honestly)
 
 A headless harness over the real `domain/` code (same combat resolution, same generators — never a parallel model): scripted player archetypes (e.g., *ClimberNoShop*, *ShopEveryRestock*, *GachaHoarder*) are simulated across sessions/days; outputs: floor-over-time, death walls, gold balance over time, gear-level distribution, time-to-Legendary, signature-move uptime per class, endless-guard fire rate (must be ~0, COMBAT.md §3). Acceptance gates for M9 (provisional): first death ~floors 15–25 for a no-shop climber; the re-climb-in-minutes target from §2 above; classes within a tuned win-rate band of each other at equal PL (§8 "genuine upsides and downsides" — different *paths*, comparable *power*); gold balance trends slightly-short at every archetype (§14). The simulator ships in `tools/` and stays part of the repo — every future content/balance PR reruns it (CLAUDE.md rule).
+
+**As built (M9):** the harness plays *archetypes* — `ClimberNoShop`, `ShopEveryRestock`, `GachaHoarder` — across sessions, each one a sitting at the tower with real time passing between them so shelves age out on Q17's schedule. Every gate above is an assertion in `tools/sim/gates.test.ts`, and `npm run sim` is a CI step of its own. The gates were each verified to *fail* on a deliberately broken config before being trusted: weakening the enemies breaks the wall gate, making sinks cheap breaks §14, and reverting the band references breaks both the signature and the percentage gates. See §9f for what the first honest measurement found.

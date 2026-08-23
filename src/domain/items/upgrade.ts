@@ -16,6 +16,7 @@ import {
   GEAR_LEVEL_COST_BY_RARITY,
   SELL_VALUE_FRACTION,
 } from '@/content/balance/items.ts';
+import { ITEM_GOLD_PER_BUDGET } from '@/content/balance/merchants.ts';
 import { bracketAt } from '../power/brackets.ts';
 import { affixSlotsAt } from './generate.ts';
 import {
@@ -35,24 +36,36 @@ export function canAscendGear(item: ItemInstance): boolean {
 }
 
 /**
+ * What an item is worth in gold — the anchor every price in the game divides by.
+ *
+ * Budget already grows with the bracket, so this is the *only* place a bracket's
+ * exponential enters a price. Multiplying by a second per-bracket factor, as the
+ * pre-M9 config did, compounded the same curve twice and made late-game gold
+ * meaningless (BALANCE.md §9f).
+ */
+export function itemGoldValue(item: ItemInstance): number {
+  return item.budget * ITEM_GOLD_PER_BUDGET * GEAR_LEVEL_COST_BY_RARITY[item.rarity];
+}
+
+/**
  * Gold to take an item from its current level to the next.
  *
- * Scales with the item's bracket so upgrade prices keep pace with income as the
- * player descends, and with rarity so better gear is dearer to improve.
+ * A multiple of what the piece itself is worth, so an upgrade costs the same
+ * *relative* amount at floor 10 and floor 500, and rarity makes better gear
+ * dearer to improve.
  */
 export function gearLevelCost(item: ItemInstance): number {
   if (!canLevelUp(item)) return 0;
 
   const next = item.level + 1;
-  const { early, late, lateStartsAt, bracketFactor } = GEAR_LEVEL_COST;
+  const { early, late, lateStartsAt } = GEAR_LEVEL_COST;
 
-  const base =
+  const step =
     next <= lateStartsAt
       ? evaluate({ kind: 'polynomial', ...early }, next)
       : late.offsetCost * Math.pow(late.factor, (next - late.offsetLevel) / late.period);
 
-  const bracketScale = Math.pow(bracketFactor, item.bracketAtDrop);
-  return Math.round(base * bracketScale * GEAR_LEVEL_COST_BY_RARITY[item.rarity]);
+  return Math.max(1, Math.round(itemGoldValue(item) * step));
 }
 
 /** Total gold from the item's current level all the way to 15. */
@@ -96,7 +109,9 @@ export function gearAscensionCost(
 
   return {
     materials,
-    gold: Math.round(step.gold * Math.pow(GEAR_LEVEL_COST.bracketFactor, item.bracketAtDrop)),
+    // Ascension is priced in materials first and gold second; the gold half
+    // rides the same anchor as everything else.
+    gold: Math.max(1, Math.round(step.goldMultiplier * itemGoldValue(item))),
     affixSlotsAfter: affixSlotsAt(item.ascension + 1),
   };
 }
@@ -130,11 +145,5 @@ export function hasEmptyAffixSlot(item: ItemInstance): boolean {
 
 /** Gold a merchant pays for an unwanted piece (Q16). */
 export function sellValue(item: ItemInstance): number {
-  const bracketScale = Math.pow(GEAR_LEVEL_COST.bracketFactor, item.bracketAtDrop);
-  return Math.max(
-    1,
-    Math.round(
-      item.budget * SELL_VALUE_FRACTION * bracketScale * GEAR_LEVEL_COST_BY_RARITY[item.rarity],
-    ),
-  );
+  return Math.max(1, Math.round(itemGoldValue(item) * SELL_VALUE_FRACTION));
 }

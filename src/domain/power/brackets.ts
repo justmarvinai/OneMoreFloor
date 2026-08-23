@@ -70,11 +70,13 @@ export function bracketAt(index: number): Bracket {
  * property testable once rather than per source.
  */
 export function bracketFor(powerLevel: number): Bracket {
-  let index = 0;
-  while (index + 1 < BRACKET_COUNT && powerLevel >= bracketMinPower(index + 1)) {
-    index += 1;
-  }
-  return bracketAt(index);
+  if (!Number.isFinite(powerLevel) || powerLevel < BRACKET_POWER_STEP.base) return bracketAt(0);
+
+  // Closed form rather than a scan: the ladder is two hundred brackets long and
+  // this is called on every drop, every shelf and every pull.
+  const { base, factor, period } = BRACKET_POWER_STEP;
+  const steps = Math.log(powerLevel / base) / Math.log(factor);
+  return bracketAt(1 + Math.floor(steps * period));
 }
 
 /**

@@ -5,6 +5,65 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning wil
 
 ## [Unreleased]
 
+### Changed — M9: the tuning pass
+
+This milestone changed almost no code and almost every number. The simulator
+stopped being a smoke test and became the authority, and the first honest
+measurement found five structural faults that no amount of playtesting would
+have separated from each other.
+
+- **Gear could lift its own bracket.** Gear counts toward Power Level, Power Level
+  picks the bracket, and the bracket decides how good the next drop is — a loop
+  whose gain was above break-even. A climber's gear converged to the same power
+  *whatever depth they were at*, and the first death wall sat at floor 80 against
+  the 15–25 the balance doc asks for. **Depth now decides the bracket**: the tower
+  contribution to Power Level is exponential at a shade under the enemy curve, so
+  the tower pulls a few percent ahead every ten floors and levels, stat points and
+  upgrades are what push the wall back.
+- **Every item price double-counted the same exponential.** An item's budget
+  already grows with its bracket, and buying, selling and upgrading each multiplied
+  it by a *second* per-bracket factor. Six sessions in, a climber's purse held
+  twelve billion gold, most of it from selling spares. All item prices now go
+  through one anchor, so prices and income can be compared by dividing two numbers.
+- **Experience outran the tower.** Level cost was polynomial against exponential
+  income, so heroes hit the level-100 ascension cap inside three sittings. Level
+  now tracks depth instead of outrunning it.
+- **Three "band-relative" percentages were not.** Defence mitigation, crit chance
+  and double-attack chance were normalised against references growing at a *slower*
+  rate than the stats they normalise, so all three would have pinned at their caps
+  a few hundred floors in — the precise failure the band-relative design exists to
+  prevent.
+- **Bosses were the entire game.** Normal floors were won ~97% of the time and boss
+  floors ~22%: nine free floors and a brick wall, ten times over. A boss's excess
+  over a normal floor now ramps in with depth — the first gate is a lesson, floor
+  60 onwards is the full wall — and normal floors were made to bite.
+- **The Swashbuckler could not reach its own signature.** Both of its resource
+  events depend on Speed, which comes only from gear, and the per-round trickle was
+  too small to bridge the gap. Fill rates and class stat lines were retuned; every
+  class now spends a signature in 5–25% of rounds and the win-rate spread at
+  matched depth is under six points.
+- **The character dot now lights when a better piece is in the backpack.** Found in
+  the manual playtest: a hero nine floors in was wearing one item with six better
+  ones in the bag and nothing on screen said so.
+
+### Added — M9
+
+- **Thirteen balance gates** (`tools/sim/gates.test.ts`), each one a sentence from
+  the brief turned into an assertion: where the first wall sits, that a re-climb
+  takes minutes, that no class is a trap pick or trivialises the tower, that no
+  purse ever covers the shopping list, that gear levels 1–10 stay free-flowing and
+  11–15 are a push, that the rarity arc holds and Mythical stays under a tenth of a
+  percent, that a ticket stays an event, and that the endless guard never fires.
+  Every gate was verified to *fail* on a deliberately broken config before being
+  trusted.
+- **The simulator plays archetypes** — a climber who never shops, a player who
+  shops on every restock, a gacha hoarder — across sessions, with real time passing
+  between sittings so shelves age out on their real schedule, and records what the
+  gates need: gold in and out, gear levels, first Legendary, ticket cadence,
+  signature uptime, round-cap fires and re-climb seconds.
+- **`npm run sim` is a CI step of its own**, so a tuning change that breaks the
+  first-session curve fails in the commit that broke it.
+
 ### Added — M8: a tower with somewhere to be
 
 - **Thirty enemies across eight families** (Brief §3.1, Q12) — vermin, brigands, beasts, constructs, arcane leftovers, undead, infernal and the aberrations deeper up, covering floors 1–100 with three or more candidates on every floor. Twenty-eight of them now wear artwork that genuinely *is* them rather than the placeholder silhouette.

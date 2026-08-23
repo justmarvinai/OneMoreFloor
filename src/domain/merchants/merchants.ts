@@ -21,13 +21,13 @@ import {
   MERCHANT_STOCK_SIZE,
   BUY_PRICE_FRACTION,
 } from '@/content/balance/merchants.ts';
-import { GEAR_LEVEL_COST, GEAR_LEVEL_COST_BY_RARITY } from '@/content/balance/items.ts';
 import { affixPool } from '@/content/items/affixPools.ts';
 import { ITEM_BASES } from '@/content/items/index.ts';
 import { potionsForBracket, type PotionDef } from '@/content/items/potions.ts';
 import type { Character } from '../character/types.ts';
 import { availableSlots } from '../items/equip.ts';
 import { defsForBracket, generateItem } from '../items/generate.ts';
+import { itemGoldValue } from '../items/upgrade.ts';
 import type { ItemInstance } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
 import { rarityWeightsFor } from '../tower/rewards.ts';
@@ -52,10 +52,20 @@ const SLOTS: Readonly<Record<MerchantId, readonly string[]>> = {
   magic: ['ring', 'necklace', 'amulet', 'relic', 'artifact'],
 };
 
-export function createMerchants(runSeed: string, now: number): MerchantsState {
+/**
+ * A brand-new character's shelves, stamped at the epoch rather than at `now`.
+ *
+ * "Never filled" is the honest state for a hero who has not walked in yet, and
+ * stamping it that way means the first visit rolls goods at their real bracket
+ * — the same reasoning the v3 migration used for existing saves (SAVE_SCHEMA
+ * §4). Stamping `now` made the first visit's stock depend on a coincidence
+ * between the placeholder bracket and the hero's actual one, which M9's retune
+ * quietly broke.
+ */
+export function createMerchants(runSeed: string, _now: number): MerchantsState {
   const state = (id: MerchantId): MerchantState => ({
-    stockSeed: stockSeedFor(id, runSeed, now),
-    stockedAt: now,
+    stockSeed: stockSeedFor(id, runSeed, 0),
+    stockedAt: 0,
     bracketAtStock: 0,
     floorAtStock: 0,
     sold: [],
@@ -121,13 +131,7 @@ export function rerollCost(bracketIndex: number): number {
 
 /** What a merchant asks for a piece. Sell value is a fraction of this (Q16). */
 export function buyPrice(item: ItemInstance): number {
-  const bracketScale = Math.pow(GEAR_LEVEL_COST.bracketFactor, item.bracketAtDrop);
-  return Math.max(
-    1,
-    Math.round(
-      item.budget * BUY_PRICE_FRACTION * bracketScale * GEAR_LEVEL_COST_BY_RARITY[item.rarity],
-    ),
-  );
+  return Math.max(1, Math.round(itemGoldValue(item) * BUY_PRICE_FRACTION));
 }
 
 export interface StockEntry {

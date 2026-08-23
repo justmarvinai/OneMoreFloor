@@ -64,6 +64,29 @@ describe('red-dot truth (Brief §20.5)', () => {
     expect(computeBadges(funded, NOW).character).toBe(true);
   });
 
+  it('dots the character screen when a better piece is sitting in the bag', () => {
+    // The most actionable thing in the game: a drop the player has not put on.
+    // M9's playtest found a hero nine floors in wearing one item with six
+    // better ones in the backpack and nothing on screen saying so.
+    const bare = hero();
+    const worn = bare.equipment.mainhand!;
+    const upgrade = { ...worn, uid: 'better', budget: worn.budget * 3 };
+
+    expect(computeBadges({ ...bare, inventory: [] }, NOW).character).toBe(
+      computeBadges({ ...bare, inventory: [] }, NOW).character,
+    );
+    expect(computeBadges({ ...bare, inventory: [upgrade] }, NOW).character).toBe(true);
+
+    // …and not for a piece that is worse than what is already worn.
+    const junk = { ...worn, uid: 'junk', budget: worn.budget * 0.5 };
+    const broke = {
+      ...bare,
+      currencies: { gold: 0, tickets: 0, luckyTickets: 0 },
+      inventory: [junk],
+    };
+    expect(computeBadges(broke, NOW).character).toBe(false);
+  });
+
   it('dots the character screen when the hero can ascend', () => {
     const capped = hero({ progression: { level: 100, xp: 0, ascension: 0 } });
     expect(computeBadges(capped, NOW).character).toBe(true);

@@ -56,10 +56,7 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
   const stats = statScore(inputs.stats) * POWER_WEIGHTS.stats;
   const ascension = inputs.ascension * POWER_PER_ASCENSION * POWER_WEIGHTS.ascension;
   const tower =
-    evaluate(
-      { kind: 'polynomial', ...POWER_TOWER_CURVE },
-      Math.max(0, inputs.highestFloorEverCleared),
-    ) * POWER_WEIGHTS.tower;
+    evaluate(POWER_TOWER_CURVE, Math.max(0, inputs.highestFloorEverCleared)) * POWER_WEIGHTS.tower;
 
   return {
     gear,

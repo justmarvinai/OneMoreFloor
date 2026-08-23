@@ -199,8 +199,24 @@ export function rollAscensionAffix(
 }
 
 /** Base types eligible at a bracket, so a rusty dagger stops dropping on floor 400. */
+/**
+ * The item bases a bracket may roll.
+ *
+ * A base's bracket range says *when it looks right* — a rusted shortsword stops
+ * dropping once the player is past it. Past the deepest authored range there is
+ * nothing left to look right, and returning an empty pool would mean a bracket
+ * that drops no gear at all. So the deepest tier stays open-ended: the ladder is
+ * unbounded (`BRACKET_COUNT`), the art is not, and the art repeats rather than
+ * the tower going bare (M9).
+ */
 export function defsForBracket(defs: readonly ItemDef[], bracketIndex: number): ItemDef[] {
-  return defs.filter((def) => bracketIndex >= def.brackets[0] && bracketIndex <= def.brackets[1]);
+  const inRange = defs.filter(
+    (def) => bracketIndex >= def.brackets[0] && bracketIndex <= def.brackets[1],
+  );
+  if (inRange.length > 0) return inRange;
+
+  const deepest = defs.reduce((top, def) => Math.max(top, def.brackets[1]), -Infinity);
+  return defs.filter((def) => def.brackets[1] === deepest);
 }
 
 export type { AffixPoolId };

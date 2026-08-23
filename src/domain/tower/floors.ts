@@ -15,6 +15,7 @@ import { evaluate } from '@/content/balance/curves.ts';
 import {
   BOSS_KIT_SCALING,
   BOSS_MULTIPLIER,
+  BOSS_RAMP,
   ENEMY_BASE,
   ENEMY_POWER,
   MODIFIER_CHANCE,
@@ -54,9 +55,13 @@ function statsFor(
 ): StatBlock {
   const power = evaluate({ kind: 'exponential', ...ENEMY_POWER }, floor);
 
+  const ramp = bossRamp(floor);
   const scaled = (stat: StatId): number => {
     const base = ENEMY_BASE[stat as keyof typeof ENEMY_BASE] ?? 1;
-    const bossScale = isBoss ? BOSS_MULTIPLIER[stat as keyof typeof BOSS_MULTIPLIER] : 1;
+    // Only the *excess* over a normal floor ramps, so a boss is never weaker
+    // than the floor below it however early the gate is.
+    const full = BOSS_MULTIPLIER[stat as keyof typeof BOSS_MULTIPLIER];
+    const bossScale = isBoss ? 1 + (full - 1) * ramp : 1;
     return Math.max(1, Math.round(base * power * (profile[stat] ?? 1) * bossScale));
   };
 
@@ -70,9 +75,24 @@ function statsFor(
   };
 }
 
-/** Scale a boss's kit slowly with depth, so deep bosses bite harder (§3.2). */
+/**
+ * How much of a boss's excess over a normal floor applies at this depth: the
+ * first gate teaches, the deep ones are walls (BALANCE.md §9f).
+ */
+export function bossRamp(floor: number): number {
+  const { fromFloor, toFloor, start } = BOSS_RAMP;
+  if (floor <= fromFloor) return start;
+  if (floor >= toFloor) return 1;
+  return start + (1 - start) * ((floor - fromFloor) / (toFloor - fromFloor));
+}
+
+/**
+ * Scale a boss's kit with depth, so deep bosses bite harder (§3.2) — and *ramp
+ * it in* alongside the stat excess, so the first gate's debuff is a taste of the
+ * mechanic rather than the reason a new player cannot pass floor 10.
+ */
 function scaleEffect(effect: EffectDef, floor: number): EffectDef {
-  const scale = evaluate({ kind: 'exponential', ...BOSS_KIT_SCALING }, floor);
+  const scale = evaluate({ kind: 'exponential', ...BOSS_KIT_SCALING }, floor) * bossRamp(floor);
   return { ...effect, magnitude: effect.magnitude * scale };
 }
 

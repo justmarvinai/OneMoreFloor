@@ -2,10 +2,15 @@
  * Combat balance (COMBAT.md, BALANCE.md §4).
  *
  * Every number a fight depends on lives here. The shapes matter more than the
- * values, which are tuned in M9 against the simulator: percentages are
- * **band-relative**, so raw stats inflate forever while crit chance and
- * double-attack chance stay inside tuned windows at floor 10 and floor 5000
- * alike (Brief §3.7).
+ * values: percentages are **band-relative**, so raw stats inflate forever while
+ * crit chance and double-attack chance stay inside tuned windows at floor 10 and
+ * floor 5000 alike (Brief §3.7).
+ *
+ * M9 note: the three reference curves below grow at **exactly the rate stats
+ * grow** (×1.9 per ten floors, the enemy power curve). They used to grow at
+ * ×1.42, which is slower — so mitigation, crit and double-attack all drifted
+ * upward with depth and would have pinned at their caps a few hundred floors in,
+ * which is the precise failure the band-relative design exists to prevent.
  */
 
 /** Damage a strike deals before defense, as a multiple of Strength. */
@@ -19,19 +24,19 @@ export const DAMAGE_VARIANCE = { min: 0.9, max: 1.1 } as const;
  * band, which is what keeps a fixed Defense value from becoming immunity twenty
  * floors later — and what stops it ever reaching immunity at all.
  */
-export const DEFENSE_K = { base: 60, factor: 1.42, period: 10 } as const;
+export const DEFENSE_K = { base: 60, factor: 1.9, period: 10 } as const;
 
 /** Crit (Brief §4.2: "Luck determines crit rate"). Band-relative, hard-capped. */
 export const CRIT = {
   /** Luck equal to this fraction of the band's reference yields half the cap. */
-  reference: { base: 40, factor: 1.42, period: 10 },
+  reference: { base: 40, factor: 1.9, period: 10 },
   cap: 0.6,
   multiplier: 2,
 } as const;
 
 /** Speed's double-attack chance (Brief §4.2/§6). Gear is its only source. */
 export const SPEED = {
-  reference: { base: 26, factor: 1.42, period: 10 },
+  reference: { base: 26, factor: 1.9, period: 10 },
   cap: 0.5,
 } as const;
 
@@ -76,8 +81,8 @@ export const RESOURCE_FILL = {
   hunterOnDealHit: 0.18,
   hunterOnCrit: 0.14,
   /** Bard: per round, faster while a song is playing. */
-  bardPerRound: 0.18,
-  bardPerRoundBuffed: 0.28,
+  bardPerRound: 0.22,
+  bardPerRoundBuffed: 0.33,
   /**
    * Swashbuckler: on dodges and double attacks (Q26) — plus a small per-round
    * trickle. Without it the class is unplayable at level 1: both of its fill
@@ -87,7 +92,7 @@ export const RESOURCE_FILL = {
    */
   swashOnDodge: 0.3,
   swashOnDoubleAttack: 0.22,
-  swashPerRound: 0.07,
+  swashPerRound: 0.16,
   /** Enemies with a kit charge on a simple per-round clock. */
   enemyPerRound: 0.14,
 } as const;

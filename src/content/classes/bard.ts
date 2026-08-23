@@ -23,8 +23,8 @@ export const bard: ClassDef = {
   },
   weaponRule: 'two_handed',
   weaponDescriptionKey: 'class.bard.weapon',
-  baseStats: { strength: 10, defense: 9, hp: 100, resource: 13, luck: 9 },
-  statGrowthPerLevel: { strength: 1.6, defense: 1.5, hp: 12, resource: 1.9, luck: 1.4 },
+  baseStats: { strength: 12, defense: 10, hp: 110, resource: 13, luck: 10 },
+  statGrowthPerLevel: { strength: 1.9, defense: 1.6, hp: 13, resource: 1.9, luck: 1.5 },
   art: { portrait: 'class-bard', glyph: 'glyph-celestial-body' },
   difficulty: 3,
 };

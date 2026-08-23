@@ -24,8 +24,8 @@ export const mage: ClassDef = {
   },
   weaponRule: 'two_handed',
   weaponDescriptionKey: 'class.mage.weapon',
-  baseStats: { strength: 15, defense: 6, hp: 80, resource: 14, luck: 7 },
-  statGrowthPerLevel: { strength: 2.4, defense: 1.0, hp: 8, resource: 2.0, luck: 1.1 },
+  baseStats: { strength: 15, defense: 7, hp: 90, resource: 14, luck: 8 },
+  statGrowthPerLevel: { strength: 2.5, defense: 1.2, hp: 10, resource: 2.0, luck: 1.2 },
   art: { portrait: 'class-mage', glyph: 'glyph-arcane-symbol' },
   difficulty: 2,
 };

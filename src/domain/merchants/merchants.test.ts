@@ -107,11 +107,19 @@ describe('merchant stock', () => {
 });
 
 describe('restock (Q17)', () => {
-  const base = createMerchants('restock-test', NOW).equipment;
   const context = { now: NOW, bracketIndex: 0, highestFloor: 0 };
+  // A shelf that has actually been filled. `createMerchants` deliberately
+  // stamps the epoch instead, so a brand-new hero's very first visit always has
+  // goods waiting rather than depending on a coincidence of brackets (M9).
+  const base = restock('equipment', 'restock-test', context);
 
   it('leaves a fresh shelf alone', () => {
     expect(needsRestock(base, context)).toBe(false);
+  });
+
+  it('treats a hero who has never visited as owed a shelf', () => {
+    const untouched = createMerchants('restock-test', NOW).equipment;
+    expect(needsRestock(untouched, context)).toBe(true);
   });
 
   it('ages out after the free interval', () => {
