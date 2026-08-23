@@ -46,10 +46,13 @@ jobs:
         run: npm run build
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Smoke tests
         run: npm run smoke
+        env:
+          # The A9 browser floor: Chrome/Edge, Firefox and Safari (ARCHITECTURE §6).
+          PLAYWRIGHT_ALL_BROWSERS: '1'
 
       - name: Upload Playwright report
         if: failure()

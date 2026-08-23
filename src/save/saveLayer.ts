@@ -209,59 +209,74 @@ export function createSaveLayer(db: SaveDatabase): SaveLayer {
 
     const written: StoredRecord[] = [];
 
-    for (const request of [...requests, ...deletes]) {
-      const store = tx.objectStore(request.store);
-      const existing = await store.get(request.key);
-      const isDelete = deletes.includes(request);
+    try {
+      for (const request of [...requests, ...deletes]) {
+        const store = tx.objectStore(request.store);
+        const existing = await store.get(request.key);
+        const isDelete = deletes.includes(request);
 
-      let nextGen = 1;
-      if (existing) {
-        const integrity = existing['integrity'] as { gen?: number } | undefined;
-        const gen = typeof integrity?.gen === 'number' ? integrity.gen : 0;
-        nextGen = gen + 1;
+        let nextGen = 1;
+        if (existing) {
+          const integrity = existing['integrity'] as { gen?: number } | undefined;
+          const gen = typeof integrity?.gen === 'number' ? integrity.gen : 0;
+          nextGen = gen + 1;
 
-        const envelope: BackupEnvelope = { record: existing, takenAt: now, dayKey };
-        await backups.put(
-          toEnvelopeRecord(envelope),
-          rollingBackupKey(request.store, request.key, gen),
-        );
-
-        // The daily slot only rolls over when the day does, so it stays older
-        // than the rolling three and reaches further back.
-        const dailyKey = dailyBackupKey(request.store, request.key);
-        const currentDaily = await backups.get(dailyKey);
-        if (!isBackupEnvelope(currentDaily) || currentDaily.dayKey !== dayKey) {
-          await backups.put(toEnvelopeRecord(envelope), dailyKey);
-        }
-
-        const [lower, upper] = backupRange(request.store, request.key);
-        const keys = await backups.getAllKeys(IDBKeyRange.bound(lower, upper));
-        for (const stale of rollingKeysToPrune(keys)) await backups.delete(stale);
-      }
-
-      if (isDelete) {
-        await store.delete(request.key);
-      } else {
-        const body: StoredRecord = { ...request.body, schemaVersion: CURRENT_SCHEMA_VERSION };
-        const record = stamp(body, { writtenAt: now, gen: nextGen });
-        await store.put(record, request.key);
-        written.push(record);
-
-        if (!existing) {
-          // A record's first write has nothing to preserve, which would leave it
-          // with no backup at all until the second one. Seed the daily slot with
-          // the new record instead, so every record is recoverable from the
-          // moment it exists — the case that matters most for a character the
-          // player just spent time creating.
+          const envelope: BackupEnvelope = { record: existing, takenAt: now, dayKey };
           await backups.put(
-            toEnvelopeRecord({ record, takenAt: now, dayKey }),
-            dailyBackupKey(request.store, request.key),
+            toEnvelopeRecord(envelope),
+            rollingBackupKey(request.store, request.key, gen),
           );
+
+          // The daily slot only rolls over when the day does, so it stays older
+          // than the rolling three and reaches further back.
+          const dailyKey = dailyBackupKey(request.store, request.key);
+          const currentDaily = await backups.get(dailyKey);
+          if (!isBackupEnvelope(currentDaily) || currentDaily.dayKey !== dayKey) {
+            await backups.put(toEnvelopeRecord(envelope), dailyKey);
+          }
+
+          const [lower, upper] = backupRange(request.store, request.key);
+          const keys = await backups.getAllKeys(IDBKeyRange.bound(lower, upper));
+          for (const stale of rollingKeysToPrune(keys)) await backups.delete(stale);
+        }
+
+        if (isDelete) {
+          await store.delete(request.key);
+        } else {
+          const body: StoredRecord = { ...request.body, schemaVersion: CURRENT_SCHEMA_VERSION };
+          const record = stamp(body, { writtenAt: now, gen: nextGen });
+          await store.put(record, request.key);
+          written.push(record);
+
+          if (!existing) {
+            // A record's first write has nothing to preserve, which would leave it
+            // with no backup at all until the second one. Seed the daily slot with
+            // the new record instead, so every record is recoverable from the
+            // moment it exists — the case that matters most for a character the
+            // player just spent time creating.
+            await backups.put(
+              toEnvelopeRecord({ record, takenAt: now, dayKey }),
+              dailyBackupKey(request.store, request.key),
+            );
+          }
         }
       }
-    }
 
-    await tx.done;
+      await tx.done;
+    } catch (error) {
+      // **Abort explicitly.** Letting the exception escape leaves IndexedDB to
+      // commit whatever already succeeded the moment the request queue drains,
+      // which is how a crash mid-write could strand an account pointing at a
+      // character that was never created. The M10 fault-injection harness found
+      // exactly that (SAVE_SCHEMA §5/§11).
+      try {
+        tx.abort();
+      } catch {
+        // Already aborted or already committed; the original error is the one
+        // worth reporting.
+      }
+      throw error;
+    }
     return written;
   }
 

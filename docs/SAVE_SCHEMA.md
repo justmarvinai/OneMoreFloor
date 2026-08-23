@@ -1,6 +1,6 @@
 # OneMoreFloor — Save Layer & Data Model (EA 0.1)
 
-> Status: **planning — all feeding questions resolved** (decisions cited as `Qn`, see the `USER_QUESTIONS.md` ledger). Schema sketches below are *design*, not source. Brief cited as §n. The save layer is required by §21 to handle versioning + migrations and corruption recovery **from day one**; this is that design.
+> Status: **as built, EA 0.1 — schema v5** (decisions cited as `Qn`, see the `USER_QUESTIONS.md` ledger). The shapes below are the design; `src/save/schema.ts` is the source. Every version from v1 has a migration and a captured-blob fixture, and M10's fault-injection harness (§11) exercised the write path against failures at every step. Brief cited as §n.
 
 ## 1. Principles
 

@@ -1,6 +1,6 @@
 # OneMoreFloor — Balance & Formula Design (EA 0.1)
 
-> Status: **planning**. This document defines the *shapes* of every formula and where each number lives. Every literal below is **provisional** and exists to make the shapes concrete; real values are set during the balance milestone (ROADMAP M9) with the simulator (§10). Brief cited as §n.
+> Status: **tuned, EA 0.1 (M9).** This document defines the *shapes* of every formula and where each number lives; the shipped values live in `src/content/balance/` and were set by the simulator (§10), not by hand. Where a literal appears below it illustrates a shape — the config is the source of truth (§3.7). Brief cited as §n.
 
 ## 1. The one rule about numbers (§3.7)
 

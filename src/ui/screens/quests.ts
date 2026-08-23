@@ -28,6 +28,7 @@ import { getMaterial } from '@/content/items/materials.ts';
 import type { Character } from '@/domain/character/types.ts';
 import { isClaimable, isComplete, type QuestState } from '@/domain/quests/quests.ts';
 import { nextDayBoundary, nextWeekBoundary } from '@/app/time.ts';
+import { setTip } from '@/ui/tooltips.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 export interface QuestScreenOptions {
@@ -116,6 +117,17 @@ export function createQuestScreen(options: QuestScreenOptions): QuestScreen {
     action.on('click', () => {
       if (isClaimable(quest)) onClaim(cadence, index);
     });
+    // A greyed Claim says why, like every other refusal in the game (§20.5).
+    setTip(
+      action.el,
+      quest.claimed
+        ? t('quest.claimedTip')
+        : isClaimable(quest)
+          ? t('quest.claimableTip')
+          : t('quest.remaining', {
+              remaining: Math.max(0, Math.ceil(quest.target - quest.progress)),
+            }),
+    );
 
     return h(
       'div',

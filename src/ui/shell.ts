@@ -16,6 +16,7 @@ import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import type { AppStore } from '@/app/state.ts';
+import type { Screen } from '@/app/router.ts';
 import { clock } from '@/app/time.ts';
 import { computeBadges, type Badges } from '@/ui/badges.ts';
 import { t } from '@/strings/index.ts';
@@ -36,8 +37,20 @@ export interface ShellOptions {
   store: AppStore;
   /** Which rail entry is lit. */
   active: ShellSection;
-  /** Content for the main panel area. */
-  main: HTMLElement;
+  /**
+   * The screen filling the main panel. The shell **owns** it: `destroy()` tears
+   * it down along with the shell's own parts.
+   *
+   * This takes the screen rather than its element on purpose. Passing
+   * `createTowerScreen({...}).el` reads harmlessly and leaks: the screen object
+   * is dropped on the floor, so nothing ever calls its `destroy()`, and every
+   * component inside it keeps whatever observer or listener it registered —
+   * which keeps the detached tree alive. M10 measured it at ~41 listeners and
+   * ~91 retained nodes per screen visit, growing without bound (Q: why do
+   * fights not leak? The combat route returns its screen, so the router
+   * destroys it).
+   */
+  main: Screen;
   /** Leave this character and go back to the select screen (Q2). */
   onSwitch: () => void;
   /** Move to another destination. */
@@ -195,7 +208,7 @@ export function createShell(options: ShellOptions): Shell {
       switchButton.el,
       saveStatus,
     ),
-    h('main', { class: 'omf-shell__main' }, main),
+    h('main', { class: 'omf-shell__main' }, main.el),
   );
 
   // The hero's own frame tracks the character it belongs to: a floor cleared
@@ -225,6 +238,7 @@ export function createShell(options: ShellOptions): Shell {
     destroy() {
       unsubscribeSave();
       unsubscribeCharacter();
+      main.destroy();
       for (const part of parts) part.destroy();
       el.remove();
     },

@@ -1,6 +1,6 @@
 # OneMoreFloor — Content Pipeline (EA 0.1)
 
-> Status: **planning**. This defines how enemies, items, floors, classes, quests and balance data are authored, validated, and extended without touching game logic — the §2.3 forward-compatibility requirement made concrete. Brief cited as §n.
+> Status: **as built, EA 0.1 (M8).** This defines how enemies, items, floors, classes, quests and balance data are authored, validated and extended without touching game logic — the §2.3 requirement made concrete. The workflow is demonstrated in CI rather than described: an enemy that exists only inside a test file is fought to a real verdict. Brief cited as §n.
 
 ## 1. Ground rules
 

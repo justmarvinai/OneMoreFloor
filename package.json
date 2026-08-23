@@ -1,6 +1,6 @@
 {
   "name": "onemorefloor",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "OneMoreFloor — a single-player Fantasy-RPG roguelike tower-climber for the browser.",

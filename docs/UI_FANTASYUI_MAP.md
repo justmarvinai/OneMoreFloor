@@ -1,6 +1,6 @@
 # OneMoreFloor — Screen Inventory × FantasyUI Map (EA 0.1)
 
-> Status: **planning**. Every component named below was verified against the FantasyUIs repo (223 components; local clone). Themes: `SV` = `stone-vine` (hub contexts), `DE` = `dark-ember` (tower/combat/death) — per USER_QUESTIONS A8. Layout targets per §20.6; visual target per `assets/examples/` (§20.3): persistent left sidebar + large main panel, S&F density and framing. FantasyUI's rarity type (`common…mythic`) matches §9.2's six tiers 1:1, and its stat-bar kinds already include `health/mana/rage/xp`.
+> Status: **as built, EA 0.1 (M1–M7).** Every component named below is vendored and on screen; the custom-component allowlist in §10 is closed at four. Themes: `SV` = `stone-vine` (hub contexts), `DE` = `dark-ember` (tower/combat/death) — per USER_QUESTIONS A8. Layout targets per §20.6; visual target per `assets/examples/` (§20.3): persistent left sidebar + large main panel, S&F density and framing. FantasyUI's rarity type (`common…mythic`) matches §9.2's six tiers 1:1, and its stat-bar kinds already include `health/mana/rage/xp`.
 
 ## 1. Global shell (every screen) — SV
 
@@ -72,7 +72,7 @@
 | Sell/dispose flow (Q16: sell for a fraction of value at any merchant) | `InventoryGrid` + confirm `Modal` |
 | Merchant NPC presence (reference shows illustrated scenes) | `SceneBackdrop` + FantasyUI theme art only in 0.1 (Q11); owner backdrops may replace later by asset id |
 
-**As built (M5):** both merchants are one screen with different stock, because they are the same shop with different stock — separate implementations would mean fixing every bug twice. The free restock countdown sits beside the paid reroll, never the paid option alone: a shop that hides the free path is a shop that is selling impatience dishonestly (Q17). Selling goes through the same gear dialog the character screen uses, so a sale is always two deliberate clicks rather than one misclick in a grid. Buying a draught drinks it (⧗Q29).
+**As built (M5):** both merchants are one screen with different stock, because they are the same shop with different stock — separate implementations would mean fixing every bug twice. The free restock countdown sits beside the paid reroll, never the paid option alone: a shop that hides the free path is a shop that is selling impatience dishonestly (Q17). Selling goes through the same gear dialog the character screen uses, so a sale is always two deliberate clicks rather than one misclick in a grid. Buying a draught drinks it (Q29, confirmed).
 
 ## 6. Gacha — DE for the reveal, SV for the banner lobby (§16)
 

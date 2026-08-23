@@ -305,7 +305,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
               character: requireCharacter(),
               onFight: startFight,
               onRaid: startRaid,
-            }).el,
+            }),
           }),
 
         character: () =>
@@ -320,7 +320,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onSelectItem: inspectItem,
               onBuyStat: (stat) => void session.buyStat(stat, 1).then(refreshScreen),
               onAscend: () => void session.ascend().then(refreshScreen),
-            }).el,
+            }),
           }),
 
         gacha: () =>
@@ -332,7 +332,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
             main: createGachaScreen({
               character: requireCharacter(),
               onPull: startRite,
-            }).el,
+            }),
           }),
 
         quests: () =>
@@ -346,7 +346,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
               now: clock().now(),
               onClaim: (cadence, index) =>
                 void session.claimQuest(cadence, index).then(refreshScreen),
-            }).el,
+            }),
           }),
 
         upgrades: () =>
@@ -359,7 +359,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
               account: store.get().account!,
               character: requireCharacter(),
               onBuy: (id) => void session.buyUpgrade(id).then(refreshScreen),
-            }).el,
+            }),
           }),
 
         merchant: () =>
@@ -381,7 +381,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
               onReroll: () => void session.rerollMerchant(openMerchant).then(refreshScreen),
               onSelectItem: inspectItem,
-            }).el,
+            }),
           }),
 
         combat: () => {

@@ -27,7 +27,23 @@ export default defineConfig({
     viewport: { width: 1920, height: 1080 },
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions } }],
+  /**
+   * The A9 browser floor: current evergreen desktop Chrome/Edge, Firefox and
+   * Safari. Chromium is the one this repo's dev container ships, so the other
+   * two are opt-in via `PLAYWRIGHT_ALL_BROWSERS=1` — CI sets it after installing
+   * them, and a developer with them installed can set it too. Declaring them
+   * unconditionally would fail every local run with a missing-browser error,
+   * which teaches people to ignore the smoke suite.
+   */
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], launchOptions } },
+    ...(process.env.PLAYWRIGHT_ALL_BROWSERS
+      ? [
+          { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+          { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+        ]
+      : []),
+  ],
   webServer: {
     // `vite preview` serves whatever is in dist/, so the build belongs here: a
     // smoke run must never quietly test the previous build.
