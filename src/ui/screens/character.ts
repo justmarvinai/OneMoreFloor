@@ -1,10 +1,16 @@
 /**
  * The character screen (Brief §6, §7, §9, §10; UI_FANTASYUI_MAP §4).
  *
- * The layout follows `character_screen.png` (§20.3): the paperdoll in the
- * middle with the hero's portrait among their gear, the stat rows beneath it
- * each with the gold button that raises them, the running potions under those,
- * and the backpack down the right-hand side.
+ * The layout follows `character_screen.png` (§20.3), and follows it literally:
+ * **one framed window** holding the whole hero — gear sockets down both sides of
+ * the portrait, the weapons under it, who the hero is beneath that, then the
+ * stat rows with the button that raises each one, and the running potions last.
+ * The backpack is the second window, down the right-hand side.
+ *
+ * The first pass had these as four floating blocks, two of them unframed, with
+ * the gear score marooned in the middle of the screen. That reads as a web page
+ * with panels on it; the reference reads as a character sheet, and the
+ * difference is almost entirely that the sheet is *one* bordered thing.
  *
  * Every number on this screen says what it *does*, not just what it is. A stat
  * row that reads "Defense 412" tells a player nothing they can act on; one that
@@ -15,7 +21,6 @@ import {
   Button,
   CostButton,
   InventoryGrid,
-  OrnateHeader,
   Panel,
   Paperdoll,
   PowerRating,
@@ -45,14 +50,18 @@ import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';
+import { requireItemDef } from '@/content/items/index.ts';
 import { itemSlot, itemTooltip } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 /**
- * Where each slot sits on the paperdoll: armour down one side, the ascension
- * trinkets down the other, weapons in the row beneath — the arrangement the
- * reference screen uses, and the one that keeps both columns the same length.
+ * Where each slot sits on the paperdoll: armour down one side, the cape and the
+ * ascension trinkets down the other, weapons in the row beneath — the
+ * arrangement the reference screen uses.
+ *
+ * Six and six rather than seven and five: the columns set the doll's height, and
+ * an uneven pair both wastes a row of it and leaves one side visibly short.
  */
 const SLOT_LAYOUT: Readonly<Record<EquipSlotId, 'left' | 'right' | 'bottom'>> = {
   helmet: 'left',
@@ -61,7 +70,7 @@ const SLOT_LAYOUT: Readonly<Record<EquipSlotId, 'left' | 'right' | 'bottom'>> = 
   wrists: 'left',
   leggings: 'left',
   boots: 'left',
-  cape: 'left',
+  cape: 'right',
   ring: 'right',
   necklace: 'right',
   amulet: 'right',
@@ -120,7 +129,9 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       silhouette: definition.art.portrait,
       slots,
       equipped,
-      width: 720,
+      // The sockets belong at the sheet's edges, as they are in the reference.
+      // `Paperdoll` writes its width inline, so this is how it is overridden.
+      style: { width: '100%' },
       gearScore: Math.round(
         powerLevel({
           equipped: equippedItems(character),
@@ -138,11 +149,44 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     }
   });
 
-  // A locked slot says what would unlock it rather than going quiet (§20.5).
+  /**
+   * Every socket says something on hover: the piece in it, why it is shut, or
+   * that it is simply empty. A socket that explains nothing is the commonest way
+   * a character sheet stops being readable (§20.4/§20.5).
+   *
+   * `Paperdoll` renders its sockets in the order it was given them, per column,
+   * and puts no id on the cells — so this walks the columns in the same order to
+   * pair each socket with its element, and stamps the id on while it is there.
+   * The M5 pass addressed them with a `[data-slot-id]` selector that matched
+   * nothing, which is why locked sockets have been silent since they shipped.
+   * Recorded as an upstream wish (UI_FANTASYUI_MAP §10).
+   */
+  const cells: Record<'left' | 'right' | 'bottom', HTMLElement[]> = {
+    left: columnCells(paperdoll.el, '.fui-doll__col--left'),
+    right: columnCells(paperdoll.el, '.fui-doll__col--right'),
+    bottom: columnCells(paperdoll.el, '.fui-doll__row'),
+  };
+  const taken: Record<'left' | 'right' | 'bottom', number> = { left: 0, right: 0, bottom: 0 };
+
   for (const slot of EQUIP_SLOT_IDS) {
-    if (unlocked.has(slot)) continue;
-    const cell = paperdoll.el.querySelector<HTMLElement>(`[data-slot-id="${slot}"]`);
-    if (cell) setTip(cell, t('character.lockedSlot', { tier: tierUnlocking(slot) }));
+    const column = SLOT_LAYOUT[slot];
+    const cell = cells[column][taken[column]];
+    taken[column] += 1;
+    if (!cell) continue;
+    cell.dataset.slotId = slot;
+
+    if (!unlocked.has(slot)) {
+      setTip(cell, t('character.lockedSlot', { tier: tierUnlocking(slot) }));
+      continue;
+    }
+
+    const worn = character.equipment[slot];
+    setTip(
+      cell,
+      worn
+        ? itemTooltip(worn, { worn: true, showSellValue: true, hint: t('item.wornHint') })
+        : `${t(`slot.${slot}` as StringKey)} — ${t('item.emptySlotHint')}`,
+    );
   }
 
   // --- who the hero is ------------------------------------------------------
@@ -210,22 +254,22 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
         : t('character.ascendLocked', { level: cap }),
   );
 
-  const identity = track(
-    new Panel({
-      title: t('character.title', { name: character.identity.name }),
-      subtitle: t('character.subtitle', {
-        level: character.progression.level,
-        className: t(definition.nameKey),
-      }),
-      variant: 'alt',
-      width: '100%',
-      content: [
-        h('div', { class: 'omf-character__identity' }, power.el, stars.el),
-        levelLine,
-        xp.el,
-        ascendButton.el,
-      ],
-    }),
+  /**
+   * Who the hero is, in one strip under the portrait — name, power, ascension,
+   * level and the bar toward the next one, with Ascend at the end of it.
+   *
+   * This used to be its own arched window in the right-hand column, where it had
+   * a habit of being squeezed until the XP bar sat on the frame's bottom
+   * ornament and the Ascend button was pushed out of the panel entirely. It is
+   * one strip inside the sheet now, which is both what the reference does and
+   * one fewer box to keep from collapsing.
+   */
+  const heroStrip = h(
+    'div',
+    { class: 'omf-character__hero' },
+    h('div', { class: 'omf-character__identity' }, power.el, stars.el),
+    h('div', { class: 'omf-character__progress' }, levelLine, xp.el),
+    ascendButton.el,
   );
 
   // --- stats and what they buy ---------------------------------------------
@@ -273,13 +317,12 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     h('span', { class: 'omf-character__stat-locked', text: t('character.buyLocked') }),
   );
 
-  const statsPanel = track(
-    new Panel({
-      title: t('character.stats'),
-      variant: 'surface',
-      width: '100%',
-      content: [h('div', { class: 'omf-character__stats' }, ...statRows, speedRow), potionRow()],
-    }),
+  const statsBlock = h(
+    'section',
+    { class: 'omf-character__statblock' },
+    h('h3', { class: 'omf-character__section fui-title', text: t('character.stats') }),
+    h('div', { class: 'omf-character__stats' }, ...statRows, speedRow),
+    potionRow(),
   );
 
   function potionRow(): HTMLElement {
@@ -332,13 +375,25 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     if (typeof item?.data === 'string') onSelectItem(item.data);
   });
 
-  // Hovering a piece explains it — the game's only tooltip (§20.4).
+  /**
+   * Hovering a piece explains it — the game's only tooltip (§20.4), and the whole
+   * card: what it is, what it gives, what it is worth, and **what changes if you
+   * wear it** in place of the piece already in that slot. The first pass passed
+   * only `tip.title` to the tooltip, so a backpack full of gear said nothing but
+   * its own name.
+   */
   for (const [index, item] of character.inventory.entries()) {
     const cell = backpack.el.children[index];
-    if (cell instanceof HTMLElement) {
-      const tip = itemTooltip(item, { showSellValue: true });
-      setTip(cell, `${tip.title ?? ''}`);
-    }
+    if (!(cell instanceof HTMLElement)) continue;
+    const slot = requireItemDef(item.defId).slot;
+    setTip(
+      cell,
+      itemTooltip(item, {
+        showSellValue: true,
+        compareTo: character.equipment[slot] ?? null,
+        hint: t('item.inspect'),
+      }),
+    );
   }
 
   const backpackPanel = track(
@@ -358,17 +413,43 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     }),
   );
 
+  /**
+   * The sheet: one framed window, everything about the hero inside it. Scrolls
+   * as a whole rather than letting any one block be squeezed — the failure that
+   * put the XP bar through the bottom of its own frame.
+   */
+  const sheet = track(
+    new Panel({
+      title: character.identity.name,
+      subtitle: t('character.subtitle', {
+        level: character.progression.level,
+        className: t(definition.nameKey),
+      }),
+      variant: 'default',
+      width: '100%',
+      height: '100%',
+      scroll: true,
+      content: [
+        h(
+          'section',
+          { class: 'omf-character__gear' },
+          h('h3', {
+            class: 'omf-character__section fui-title',
+            text: t('character.equipment'),
+          }),
+          h('div', { class: 'omf-character__doll' }, paperdoll.el),
+          heroStrip,
+        ),
+        statsBlock,
+      ],
+    }),
+  );
+
   const el = h(
     'div',
     { class: 'omf-character', dataset: { fuiTheme: 'stone-vine', testid: 'character' } },
-    h(
-      'div',
-      { class: 'omf-character__main' },
-      track(new OrnateHeader({ title: t('character.equipment'), size: 'sm' })).el,
-      paperdoll.el,
-      statsPanel.el,
-    ),
-    h('div', { class: 'omf-character__side' }, identity.el, backpackPanel.el),
+    h('div', { class: 'omf-character__sheet' }, sheet.el),
+    h('div', { class: 'omf-character__side' }, backpackPanel.el),
   );
 
   return {
@@ -378,6 +459,13 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       el.remove();
     },
   };
+}
+
+/** The socket cells of one paperdoll column, in the order they were rendered. */
+function columnCells(root: HTMLElement, selector: string): HTMLElement[] {
+  const column = root.querySelector(selector);
+  if (!column) return [];
+  return [...column.children].filter((child): child is HTMLElement => child instanceof HTMLElement);
 }
 
 /** The ascension tier that opens a slot, for the locked-slot explanation (§7). */
