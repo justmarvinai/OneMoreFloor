@@ -34,6 +34,8 @@
 
 **As built (fifth polish round) — the floor preview answers the question.** The panel showed the enemy's five stats as chips and stopped, which is half an answer: a number means nothing without the number it is measured against. It now leads with the matchup (both portraits, both names), fills its middle with a stat-by-stat comparison — a tug-of-war bar per stat, normalised against its own pair so health reads as clearly as speed — then says what clearing the floor pays (`floorRewardEstimate`: the reward curves with the dice left out, so the preview cannot drift from what the floor hands over), then what it imposes, each effect **named** beside its chip rather than left as a bare icon. The trail keeps its identity — stone wall, winding path, numbered discs — and gains the two things it could not say for itself: the hero's own face on the disc they are standing on, and a gold ring on boss floors so a boss is visible from the bottom of the screen rather than only once you are under it. Band captions state a range ("Floors 1–14") instead of the band's first floor, which read as a floor number.
 
+**As built (fifth polish round) — the climb keeps a record of itself.** Three marks join the trail, all found by walking the rendered nodes because `StageTrail` has no per-node hook: milestone floors (every 25th) carry a chest mark that dims once claimed, the highest floor ever cleared carries the **ghost of your best climb**, and the trail now climbs *to* that record when it is within reach (`GHOST_REACH`) rather than stopping at the fixed look-ahead — a record you cannot see on the path is a number in a chip, not a place. Under the fight button sits the auto-climb picker: three segments, off / watching / background, with the level-gated one shown **disabled and explaining itself** rather than hidden (§20.5). The panel footer is laid out as a column here, because `Panel`'s own footer is a right-aligned row and put the two controls shoulder to shoulder.
+
 ## 3. Combat screen — DE (full spec: COMBAT.md §7)
 
 | Element | FantasyUI |
@@ -128,8 +130,11 @@ The rite is `src/ui/gacha/` — a **pure choreographer** (`riteChoreography.ts`)
 - **Credits** are a `Panel` on the Account screen, fed from `src/content/credits/`. CC BY asks for attribution in front of the audience; a file in the source tree is not an audience. Sources are printed as text, never as links — an off-origin URL in the bundle would fail the §21 build assertion.
 
 **As built (M6):** the upgrades screen is two cards and no registry — §15 says "exactly two account upgrades exist, do not add more", so the code shape says it too. `CostButton` carries the shortfall line, which is what turns "insanely expensive" (§15.1) into a goal rather than a wall. The tutorial runs *over* the tower rather than instead of it, spotlighting the real rail and the real floor preview through `TutorialMask`; the rail carries `data-nav-id` hooks so an anchor cannot drift when a nav entry is added. Skipping forfeits the reward, and the opening beat says so — §18's "gently discourage" is a sentence where the decision is made, not a nag afterwards.
+| Records: run history and the bestiary (fifth polish round) | `OrnateHeader` + `Panel` + `StatChip` rows |
 | Settings (minimal: no audio §2.2) | `SettingsScreen` (pruned) |
 | Fatal-error / save-recovery panel (SAVE_SCHEMA §6) | `EmptyState` + `Panel`, in-language (never a browser alert) |
+
+**As built (fifth polish round):** the upgrades screen is *three* cards — backpack size joined Battle Speed and slots when the owner asked for it, recorded as Q30 rather than folded in silently, and the card grid became `auto-fit` so a fourth would not need a layout change to be legible. A new **Records** destination in the rail holds what the game remembers about the player: the last twenty runs, newest first, each line saying the floor it ended on, what killed it, the gold it earned and the fights it took. It carries no badge — a record of what already happened is never a thing the player has to come and do.
 
 ## 9. Item rendering standard (game-wide)
 

@@ -57,6 +57,7 @@ export const en = {
   'nav.section.magicMerchant': 'Alchemist',
   'nav.section.quests': 'Quests',
   'nav.section.gacha': 'Summoning',
+  'nav.section.records': 'Records',
   'nav.section.upgrades': 'Account',
 
   'save.status.created': 'New save created.',
@@ -475,6 +476,50 @@ export const en = {
   'tower.stat.speed': 'SPD',
   'tower.stat.luck': 'LCK',
   'tower.cleared': 'Cleared',
+  // --- Records: run history and the bestiary ---
+  'records.title': 'Records',
+  'records.subtitle': 'What this hero has done, and what it cost.',
+  'records.runs': 'Recent runs',
+  'records.runsEmpty': 'No run has ended yet. The list fills the first time you fall.',
+  'records.run.reached': 'Floor {floor}',
+  'records.run.died': 'Fell on floor {floor} to {name}',
+  'records.run.gold': '{gold} gold',
+  'records.run.fights': '{fights} fights',
+  'records.run.when': '{when}',
+  'records.run.tip':
+    'Reached floor {floor}, banked {gold} gold across {fights} fights, and ended on floor ' +
+    '{died} against {name}.',
+  'records.best': 'Best ever',
+  'records.runsHint': 'The last {count} runs, newest first.',
+
+  // --- Auto-climb (Q32) ---
+  'tower.auto.label': 'Auto-climb',
+  'tower.auto.off': 'Off',
+  'tower.auto.watching': 'Watching',
+  'tower.auto.background': 'In the background',
+  'tower.auto.offTip':
+    'You press the button. Every floor, exactly as the tower was built to be climbed.',
+  'tower.auto.watchingTip':
+    'Climbs a floor every {seconds} seconds while this screen is open, and stops the moment you ' +
+    'die or walk away. Deliberately slower than climbing it yourself.',
+  'tower.auto.backgroundTip':
+    'Keeps climbing wherever you are in the game, one floor every {seconds} seconds, resolving ' +
+    'each fight without showing it. Stops on a death.',
+  'tower.auto.lockedTip': 'Background climbing opens at level {level}.',
+  'tower.auto.on': 'Auto-climb is on — next floor in about {seconds}s.',
+  'tower.auto.cleared': 'Auto-climb cleared floor {floor}',
+  'tower.auto.died': 'Auto-climb stopped — {name} fell on floor {floor}',
+  // --- Milestones ---
+  'tower.milestone.node': 'Milestone',
+  'tower.milestone.tip':
+    'Every {every} floors pays a chest the first time you ever clear it — gold, materials and a ' +
+    'ticket. Once per record, never again on the way back up.',
+  'tower.milestone.claimed': 'Milestone taken',
+  'tower.milestone.toast': 'Milestone — floor {floor}',
+  'tower.milestone.body': 'A chest for the depth, not for the fight.',
+  'tower.ghost': 'Your record',
+  'tower.ghostTip':
+    'The deepest floor you have ever cleared: {floor}. Everything above it is new ground.',
 
   // --- The fight (Brief §4.1–§4.2, COMBAT.md §7) ---
   'combat.round': 'Round {round}',

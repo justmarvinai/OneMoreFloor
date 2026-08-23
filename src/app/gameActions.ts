@@ -35,7 +35,7 @@ import { potionFor } from '@/content/items/potions.ts';
 import { buyStatPoints } from '@/domain/economy/statUpgrades.ts';
 import { ascendHero } from '@/domain/progression/xp.ts';
 import { canAscend } from '@/domain/character/character.ts';
-import type { Character, EquipSlotId, SlotId } from '@/domain/character/types.ts';
+import type { AutoClimbMode, Character, EquipSlotId, SlotId } from '@/domain/character/types.ts';
 import { drink } from '@/domain/potions/potions.ts';
 import {
   needsRestock,
@@ -45,6 +45,7 @@ import {
   type MerchantId,
 } from '@/domain/merchants/merchants.ts';
 import { bracketForCharacter, fightFloor, quickRaid } from '@/domain/tower/run.ts';
+import { canAutoClimb } from '@/domain/tower/autoClimb.ts';
 import type { FloorResult, QuickRaidResult } from '@/domain/tower/run.ts';
 import {
   claimableCount,
@@ -91,6 +92,8 @@ export type Outcome<T = undefined> =
 
 export interface GameActions {
   fight(floor: number): Promise<FloorResult>;
+  /** Turn auto-climb on, off, or on in the background (Q32). */
+  setAutoClimb(mode: AutoClimbMode): Promise<Outcome>;
   raid(throughFloor: number): Promise<QuickRaidResult>;
 
   equip(uid: string): Promise<Outcome<ItemInstance[]>>;
@@ -245,6 +248,21 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const character = withQuests(result.character, floorEvents(result));
       await commit(character);
       return { ...result, character };
+    },
+
+    async setAutoClimb(mode) {
+      const character = active();
+      // A mode the hero has not unlocked is refused rather than silently
+      // downgraded — the control has to be able to say why (§20.5).
+      if (!canAutoClimb(mode, character)) return { ok: false, reason: 'notAtLevelCap' };
+      return {
+        ok: true,
+        value: undefined,
+        character: await commit({
+          ...character,
+          tower: { ...character.tower, autoClimb: mode },
+        }),
+      };
     },
 
     async raid(throughFloor) {

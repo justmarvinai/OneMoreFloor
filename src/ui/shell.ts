@@ -72,7 +72,14 @@ import { t } from '@/strings/index.ts';
  * saved (§20.5, §11).
  */
 export type ShellSection =
-  'tower' | 'character' | 'equipmentMerchant' | 'magicMerchant' | 'gacha' | 'quests' | 'upgrades';
+  | 'tower'
+  | 'character'
+  | 'equipmentMerchant'
+  | 'magicMerchant'
+  | 'gacha'
+  | 'quests'
+  | 'records'
+  | 'upgrades';
 
 /** Rail order, which is also the order the component renders them in. */
 const NAV_ORDER: readonly ShellSection[] = [
@@ -82,6 +89,7 @@ const NAV_ORDER: readonly ShellSection[] = [
   'magicMerchant',
   'gacha',
   'quests',
+  'records',
   'upgrades',
 ];
 
@@ -145,6 +153,7 @@ export function createShell(options: ShellOptions): Shell {
         magicMerchant: false,
         gacha: false,
         quests: false,
+        records: false,
         upgrades: false,
       };
 
@@ -316,6 +325,7 @@ export function createShell(options: ShellOptions): Shell {
           glyph: 'glyph-arcane-symbol',
           ...(badges.quests ? { dot: true } : {}),
         },
+        { id: 'records', label: t('nav.section.records'), glyph: 'glyph-spell-book' },
         {
           id: 'upgrades',
           label: t('nav.section.upgrades'),

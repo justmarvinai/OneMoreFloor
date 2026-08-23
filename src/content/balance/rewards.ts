@@ -86,3 +86,35 @@ export const TICKET_DROP_CHANCE = 0.012;
 export const BOSS_TICKET_DROP_CHANCE = 0.06;
 export const LUCKY_TICKET_DROP_CHANCE = 0.0015;
 export const BOSS_LUCKY_TICKET_DROP_CHANCE = 0.008;
+
+/**
+ * Milestone floors (Q-list: the "milestone rewards" the owner asked for).
+ *
+ * Every twenty-fifth floor pays a chest the first time it is *ever* cleared.
+ * Per record rather than per run, because the tower runs strictly upward (Q23):
+ * a floor cleared for the first time is the only moment one can be earned, and
+ * making them repeat would turn the re-climb into a farm.
+ *
+ * The payout is expressed as a multiple of what the floor already pays, so it
+ * scales with the same curve as everything else and there is no second table to
+ * drift out of step (§3.7).
+ */
+export const MILESTONE_EVERY = 25;
+export const MILESTONE_GOLD_MULTIPLIER = 14;
+export const MILESTONE_XP_MULTIPLIER = 6;
+export const MILESTONE_MATERIAL_COUNT = { min: 6, max: 12 } as const;
+/** Every milestone pays a ticket; every fourth (each 100 floors) pays a Lucky one. */
+export const MILESTONE_LUCKY_EVERY = 4;
+
+/**
+ * Auto-climb (Q32).
+ *
+ * The owner asked for it to be **slow on purpose**, and the pause between
+ * floors is where that lives — not in the fight, which Battle Speed already
+ * owns (§3.5). Twenty seconds is long enough that auto-climbing is a way to
+ * keep going while doing something else, and never a faster way to play.
+ */
+export const AUTO_CLIMB_FLOOR_DELAY_MS = 20_000;
+
+/** Hero level at which auto-climb keeps running while the player is elsewhere. */
+export const BACKGROUND_AUTO_CLIMB_LEVEL = 500;

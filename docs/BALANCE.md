@@ -98,6 +98,12 @@ Two consequences were accepted deliberately:
 
 All §10 gates still pass unchanged: first wall floor 12–28, first-session depth, re-climb time, class parity within 15 points, signature uptime, gold shortage, gear cost shape.
 
+### Milestones and auto-climb (fifth polish round)
+
+**Milestones** sit on every 25th floor (`MILESTONE_EVERY`) and are claimed once ever, per character — `milestonesClaimed` is a list, not a counter, so a re-climb through floor 25 pays nothing a second time and a floor that is somehow reached out of order is still paid for. What a milestone hands over is the ordinary floor reward scaled up (`MILESTONE_GOLD_MULTIPLIER` 14, `MILESTONE_XP_MULTIPLIER` 6), a fistful of materials (6–12) and a Lucky Ticket on every fourth one. It deliberately pays **no gear**: the whole point of the retune above is that the tower funds the pieces you choose rather than replacing them, and a guaranteed drop every 25 floors would have walked most of that back.
+
+**Auto-climb** brakes *between* floors, never inside one: `AUTO_CLIMB_FLOOR_DELAY_MS` is 20 seconds per floor, and Battle Speed still owns how fast a fight resolves. That ordering is what keeps auto-climb from ever being the fastest way to play — a player at the keyboard beats the timer at every floor — while still being worth switching on for a long session. Background climbing unlocks at level `BACKGROUND_AUTO_CLIMB_LEVEL` (500), by which point the floors it resolves are far behind the hero's power and the mode is a convenience rather than progression. Both modes stop dead on a death, because a run that continues after the player has lost is a run they did not choose.
+
 ## 8. Gacha odds (§16)
 
 Two banners, single pulls only, every pull pays something, no pity counter — all confirmed by Q20. Provisional shape, tuned in M9: Ticket banner — jackpot (Legendary-at-bracket) low single-digit %; the rest of the table pays Rare/Epic gear and material/gold bundles (the *animation* sells the near-miss, §16.3). Lucky banner — Mythical jackpot ≪1%; floor of the table is Epic/Legendary. Ticket faucets (rare drops §16.1 + hard quests §17 + tutorial's single Lucky Ticket §18) are throttled so pulls are *events* — provisional target: a Ticket every day-or-two of normal play, Lucky Tickets ~weekly from the hard weekly (Q21's guaranteed hard slot).

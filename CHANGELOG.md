@@ -7,6 +7,33 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Milestone rewards every 25 floors.** A floor whose number divides by 25 pays
+  a chest on top of its ordinary reward — gold and XP many times a normal
+  floor's, a fistful of materials, and a lucky ticket every fourth one. It is
+  claimed once ever, per character, and the trail draws the marks ahead so the
+  next one is always a visible reason to keep going. Milestones deliberately pay
+  no gear: the tower's job after this round's retune is to fund the pieces you
+  choose, not to hand you another one.
+- **Run history, on a Records screen.** The last twenty runs, newest first: the
+  floor each one ended on, what killed it, the gold it earned and the fights it
+  took. A roguelike whose runs leave no trace is a game with no memory of the
+  player, and the record floor in the rail was the only thing the old build
+  remembered.
+- **The ghost of your best climb.** The trail marks the highest floor ever
+  cleared, and — when that record is within reach — climbs all the way to it, so
+  the mark is a place on the path you can walk to rather than a number in a chip.
+- **Auto-climb, deliberately slow.** Three states in the tower's footer: off,
+  *watching* (the game plays the floors for you, one every 20 seconds, with the
+  fights on screen), and *background* (the climb continues while you shop, gear
+  up or pull, unlocked at level 500). The brake sits *between* floors and never
+  inside a fight, so auto-climb can never be the fastest way to play — Battle
+  Speed still owns how quickly a fight resolves. Both modes stop dead on a death.
+- **A second way out of a death.** The fall used to offer one button, the
+  Quick-Raid, which decided for the player that the next thing they wanted was
+  to be back at the top. "Climb again" puts them in the Spire at Floor 1
+  instead, where the run's gold and materials are spendable now, the trail shows
+  how far the last climb reached, and any cleared floor on it is a raid target of
+  its own.
 - **Backpack size is an account upgrade.** 20 sockets up to 50, in steps of
   five, bought with gold from the playing character's purse like the other two
   and kept by the account through a reset. §15 said "exactly two account
@@ -48,6 +75,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Fixed
 
+- **The floor preview folded in on itself on a short screen.** Every section of
+  the tower's side panel is a flex child that may shrink so the panel can own its
+  own height — and a flex child shrinks past its own content rather than pushing
+  the box, without clipping what spills out. On a 1280x720 laptop that drew the
+  reward chips straight through the stat comparison. The sections now stop
+  shrinking at their content and the panel scrolls, centred *safely* so the top
+  of it can still be scrolled back to.
 - **Buffs and debuffs were drawn twice in every fight.** The engine states the
   opening board on its `fightStart` event *and* emits an `effectApplied` for each
   floor effect; the choreographer drew both, so every floor debuff appeared as

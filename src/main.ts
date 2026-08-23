@@ -31,7 +31,7 @@ import type { EquipSlotId, SlotId } from './domain/character/types.ts';
 import { renderErrorPanel, renderLockGate } from './ui/errorPanel.ts';
 import { openResetDialog } from './ui/resetDialog.ts';
 import { installTooltipService } from './ui/tooltips.ts';
-import { installToastService, notify } from './ui/toasts.ts';
+import { installToastService, notify, refuse } from './ui/toasts.ts';
 import { itemName } from './ui/itemView.ts';
 import { t } from './strings/index.ts';
 import { sellValue } from './domain/items/upgrade.ts';
@@ -49,12 +49,14 @@ import { createUpgradesScreen } from './ui/screens/upgrades.ts';
 import { startTutorial, type Tutorial } from './ui/tutorial.ts';
 import { createRaidScreen } from './ui/screens/raid.ts';
 import { createTitleScreen } from './ui/screens/title.ts';
+import { createRecordsScreen } from './ui/screens/records.ts';
 import { createTowerScreen } from './ui/screens/tower.ts';
 import { openGearDialog, type GearDialog } from './ui/gearDialog.ts';
 import type { ShellSection } from './ui/shell.ts';
 import type { MerchantId } from './domain/merchants/merchants.ts';
 import { canPull, type BannerId } from './domain/gacha/gacha.ts';
 import { backpackCapacity } from './domain/character/account.ts';
+import { createAutoClimbService } from './app/autoClimb.ts';
 import { clock } from './app/time.ts';
 import type { Character } from './domain/character/types.ts';
 import type { FloorResult, QuickRaidResult } from './domain/tower/run.ts';
@@ -76,6 +78,7 @@ type ScreenId =
   | 'magicMerchant'
   | 'gacha'
   | 'quests'
+  | 'records'
   | 'upgrades';
 
 export async function boot(mount: HTMLElement): Promise<void> {
@@ -135,6 +138,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
       const hero = requireCharacter();
       void session.fight(floor).then((result) => {
         pendingFight = { hero, result };
+        // The chest is announced rather than folded into the aftermath's reward
+        // strip: a milestone is for the *depth*, and burying it among the
+        // floor's own spoils would make it look like part of the fight.
+        if (result.milestone) {
+          notify(t('tower.milestone.toast', { floor: result.floor }), t('tower.milestone.body'));
+        }
         router.go('combat');
       });
     };
@@ -145,6 +154,62 @@ export async function boot(mount: HTMLElement): Promise<void> {
         router.go('raid');
       });
     };
+
+    /**
+     * Auto-climb (Q32).
+     *
+     * The service is installed here rather than in the tower screen because the
+     * background mode has to outlive the screen — a timer a screen owns dies
+     * with it (ARCHITECTURE §4). It reads the mode off the character every time
+     * it fires, so switching it off, walking away or dying all stop it without
+     * anything having to remember to say so.
+     */
+    let autoBusy = false;
+
+    const climbInBackground = (): void => {
+      const hero = store.get().activeCharacter;
+      if (!hero) return;
+      autoBusy = true;
+      void session
+        .fight(hero.tower.currentRunFloor)
+        .then((result) => {
+          if (result.cleared) {
+            notify(t('tower.auto.cleared', { floor: result.floor }));
+            if (result.milestone) {
+              notify(
+                t('tower.milestone.toast', { floor: result.floor }),
+                t('tower.milestone.body'),
+              );
+            }
+          } else {
+            // A death is a decision point, not something to walk a player past
+            // while they are reading a shop.
+            void session.setAutoClimb('off');
+            refuse(
+              t('tower.auto.died', {
+                name: t(result.generated.enemy.nameKey),
+                floor: result.floor,
+              }),
+            );
+          }
+        })
+        .finally(() => {
+          autoBusy = false;
+          refreshScreen();
+          autoClimb.sync();
+        });
+    };
+
+    const autoClimb = createAutoClimbService({
+      store,
+      onTower: () => router.current() === 'tower',
+      busy: () => autoBusy || router.current() === 'combat' || router.current() === 'raid',
+      climbWatched: () => {
+        const hero = store.get().activeCharacter;
+        if (hero) startFight(hero.tower.currentRunFloor);
+      },
+      climbInBackground,
+    });
 
     /** Which shop is open; the tabs switch between them without leaving. */
     /** The summoning set-piece, kept so leaving the screen can tear it down. */
@@ -172,6 +237,9 @@ export async function boot(mount: HTMLElement): Promise<void> {
           return;
         case 'gacha':
           router.go('gacha');
+          return;
+        case 'records':
+          router.go('records');
           return;
         case 'upgrades':
           router.go('upgrades');
@@ -217,6 +285,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
       const id = router.current();
       if (id) router.go(id);
       gearDialog?.update(requireCharacter());
+      autoClimb.sync();
     };
 
     /** The first-run tour, started once the hero is standing in the tower (§18). */
@@ -366,6 +435,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
               now: clock().now(),
               onFight: startFight,
               onRaid: startRaid,
+              onAutoClimb: (mode) => void session.setAutoClimb(mode).then(refreshScreen),
             }),
           }),
 
@@ -425,6 +495,15 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onClaim: (cadence, index) =>
                 void session.claimQuest(cadence, index).then(refreshScreen),
             }),
+          }),
+
+        records: () =>
+          createShell({
+            store,
+            active: 'records',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createRecordsScreen({ character: requireCharacter() }),
           }),
 
         upgrades: () =>

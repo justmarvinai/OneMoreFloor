@@ -1395,3 +1395,89 @@ test('marks the bag pieces worth wearing without being hovered', async ({ page }
     await expect(marked).toContainText(/Upgrade/i);
   }
 });
+
+/**
+ * Round five, the tower half: the climb keeps a record of itself, marks what it
+ * has already reached, and can be handed over to a timer.
+ */
+test('the trail marks the milestones ahead of the hero', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // The trail draws ahead only (Q23), so the first milestone at floor 25 comes
+  // into view once the hero is deep enough for it to be within the look-ahead.
+  await climb(page, 8);
+  await expect(page.locator('.omf-tower__milestone').first()).toBeVisible();
+});
+
+test('auto-climb offers three states and refuses the one not yet earned (§20.5)', async ({
+  page,
+}) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const auto = page.locator('[data-testid="auto-climb"]');
+  await expect(auto).toBeVisible();
+  await expect(auto.locator('button')).toHaveCount(3);
+
+  // Background climbing is level-gated, and a gate has to say what opens it
+  // rather than hiding the door.
+  const background = page.locator('[data-testid="auto-background"]');
+  await expect(background).toBeDisabled();
+  await background.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/level/i);
+
+  // Watching is available from the first floor, and switching it on sticks.
+  await page.locator('[data-testid="auto-watching"]').click();
+  await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
+});
+
+test('a finished run becomes a line in the records, and the record gets a ghost', async ({
+  page,
+}) => {
+  test.slow();
+  await enterSelect(page);
+  // The Swashbuckler dies shallowest in the balance sim, which is what makes her
+  // the right hero for a test that has to actually die.
+  await createHero(page, 'Grimhild', 'Swashbuckler');
+
+  await goToSection(page, 'Records');
+  await expect(page.locator('[data-testid="records"]')).toContainText(/No run has ended yet/i);
+  await goToSection(page, 'Tower');
+
+  const death = page.getByText('The Spire Takes You');
+  const oneMore = page.getByRole('button', { name: /One More Floor/i });
+  await startFight(page);
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await skipToVerdict(page);
+    // The aftermath holds exactly one thing at a time: the level-up celebration
+    // first when there is one, then the verdict.
+    const aftermath = page.locator('.omf-combat__aftermath > *');
+    await expect(aftermath).toBeVisible();
+
+    const levelUp = page.getByRole('button', { name: /^Continue$/ });
+    if (await levelUp.isVisible().catch(() => false)) {
+      await levelUp.click();
+      await expect(aftermath).toBeVisible();
+    }
+
+    if (await death.isVisible().catch(() => false)) break;
+    await oneMore.click();
+    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+  }
+  await expect(death).toBeVisible();
+  // Walking back in rather than raiding: the Spire at Floor 1, below the record.
+  await page.getByRole('button', { name: /Climb again/i }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  // From down here the trail marks where the last climb reached.
+  await expect(page.locator('[data-testid="best-floor-ghost"]')).toBeVisible();
+
+  // The run that just ended is written down.
+  await goToSection(page, 'Records');
+  const row = page.locator('[data-testid="run-0"]');
+  await expect(row, 'the run that just ended').toBeVisible();
+  await expect(row).toContainText(/Floor \d+/);
+  await expect(row).toContainText(/gold/i);
+});

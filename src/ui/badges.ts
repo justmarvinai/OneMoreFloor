@@ -48,6 +48,9 @@ export function computeBadges(character: Character, now: number, account?: Accou
     magicMerchant: hasMerchantAction('magic', character, now),
     // A quest dot means a reward is sitting there — never "the board changed".
     quests: claimableCount(character.quests) > 0,
+    // A record is history. There is nothing to *do* there, so a dot would be
+    // decoration — and one decorative dot teaches a player to ignore all of them.
+    records: false,
     // §16.3's whole target reaction is "finally I can pull again" — so the dot
     // lights when a rite can actually be performed, not when a ticket is merely
     // held. A full backpack refuses the pull, and a dot that led to a refusal

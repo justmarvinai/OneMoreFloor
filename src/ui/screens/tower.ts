@@ -28,10 +28,19 @@ import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { bandForFloor, bandRange, type FloorBand } from '@/content/floors/index.ts';
 import { combatStatsOf } from '@/domain/character/character.ts';
-import type { Character } from '@/domain/character/types.ts';
+import type { AutoClimbMode, Character } from '@/domain/character/types.ts';
 import { generateFloor, type GeneratedFloor } from '@/domain/tower/floors.ts';
 import { floorRewardEstimate } from '@/domain/tower/rewards.ts';
 import { quickRaidCeiling } from '@/domain/tower/run.ts';
+import {
+  AUTO_CLIMB_FLOOR_DELAY_MS,
+  AUTO_CLIMB_MODES,
+  BACKGROUND_AUTO_CLIMB_LEVEL,
+  canAutoClimb,
+  effectiveMode,
+} from '@/domain/tower/autoClimb.ts';
+import { isMilestone, milestoneUnclaimed } from '@/domain/tower/milestones.ts';
+import { MILESTONE_EVERY } from '@/content/balance/rewards.ts';
 import type { StatBlock, StatId } from '@/domain/stats.ts';
 import { effectChip, effectTooltip, tipEffects } from '@/ui/combat/effectChips.ts';
 import { setTip } from '@/ui/tooltips.ts';
@@ -39,6 +48,14 @@ import { t, type StringKey } from '@/strings/index.ts';
 
 /** How far ahead the trail draws. Enough to see the next boss and then some. */
 const LOOK_AHEAD = 18;
+
+/**
+ * The trail always climbs as far as the record when the record is this close,
+ * so the ghost of your best climb is a place on the path you can see and walk
+ * to rather than a number in a chip. Past this the path would be a scrollbar,
+ * and the Quick-Raid is the honest way back anyway.
+ */
+const GHOST_REACH = 60;
 
 /** The stats the preview hints at, in the order the reference screens use them. */
 const PREVIEW_STATS: readonly StatId[] = ['strength', 'defense', 'hp', 'speed', 'luck'];
@@ -51,6 +68,8 @@ export interface TowerScreenOptions {
   onFight: (floor: number) => void;
   /** Quick-Raid every cleared floor up to and including `throughFloor` (Q8). */
   onRaid: (throughFloor: number) => void;
+  /** Change what auto-climb is doing (Q32). */
+  onAutoClimb: (mode: AutoClimbMode) => void;
 }
 
 export interface TowerScreen {
@@ -59,7 +78,7 @@ export interface TowerScreen {
 }
 
 export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
-  const { character, now, onFight, onRaid } = options;
+  const { character, now, onFight, onRaid, onAutoClimb } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -71,6 +90,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
   const ceiling = quickRaidCeiling(character);
   const canRaid = ceiling >= floor;
   const generated = generateFloor(character.tower.runSeed, floor);
+  const current = effectiveMode(character);
 
   const trail = track(
     new StageTrail({
@@ -149,6 +169,42 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
     }),
   );
 
+  /**
+   * Auto-climb, under the button it replaces.
+   *
+   * A segmented picker rather than a checkbox: there are three states and two of
+   * them are meaningfully different, so a control that could only say on or off
+   * would be lying about one. A mode the hero has not unlocked is shown and
+   * *disabled with a reason* rather than hidden — a player at level 40 should
+   * know background climbing exists and what reaches it (Brief 20.5).
+   */
+  const auto = h('div', { class: 'omf-tower__auto', dataset: { testid: 'auto-climb' } });
+  auto.appendChild(
+    h('span', { class: 'omf-tower__auto-label fui-label', text: t('tower.auto.label') }),
+  );
+
+  const seconds = Math.round(AUTO_CLIMB_FLOOR_DELAY_MS / 1000);
+  const modeRow = h('div', { class: 'omf-tower__auto-row' });
+  for (const mode of AUTO_CLIMB_MODES) {
+    const allowed = canAutoClimb(mode, character);
+    const button = h('button', {
+      class: 'omf-tower__auto-mode',
+      attrs: { type: 'button' },
+      dataset: { mode, testid: 'auto-' + mode },
+      text: t(('tower.auto.' + mode) as StringKey),
+    });
+    if (mode === current) button.classList.add('is-on');
+    if (!allowed) {
+      button.disabled = true;
+      setTip(button, t('tower.auto.lockedTip', { level: BACKGROUND_AUTO_CLIMB_LEVEL }));
+    } else {
+      setTip(button, t(('tower.auto.' + mode + 'Tip') as StringKey, { seconds }));
+      button.addEventListener('click', () => onAutoClimb(mode));
+    }
+    modeRow.appendChild(button);
+  }
+  auto.appendChild(modeRow);
+
   const side = track(
     new Panel({
       title: t('tower.currentFloor', {
@@ -159,7 +215,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
       width: '100%',
       height: '100%',
       content: [h('div', { class: 'omf-tower__record' }, best.el), preview],
-      footer: [control],
+      footer: [control, auto],
     }),
   );
 
@@ -260,7 +316,8 @@ function dragToScroll(scroller: HTMLElement | null): () => void {
 
 /** The floors ahead, grouped by band, drawn highest-first so the tower goes up. */
 function buildChapters(character: Character, floor: number, ceiling: number): TrailChapter[] {
-  const top = floor + LOOK_AHEAD;
+  const record = character.tower.highestFloorEverCleared;
+  const top = Math.min(Math.max(floor + LOOK_AHEAD, record), floor + GHOST_REACH);
   const chapters: TrailChapter[] = [];
 
   for (let current = top; current >= floor; current -= 1) {
@@ -272,11 +329,16 @@ function buildChapters(character: Character, floor: number, ceiling: number): Tr
     // Only the floors that carry information are labelled: the one you are on,
     // the bosses ahead, and the ones a Quick-Raid can reach. Tagging the rest
     // "new ground" would repeat the same words twenty times down the path.
-    const note = raidable
-      ? t('tower.cleared')
-      : generated.isBoss
-        ? t('tower.bossFloor')
-        : undefined;
+    const milestone = isMilestone(current);
+    // Only the floors that carry information are labelled. A milestone outranks
+    // "cleared" because it is the one thing on the path that pays for arriving.
+    const note = milestone
+      ? t('tower.milestone.node')
+      : raidable
+        ? t('tower.cleared')
+        : generated.isBoss
+          ? t('tower.bossFloor')
+          : undefined;
 
     const node: TrailNode = {
       id: `floor:${current}`,
@@ -323,6 +385,50 @@ function markTrail(root: HTMLElement, character: Character, floor: number): void
   for (const node of root.querySelectorAll<HTMLElement>(".fui-trail__node[data-kind='boss']")) {
     node.classList.add('omf-tower__boss');
     setTip(node, t('tower.bossTip'));
+  }
+
+  /**
+   * Milestone chests, and the line the record stands on.
+   *
+   * `StageTrail` has no per-node hook, so both are found by the label the node
+   * carries — the floor number, which is the one thing on a tower node that is
+   * guaranteed unique and stable.
+   */
+  const record = character.tower.highestFloorEverCleared;
+  for (const node of root.querySelectorAll<HTMLElement>('.fui-trail__node')) {
+    const label = node.querySelector('.fui-trail__num')?.textContent;
+    const at = Number(label);
+    if (!Number.isFinite(at)) continue;
+
+    if (isMilestone(at)) {
+      node.classList.add('omf-tower__milestone');
+      if (!milestoneUnclaimed(character, at)) node.classList.add('is-taken');
+      setTip(
+        node,
+        milestoneUnclaimed(character, at)
+          ? t('tower.milestone.tip', { every: MILESTONE_EVERY })
+          : t('tower.milestone.claimed'),
+      );
+    }
+
+    /**
+     * The ghost of your best.
+     *
+     * Everything above this line is ground nobody has stood on, and a climber
+     * with no marker for that has nothing to aim at but a number in the rail.
+     * It is drawn on the record floor itself rather than between floors so it
+     * reads as "you got *here*" rather than as a fence.
+     */
+    if (record > 0 && at === record) {
+      node.classList.add('omf-tower__record-mark');
+      const ghost = h('span', {
+        class: 'omf-tower__ghost',
+        dataset: { testid: 'best-floor-ghost' },
+        text: t('tower.ghost'),
+      });
+      node.appendChild(ghost);
+      setTip(node, t('tower.ghostTip', { floor: record }));
+    }
   }
 
   const current = root.querySelector<HTMLElement>(".fui-trail__node[data-state='current']");

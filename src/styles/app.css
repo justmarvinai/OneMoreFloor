@@ -952,11 +952,24 @@ body > .fui-tooltip .fui-tooltip__price {
   display: none;
 }
 
-/* The preview sits in the middle of its panel rather than clinging to the top. */
+/**
+ * The preview sits in the middle of its panel rather than clinging to the top —
+ * and on a short screen it scrolls rather than folding in on itself.
+ *
+ * Everything inside it is a flex child with `min-height: 0`, which is what lets
+ * the panel own its own height; the cost is that those children will happily
+ * shrink *past their own content*, and a flex box does not clip what spills out.
+ * On a 1280x720 laptop that put the reward chips straight through the stat
+ * comparison. `min-height: min-content` further down stops the shrinking at the
+ * content, and this scroller is where the leftover goes.
+ */
 .omf-tower__side .fui-panel__body {
   display: flex;
+  overflow-y: auto;
   flex-direction: column;
-  justify-content: center;
+  /* `safe` matters once this scrolls: plain centring overflows *both* ends of a
+     scroll container and the top one cannot be scrolled back to. */
+  justify-content: safe center;
 }
 
 /**
@@ -1038,7 +1051,7 @@ body > .fui-tooltip .fui-tooltip__price {
 .omf-tower__preview {
   display: flex;
   flex: 1;
-  min-height: 0;
+  min-height: min-content;
   flex-direction: column;
   gap: 14px;
 }
@@ -1084,7 +1097,7 @@ body > .fui-tooltip .fui-tooltip__price {
 .omf-tower__compare {
   display: flex;
   flex: 1;
-  min-height: 0;
+  min-height: min-content;
   flex-direction: column;
   /* The rows share out the panel's slack rather than clustering in the middle of
      it — five rows and a band of nothing above and below reads as a bug. */
@@ -1284,6 +1297,206 @@ body > .fui-tooltip .fui-tooltip__price {
 
 .omf-tower__trail .omf-tower__boss .fui-trail__note {
   color: var(--fui-gold, #d8b26a);
+}
+
+/* --- Records: what this hero has done ------------------------------------- */
+
+.omf-records {
+  display: flex;
+  flex-direction: column;
+  gap: var(--omf-gap);
+  height: 100%;
+  min-height: 0;
+  padding: var(--omf-gap);
+  box-sizing: border-box;
+}
+
+.omf-records__body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  gap: var(--omf-gap);
+}
+
+.omf-records__best {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.omf-records__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-records__runs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/**
+ * One run per row.
+ *
+ * Ordered by what a player wants from the list — how far first, since that is
+ * the number they are trying to beat — then what it paid and what stopped it.
+ * A grid rather than flex so the floor numbers line up down the column and the
+ * trend is readable without reading a word.
+ */
+.omf-records__run {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr) 7em 6em;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 0.86rem;
+  cursor: default;
+}
+
+.omf-records__run:nth-child(odd) {
+  background: rgb(255 255 255 / 3%);
+}
+
+.omf-records__run-floor {
+  font-weight: 700;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-records__run-died {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fui-ink-dim);
+}
+
+.omf-records__run-gold,
+.omf-records__run-fights {
+  text-align: right;
+  color: var(--fui-ink-faint);
+}
+
+/* --- Auto-climb, milestones and the record line --------------------------- */
+
+/**
+ * Auto-climb sits under the button it replaces.
+ *
+ * Three states, so three segments rather than a checkbox — a control that could
+ * only say on or off would be lying about one of them. The locked segment stays
+ * visible and disabled, because a player at level 40 should know background
+ * climbing exists and what reaches it (§20.5).
+ */
+/* `Panel` lays its footer out as a row, which put the auto-climb picker beside
+   the fight button and left both squeezed. The tower's footer is a column. */
+.omf-tower__side .fui-panel__foot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.omf-tower__auto {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.omf-tower__auto-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--fui-accent-soft);
+}
+
+.omf-tower__auto-row {
+  display: flex;
+  gap: 4px;
+}
+
+.omf-tower__auto-mode {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 4px;
+  background: rgb(0 0 0 / 34%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+  transition:
+    background 140ms ease-out,
+    color 140ms ease-out;
+}
+
+.omf-tower__auto-mode:hover:not(:disabled) {
+  background: rgb(255 255 255 / 8%);
+  color: var(--fui-ink);
+}
+
+.omf-tower__auto-mode.is-on {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 70%, transparent);
+  background: color-mix(in srgb, var(--fui-gold, #d8b26a) 18%, transparent);
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-tower__auto-mode:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* A milestone floor is the one thing on the path that pays for arriving, so it
+   is lit like a reward rather than like a fight. */
+.omf-tower__trail .omf-tower__milestone .fui-trail__disc {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--fui-accent, #6fb3a8) 78%, transparent),
+    0 0 20px color-mix(in srgb, var(--fui-accent, #6fb3a8) 34%, transparent);
+}
+
+.omf-tower__trail .omf-tower__milestone .fui-trail__note {
+  color: var(--fui-accent-soft);
+}
+
+/* Once taken it is history, and history should not keep asking for attention. */
+.omf-tower__trail .omf-tower__milestone.is-taken .fui-trail__disc {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+.omf-tower__trail .omf-tower__milestone.is-taken .fui-trail__note {
+  color: var(--fui-ink-faint);
+}
+
+/**
+ * The ghost of your best.
+ *
+ * Everything above this line is ground nobody has stood on, and a climber with
+ * no marker for that has nothing to aim at but a number in the rail. Drawn on
+ * the record floor itself so it reads as "you got *here*", not as a fence.
+ */
+.omf-tower__record-mark .fui-trail__disc {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--fui-gold-soft, #f0d9a0) 60%, transparent),
+    0 0 22px color-mix(in srgb, var(--fui-gold, #d8b26a) 28%, transparent);
+}
+
+.omf-tower__ghost {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 12px);
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 55%, transparent);
+  border-radius: 9px;
+  background: rgb(10 8 6 / 82%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--fui-gold-soft, #f0d9a0);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 /* --- Gear that beats what you are wearing --------------------------------- */
