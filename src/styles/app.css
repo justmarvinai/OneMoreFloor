@@ -126,6 +126,79 @@ body > .fui-tooltip {
   z-index: 900;
   pointer-events: none;
   opacity: 0;
+  /* `Tooltip` writes its width inline from the option it was constructed with,
+     so overriding it is the only way to let the card grow with the screen. */
+  width: calc(300px * var(--omf-tip-scale)) !important;
+}
+
+/**
+ * Tooltips grow with the screen.
+ *
+ * Everything else in the game is laid out in fixed pixels against §20.6's 1080p
+ * target, which is fine for a panel — a bigger screen simply shows it with more
+ * room around it. It is not fine for the one surface a player has to *read at a
+ * glance while the cursor is on something else*: at 2560 the card was the same
+ * physical size as at 1920 while the eye was further from it.
+ */
+:root {
+  --omf-tip-scale: 1;
+}
+
+/* Steps rather than a formula: CSS cannot divide a length by a length, so there
+   is no way to turn a viewport width into a ratio without a preprocessor. */
+@media (min-width: 2200px) {
+  :root {
+    --omf-tip-scale: 1.16;
+  }
+}
+
+@media (min-width: 2500px) {
+  :root {
+    --omf-tip-scale: 1.3;
+  }
+}
+
+@media (min-width: 3300px) {
+  :root {
+    --omf-tip-scale: 1.5;
+  }
+}
+
+body > .fui-tooltip .fui-tooltip__body {
+  padding: calc(15px * var(--omf-tip-scale)) calc(17px * var(--omf-tip-scale));
+}
+
+body > .fui-tooltip .fui-tooltip__title {
+  font-size: calc(16.5px * var(--omf-tip-scale));
+}
+
+body > .fui-tooltip .fui-tooltip__meta {
+  margin-top: 4px;
+  font-size: calc(12.5px * var(--omf-tip-scale));
+  color: var(--fui-ink-dim);
+}
+
+body > .fui-tooltip .fui-tooltip__slot {
+  color: var(--fui-ink-dim);
+}
+
+body > .fui-tooltip .fui-tooltip__stats {
+  font-size: calc(13.5px * var(--omf-tip-scale));
+}
+
+body > .fui-tooltip .fui-tooltip__flavor,
+body > .fui-tooltip .fui-tooltip__requires {
+  font-size: calc(12.5px * var(--omf-tip-scale));
+}
+
+/* The action line is the one a player acts on; it was the faintest thing here. */
+body > .fui-tooltip .fui-tooltip__hint {
+  font-size: calc(11.5px * var(--omf-tip-scale));
+  color: var(--fui-ink-dim);
+}
+
+body > .fui-tooltip .fui-tooltip__price {
+  font-size: calc(13.5px * var(--omf-tip-scale));
 }
 
 /**
@@ -134,9 +207,27 @@ body > .fui-tooltip {
  */
 .omf-tip__hint {
   margin: 0;
-  font-size: 0.86rem;
-  line-height: 1.4;
+  font-size: calc(13.5px * var(--omf-tip-scale));
+  line-height: 1.45;
   color: var(--fui-ink, #e8e2d4);
+}
+
+/**
+ * An item's type line is not decoration — it is how a player tells a chest piece
+ * from a cape at a glance. It was set in `--fui-ink-faint` (#6d6757) at 11px,
+ * which is under 3:1 against the stone behind it and effectively unreadable.
+ */
+.fui-itemcard__meta {
+  font-size: 12.5px;
+  color: var(--fui-ink-dim);
+}
+
+.fui-itemcard__name {
+  font-size: 14.5px;
+}
+
+.fui-itemcard__detail {
+  font-weight: 600;
 }
 
 .omf-shell__name {
@@ -395,9 +486,17 @@ body > .fui-tooltip {
  * Everything about the hero lives inside the sheet; the sheet scrolls as a whole
  * rather than letting any block inside it be squeezed.
  */
+/**
+ * The backpack column is sized to the grid it holds, not guessed.
+ *
+ * `md` sockets are 64px with a 6px gap, so five across need 344px of content
+ * box, and the ornate frame eats 46px a side — 436px of column. At 360 the fifth
+ * column hung out over the frame's right edge. A smoke test now measures the
+ * grid against its panel rather than trusting this sum.
+ */
 .omf-character {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 440px;
   gap: var(--omf-gap);
   height: 100%;
   min-height: 0;
@@ -439,6 +538,37 @@ body > .fui-tooltip {
 
 .omf-character__doll .fui-doll__score {
   display: none;
+}
+
+/**
+ * An empty socket shows what it takes.
+ *
+ * Fourteen identical holes tell a player nothing about which one is the cape and
+ * which the relic, and hovering each in turn to find out is not reading a
+ * character sheet. The icon is a mask tinted with the panel's own ink and held
+ * at a whisper — loud enough to identify, quiet enough that a filled socket is
+ * still obviously the one with something in it (§20.1). Bindings are generated
+ * into `slots.css` by `tools/vendor-slot-icons.mjs`.
+ */
+.omf-character__doll .fui-slot--empty::after {
+  content: '';
+  position: absolute;
+  inset: 22%;
+  z-index: 1;
+  pointer-events: none;
+  background-color: var(--fui-ink, #e9e3d4);
+  opacity: 0.22;
+  mask: var(--omf-slot-icon, none) center / contain no-repeat;
+  -webkit-mask: var(--omf-slot-icon, none) center / contain no-repeat;
+}
+
+/* Nothing to show for a socket with no icon bound — never an empty grey block. */
+.omf-character__doll .fui-slot--empty:not([data-slot-id])::after {
+  display: none;
+}
+
+.omf-character__doll .fui-slot--empty:hover::after {
+  opacity: 0.42;
 }
 
 /* --- who the hero is, under the portrait --------------------------------- */
@@ -600,7 +730,8 @@ body > .fui-tooltip {
 
 .omf-shop {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  /* Four `md` sockets plus their gaps are 274px; the frame takes 46px a side. */
+  grid-template-columns: minmax(0, 1fr) 400px;
   gap: var(--omf-gap);
   height: 100%;
   min-height: 0;
@@ -662,12 +793,18 @@ body > .fui-tooltip {
   padding: 12px 46px 42px;
 }
 
+/* Docked under the shop's own header, inside its frame. */
 .omf-shop__restock {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  margin: 14px 46px 0;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
 }
 
 .omf-shop__empty,
@@ -1099,14 +1236,25 @@ body > .fui-tooltip {
   gap: 16px;
   height: 100%;
   min-height: 0;
-  overflow-y: auto;
 }
 
+/**
+ * Both rites fill the frame and stand the same height, as the quest board's two
+ * columns do. `align-items: start` sized each panel to its own content, so the
+ * rite with five odds rows stood a head taller than the one with three and
+ * neither reached the bottom of the screen.
+ */
 .omf-gacha__rites {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--omf-gap);
-  align-items: start;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.omf-gacha__rites > * {
+  min-height: 0;
 }
 
 .omf-gacha__key {

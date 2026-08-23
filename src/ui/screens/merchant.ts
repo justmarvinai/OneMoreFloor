@@ -6,6 +6,11 @@
  * trinkets and draughts. Giving them separate implementations would mean fixing
  * every bug twice.
  *
+ * They are two *destinations* though, not one screen with a tab strip: they hold
+ * different goods on their own restock clocks, and a player walks to one or the
+ * other already knowing which. The rail picks the door; this screen never has to
+ * ask.
+ *
  * The two things a shop must always answer are on screen without a click: what
  * the wait costs (the free restock countdown, Q17) and what impatience costs
  * (the reroll price). A shop that only shows the paid option is a shop that is
@@ -17,7 +22,6 @@ import {
   InventoryGrid,
   Panel,
   ShopPanel,
-  Tabs,
   h,
   type ItemCardData,
   type ShopCategory,
@@ -46,10 +50,9 @@ const POTION_PREFIX = 'potion:';
 
 export interface MerchantScreenOptions {
   character: Character;
-  /** Which shop is open; the other is one tab away. */
+  /** Which counter this is. The rail chose it; the screen does not offer a swap. */
   merchantId: MerchantId;
   now: number;
-  onSwitchMerchant: (id: MerchantId) => void;
   onBuy: (index: number) => void;
   onDrink: (stat: UpgradableStatId) => void;
   onReroll: () => void;
@@ -62,8 +65,7 @@ export interface MerchantScreen {
 }
 
 export function createMerchantScreen(options: MerchantScreenOptions): MerchantScreen {
-  const { character, merchantId, now, onSwitchMerchant, onBuy, onDrink, onReroll, onSelectItem } =
-    options;
+  const { character, merchantId, now, onBuy, onDrink, onReroll, onSelectItem } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -224,19 +226,6 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   reroll.on('cost:buy', () => onReroll());
   setTip(reroll.el, t('merchant.rerollHint'));
 
-  const tabs = track(
-    new Tabs({
-      items: [
-        { id: 'equipment', label: t('merchant.tab.equipment'), icon: 'icon-sword' },
-        { id: 'magic', label: t('merchant.tab.magic'), icon: 'icon-potion' },
-      ],
-      active: merchantId,
-    }),
-  );
-  tabs.on<{ id: string }>('tabs:change', ({ id }) => {
-    if (id !== merchantId) onSwitchMerchant(id as MerchantId);
-  });
-
   // --- the backpack, for selling -------------------------------------------
 
   const backpack = track(
@@ -287,16 +276,24 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
         })
       : null;
 
+  /**
+   * The restock strip belongs *inside* the shop's frame, under its header.
+   *
+   * It used to sit above the panel beside the merchant tabs, which read as part
+   * of the tab strip. With the tabs gone to the rail it was the only thing left
+   * floating outside the frame, and a countdown with no window around it reads
+   * as debug output. `ShopPanel` only ever rebuilds its list, so a node put in
+   * ahead of the list survives every re-render.
+   */
+  const restock = h('div', { class: 'omf-shop__restock' }, countdown.el, reroll.el);
+  const shelfList = shop.el.querySelector('.fui-shop__list');
+  if (shelfList) shop.el.insertBefore(restock, shelfList);
+  else shop.el.appendChild(restock);
+
   const el = h(
     'div',
     { class: 'omf-shop', dataset: { fuiTheme: 'stone-vine', testid: 'merchant' } },
-    h(
-      'div',
-      { class: 'omf-shop__main' },
-      tabs.el,
-      h('div', { class: 'omf-shop__restock' }, countdown.el, reroll.el),
-      shop.el,
-    ),
+    h('div', { class: 'omf-shop__main' }, shop.el),
     h('div', { class: 'omf-shop__side' }, ...(runningLine ? [runningLine] : []), sellPanel.el),
   );
 

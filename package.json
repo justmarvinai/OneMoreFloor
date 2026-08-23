@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "OneMoreFloor — a single-player Fantasy-RPG roguelike tower-climber for the browser.",
+  "description": "OneMoreFloor \u2014 a single-player Fantasy-RPG roguelike tower-climber for the browser.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -18,7 +18,8 @@
     "smoke": "playwright test",
     "vendor:fui": "node tools/vendor-fui.mjs",
     "art:optimize": "node tools/optimize-art.mjs",
-    "sim": "vitest run tools/sim"
+    "sim": "vitest run tools/sim",
+    "vendor:slot-icons": "node tools/vendor-slot-icons.mjs"
   },
   "dependencies": {
     "idb": "^8.0.3"

@@ -15,7 +15,8 @@ export const en = {
   'nav.hero.here': 'You are looking at the character sheet',
   'nav.section.tower': 'Tower',
   'nav.section.character': 'Character',
-  'nav.section.merchants': 'Merchants',
+  'nav.section.equipmentMerchant': 'Equipment',
+  'nav.section.magicMerchant': 'Alchemist',
   'nav.section.quests': 'Quests',
   'nav.section.gacha': 'Summoning',
   'nav.section.upgrades': 'Account',
@@ -428,6 +429,16 @@ export const en = {
   'combat.log.defeated': '{unit} falls',
   'combat.log.roundCap': 'Neither side could finish the other — the spire calls it.',
   'combat.effect.rounds': '{rounds}R',
+  // --- Effects, as the player reads them ---
+  'effect.buff': 'Boon',
+  'effect.debuff': 'Affliction',
+  'effect.lasts': 'Lasts',
+  'effect.kind.damageReduction': 'Damage taken',
+  'effect.describe.lower': '{stat} is {percent}% lower while this holds.',
+  'effect.describe.raise': '{stat} is {percent}% higher while this holds.',
+  'effect.describe.damageReduction': 'Turns away {percent}% of the damage that lands.',
+  'effect.describe.dodgeNext': 'The next attack misses entirely.',
+
   'combat.effect.wholeFight': 'Whole fight',
   'combat.effect.tooltip': '{name} — {duration}',
 
@@ -569,8 +580,6 @@ export const en = {
   'merchant.bought': 'Bought {name}',
   'merchant.sellTitle': 'Sell from your backpack',
   'merchant.sellEmpty': 'Nothing to sell.',
-  'merchant.tab.equipment': 'Equipment',
-  'merchant.tab.magic': 'Magic',
 
   // --- Notifications (§20.5) ---
   'badge.canUpgrade': 'You can afford an upgrade',
