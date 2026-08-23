@@ -30,7 +30,7 @@ import type { StatBlock } from '@/domain/stats.ts';
 import { bandForFloor } from '@/content/floors/index.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 import { choreograph, floatLifeFor, TIMING, type Beat, type Step } from './choreography.ts';
-import { effectChip } from './effectChips.ts';
+import { effectChip, tipEffects } from './effectChips.ts';
 
 export interface CombatStageOptions {
   script: CombatScript;
@@ -459,7 +459,10 @@ export class CombatStage {
   }
 
   private paintChips(unit: UnitId): void {
-    this.chips[unit].set(this.effects[unit].map(effectChip));
+    const effects = this.effects[unit];
+    this.chips[unit].set(effects.map(effectChip));
+    // The bar rebuilds its cells on every `set`, so the cards go back on after.
+    tipEffects(this.chips[unit].el, effects);
   }
 
   private animate(target: HTMLElement, frames: Keyframe[], durationMs: number): void {

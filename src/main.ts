@@ -17,6 +17,7 @@
  */
 import './ui/fui/styles/index.css';
 import './styles/art.css';
+import './styles/slots.css';
 import './styles/app.css';
 
 import { setAssetBase } from './ui/fui/index.ts';
@@ -30,7 +31,7 @@ import type { EquipSlotId, SlotId } from './domain/character/types.ts';
 import { renderErrorPanel, renderLockGate } from './ui/errorPanel.ts';
 import { openResetDialog } from './ui/resetDialog.ts';
 import { installTooltipService } from './ui/tooltips.ts';
-import { createShell } from './ui/shell.ts';
+import { createShell, type Shell } from './ui/shell.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
@@ -65,7 +66,8 @@ type ScreenId =
   | 'combat'
   | 'raid'
   | 'character'
-  | 'merchant'
+  | 'equipmentMerchant'
+  | 'magicMerchant'
   | 'gacha'
   | 'quests'
   | 'upgrades';
@@ -133,7 +135,6 @@ export async function boot(mount: HTMLElement): Promise<void> {
     };
 
     /** Which shop is open; the tabs switch between them without leaving. */
-    let openMerchant: MerchantId = 'equipment';
     /** The summoning set-piece, kept so leaving the screen can tear it down. */
     let rite: RevealDirector | null = null;
     /** The gear dialog, kept so an action can redraw it instead of closing it. */
@@ -141,10 +142,13 @@ export async function boot(mount: HTMLElement): Promise<void> {
 
     const goTo = (section: ShellSection): void => {
       switch (section) {
-        case 'merchants':
+        case 'equipmentMerchant':
           // Walking in is what ages the shelf out, so the restock happens on the
           // way rather than the player finding yesterday's goods (Q17).
-          void session.visitMerchant(openMerchant).then(() => router.go('merchant'));
+          void session.visitMerchant('equipment').then(() => router.go('equipmentMerchant'));
+          return;
+        case 'magicMerchant':
+          void session.visitMerchant('magic').then(() => router.go('magicMerchant'));
           return;
         case 'quests':
           // Same reason: the board turns over on arrival, not on a timer nobody
@@ -251,6 +255,29 @@ export async function boot(mount: HTMLElement): Promise<void> {
 
     const leaveCharacter = (): void => {
       void session.leave().then(() => router.go('select'));
+    };
+
+    /**
+     * Both counters are the same screen with different stock — one shop, two
+     * doors. The rail decides which door, so the screen no longer carries a tab
+     * strip to choose between them.
+     */
+    const merchantShell = (id: MerchantId): Shell => {
+      return createShell({
+        store,
+        active: id === 'equipment' ? 'equipmentMerchant' : 'magicMerchant',
+        onSwitch: leaveCharacter,
+        onNavigate: goTo,
+        main: createMerchantScreen({
+          character: requireCharacter(),
+          merchantId: id,
+          now: clock().now(),
+          onBuy: (index) => void session.buyFromMerchant(id, index).then(refreshScreen),
+          onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
+          onReroll: () => void session.rerollMerchant(id).then(refreshScreen),
+          onSelectItem: inspectItem,
+        }),
+      });
     };
 
     const router: Router<ScreenId> = createRouter<ScreenId>({
@@ -362,27 +389,8 @@ export async function boot(mount: HTMLElement): Promise<void> {
             }),
           }),
 
-        merchant: () =>
-          createShell({
-            store,
-            active: 'merchants',
-            onSwitch: leaveCharacter,
-            onNavigate: goTo,
-            main: createMerchantScreen({
-              character: requireCharacter(),
-              merchantId: openMerchant,
-              now: clock().now(),
-              onSwitchMerchant: (id) => {
-                openMerchant = id;
-                void session.visitMerchant(id).then(refreshScreen);
-              },
-              onBuy: (index) =>
-                void session.buyFromMerchant(openMerchant, index).then(refreshScreen),
-              onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
-              onReroll: () => void session.rerollMerchant(openMerchant).then(refreshScreen),
-              onSelectItem: inspectItem,
-            }),
-          }),
+        equipmentMerchant: () => merchantShell('equipment'),
+        magicMerchant: () => merchantShell('magic'),
 
         combat: () => {
           const pending = pendingFight;

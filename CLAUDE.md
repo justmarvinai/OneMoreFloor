@@ -24,6 +24,7 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 | `docs/CONTENT_PIPELINE.md` | Data-driven content: types, ids, validation, workflows |
 | `docs/EA_0.1_AUDIT.md` | The §2.1 audit: every requirement, where it lives, and the test that proves it |
 | `docs/DEPLOY.md` | The owner's deploy checklist — before, after, and rolling back |
+| `docs/CREDITS.md` | Third-party assets, their licences, and what each asks for in return |
 
 ## Hard rules (from the brief — violating any is a defect)
 
@@ -47,6 +48,7 @@ Requirements live in **`docs/GAME_BRIEF.md`** (the owner's brief, verbatim — c
 - All player-facing text goes through `src/strings/` (Q24: English-only 0.1, i18n-ready from day one) — no literals in logic/content.
 - Screens follow FantasyUI's lifecycle: construct on enter, `destroy()` on exit; leaked listeners/timers are defects. **Whoever holds a screen destroys it** — pass the screen, never its `.el` (ARCHITECTURE §4); the shortcut compiles and leaks every screen the player leaves.
 - Verification (run **all** of these before declaring work done): `npm run typecheck · lint · format:check · test · content:validate · sim · build · smoke`. CI runs the same list in the same order. Balance/content changes also rerun the simulator once it exists (BALANCE.md §10).
+- Third-party art is **vendored, never fetched** (§21) and recorded in `docs/CREDITS.md` with its licence. The paperdoll's slot icons come from Open Game Icons (CC BY 3.0) via `npm run vendor:slot-icons`, which strips each source file's backdrop and emits masks plus the stylesheet that binds them — run it, commit its output, never hand-edit `src/styles/slots.css`.
 - Adding a FantasyUI component: add its name to `fui.components.json`, run `npm run vendor:fui` (needs a local `fantasyuis` clone; `FUI_SRC` overrides the path), commit the vendored output. Dependencies resolve automatically; never hand-copy.
 
 ## Process

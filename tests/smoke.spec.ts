@@ -369,7 +369,7 @@ test('sells what the merchant stocks, at the hero’s own power (Brief §11, §1
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');
   await climb(page, 6);
-  await goToSection(page, 'Merchants');
+  await goToSection(page, 'Equipment');
 
   const shop = page.locator('[data-testid="merchant"]');
   await expect(shop).toBeVisible();
@@ -378,9 +378,14 @@ test('sells what the merchant stocks, at the hero’s own power (Brief §11, §1
   await expect(shop.getByText(/New goods in/)).toBeVisible();
   await expect(shop.getByRole('button', { name: /Restock now/i })).toBeVisible();
 
-  // The Magic Merchant is one tab away, and sells draughts by the hour (§12).
-  await shop.getByRole('tab', { name: 'Magic' }).click();
+  // The Alchemist is its own destination on the rail, and pours draughts by the
+  // hour (§12) — not a tab hidden inside the armourer's window.
+  await goToSection(page, 'Alchemist');
+  await expect(page.locator('[data-testid="merchant"]').getByText('Magic Merchant')).toBeVisible();
   await expect(page.getByText(/for one hour/).first()).toBeVisible();
+
+  // Each counter keeps its own free countdown and paid reroll.
+  await expect(page.getByText(/New goods in/)).toBeVisible();
 });
 
 test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ page }) => {
@@ -397,7 +402,7 @@ test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ 
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await climb(page, 5);
-    await goToSection(page, 'Merchants');
+    await goToSection(page, 'Equipment');
     if ((await buyButtons.count()) > 0) break;
     await goToSection(page, 'Tower');
   }
@@ -407,7 +412,7 @@ test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ 
   const power = page.locator('[data-testid="character"] .fui-power__value');
   const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
 
-  await goToSection(page, 'Merchants');
+  await goToSection(page, 'Equipment');
   await buyButtons.first().click();
 
   // The piece is in the backpack; wearing it is the point of buying it.
@@ -495,8 +500,21 @@ test('puts three dailies and three weeklies up, one of them hard (Q21)', async (
   // Both columns say when they turn over — the question a board exists to answer.
   await expect(board.getByText('Resets in')).toHaveCount(2);
 
-  // Climbing moved something, which is the whole wiring end to end.
-  await expect(board.getByText(/[1-9]\d* \/ /).first()).toBeVisible();
+  /**
+   * Climbing moved something, which is the whole wiring end to end.
+   *
+   * Which six quests the board draws is rolled, and not all of them count floors
+   * — three floors can genuinely move none of them. So this climbs until one
+   * shows progress rather than assuming a fixed number of floors always does,
+   * which is what made it fail about one run in three.
+   */
+  const moved = board.getByText(/[1-9]\d* \/ /);
+  for (let attempt = 0; attempt < 4 && (await moved.count()) === 0; attempt += 1) {
+    await goToSection(page, 'Tower');
+    await climb(page, 4);
+    await goToSection(page, 'Quests');
+  }
+  await expect(moved.first()).toBeVisible();
 });
 
 test('sells the two account upgrades, and only those two (Brief §15)', async ({ page }) => {
@@ -641,7 +659,7 @@ test('never greys out a control without saying why (Brief §20.5)', async ({ pag
   await enterSelect(page);
   await createHero(page, 'Auditor', 'Warrior');
 
-  for (const section of ['Character', 'Merchants', 'Summoning', 'Quests', 'Account']) {
+  for (const section of ['Character', 'Equipment', 'Alchemist', 'Summoning', 'Quests', 'Account']) {
     await goToSection(page, section);
     await page.waitForTimeout(200);
 
@@ -724,7 +742,7 @@ test('a played-in profile survives a reload with everything intact', async ({ pa
 
   await goToSection(page, 'Quests');
   await expect(page.locator('[data-testid="quests"]')).toBeVisible();
-  await goToSection(page, 'Merchants');
+  await goToSection(page, 'Equipment');
   await expect(page.locator('[data-testid="merchant"]')).toBeVisible();
 
   // Snapshot what the player would recognise: their name, level and best floor.
@@ -829,24 +847,44 @@ test('does not leak a screen every time the player walks the game', async ({
   };
 
   const walk = async (): Promise<void> => {
-    for (const section of ['Character', 'Quests', 'Merchants', 'Summoning', 'Account', 'Tower']) {
+    for (const section of [
+      'Character',
+      'Quests',
+      'Equipment',
+      'Alchemist',
+      'Summoning',
+      'Account',
+      'Tower',
+    ]) {
       await goToSection(page, section);
     }
   };
 
   // One walk first, so the comparison is steady-state against steady-state: the
-  // first visit to a screen legitimately costs something the second does not.
+  // first visit to a screen legitimately costs something later ones do not.
   await walk();
   const first = await counts();
   for (let round = 0; round < 4; round += 1) await walk();
   const last = await counts();
 
+  /**
+   * **Listeners must not grow at all.** That is the sharp instrument: when the
+   * shell was dropping its screens, this climbed by about 41 *per screen visit*
+   * and never came down.
+   *
+   * Nodes get a small allowance. Measured over eight consecutive walks the count
+   * is flat, but it steps once by a few dozen as chrome that is built lazily
+   * settles — the shared tooltip's own rendered card among it — and exactly when
+   * that step lands depends on how the walk is paced. The allowance is far below
+   * anything a real leak produces: the bug this test was written for retained
+   * ~91 nodes per visit, which is thousands across these twenty-eight.
+   */
   expect(
     last.listeners,
     `listeners grew ${first.listeners} → ${last.listeners}`,
   ).toBeLessThanOrEqual(first.listeners);
   expect(last.nodes, `retained nodes grew ${first.nodes} → ${last.nodes}`).toBeLessThanOrEqual(
-    first.nodes,
+    first.nodes + 80,
   );
 });
 
@@ -957,4 +995,84 @@ test('the tower can be dragged as well as scrolled (§3.1)', async ({ page }) =>
   else expect(after).toBeGreaterThan(before.top);
   // A drag is not a click: it must not have walked into a fight.
   await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+});
+
+/**
+ * Round two, as tests. Each covers something a screenshot caught and no
+ * assertion could: a grid wider than the frame around it, sockets that all
+ * looked alike, and effect chips that named an affliction without saying what
+ * it did.
+ */
+test('never lets an inventory grid hang out of its frame', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await climb(page, 4);
+
+  const overflowing = async (): Promise<string[]> =>
+    page.$$eval('.fui-inv', (grids) =>
+      grids
+        .filter((grid) => (grid as HTMLElement).offsetParent !== null)
+        .flatMap((grid) => {
+          const panel = grid.closest('.fui-panel');
+          if (!panel) return [];
+          const inner = grid.getBoundingClientRect();
+          const outer = panel.getBoundingClientRect();
+          // The ornate frame is ~46px of border-image a side; content must clear
+          // it, so the grid is measured against the panel's padding box.
+          const style = getComputedStyle(panel.querySelector('.fui-panel__body') ?? panel);
+          const padLeft = Number.parseFloat(style.paddingLeft);
+          const padRight = Number.parseFloat(style.paddingRight);
+          const room = outer.width - padLeft - padRight;
+          return inner.width > room + 1
+            ? [`${grid.className}: grid ${Math.round(inner.width)}px in ${Math.round(room)}px`]
+            : [];
+        }),
+    );
+
+  await goToSection(page, 'Character');
+  expect(await overflowing(), 'backpack').toEqual([]);
+  await goToSection(page, 'Equipment');
+  expect(await overflowing(), 'sell grid').toEqual([]);
+});
+
+test('shows what each empty gear socket is for', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Character');
+
+  const missing = await page.$$eval('.omf-character__doll .fui-slot--empty', (sockets) =>
+    sockets.flatMap((socket) => {
+      const id = socket.getAttribute('data-slot-id');
+      const icon = getComputedStyle(socket, '::after').maskImage;
+      // The icon is bound per slot id, so the URL has to name that very slot —
+      // which is what catches a column walked out of order.
+      if (!id) return ['(socket with no slot id)'];
+      return icon.includes(`${id}.svg`) ? [] : [`${id}: ${icon}`];
+    }),
+  );
+  expect(missing, 'sockets without their own slot icon').toEqual([]);
+});
+
+test('says what a buff or debuff actually does (Brief §3.2)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Floor modifiers are not on every floor, so climb until one turns up.
+  const chip = page.locator('.omf-tower__preview .fui-buffs__item').first();
+  for (let attempt = 0; attempt < 12 && (await chip.count()) === 0; attempt += 1) {
+    await climb(page, 3);
+  }
+  test.skip((await chip.count()) === 0, 'no floor modifier came up in 36 floors');
+
+  await chip.hover();
+  const tooltip = page.locator('body > .fui-tooltip');
+  await expect(tooltip).toBeVisible();
+  const card = await tooltip.innerText();
+
+  // A name and a duration are not enough: the card has to carry the number it
+  // moves and a sentence about it.
+  expect(card, `no magnitude in the card: ${card}`).toMatch(/[+−-]\d+%/);
+  expect(card.split('\n').length, `thin effect card: ${card}`).toBeGreaterThan(3);
 });

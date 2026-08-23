@@ -22,13 +22,24 @@ import { computeBadges, type Badges } from '@/ui/badges.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
-export type ShellSection = 'tower' | 'character' | 'merchants' | 'gacha' | 'quests' | 'upgrades';
+/**
+ * The rail's destinations.
+ *
+ * The two merchants are two entries rather than one with tabs inside it. They
+ * sell different things out of different stock with their own restock clocks, a
+ * player goes to one or the other with a purpose already in mind, and a tab
+ * strip inside a screen hides half of that behind a click the rail could have
+ * saved (§20.5, §11).
+ */
+export type ShellSection =
+  'tower' | 'character' | 'equipmentMerchant' | 'magicMerchant' | 'gacha' | 'quests' | 'upgrades';
 
 /** Rail order, which is also the order the component renders them in. */
 const NAV_ORDER: readonly ShellSection[] = [
   'tower',
   'character',
-  'merchants',
+  'equipmentMerchant',
+  'magicMerchant',
   'gacha',
   'quests',
   'upgrades',
@@ -79,7 +90,8 @@ export function createShell(options: ShellOptions): Shell {
     : {
         tower: false,
         character: false,
-        merchants: false,
+        equipmentMerchant: false,
+        magicMerchant: false,
         gacha: false,
         quests: false,
         upgrades: false,
@@ -128,10 +140,16 @@ export function createShell(options: ShellOptions): Shell {
           ...(badges.character ? { dot: true } : {}),
         },
         {
-          id: 'merchants',
-          label: t('nav.section.merchants'),
+          id: 'equipmentMerchant',
+          label: t('nav.section.equipmentMerchant'),
           glyph: 'glyph-burning-scroll',
-          ...(badges.merchants ? { dot: true } : {}),
+          ...(badges.equipmentMerchant ? { dot: true } : {}),
+        },
+        {
+          id: 'magicMerchant',
+          label: t('nav.section.magicMerchant'),
+          glyph: 'glyph-health-potion',
+          ...(badges.magicMerchant ? { dot: true } : {}),
         },
         {
           id: 'gacha',

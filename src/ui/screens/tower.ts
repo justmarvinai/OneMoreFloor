@@ -30,7 +30,7 @@ import type { Character } from '@/domain/character/types.ts';
 import { generateFloor, type GeneratedFloor } from '@/domain/tower/floors.ts';
 import { quickRaidCeiling } from '@/domain/tower/run.ts';
 import type { StatId } from '@/domain/stats.ts';
-import { effectChip } from '@/ui/combat/effectChips.ts';
+import { effectChip, tipEffects } from '@/ui/combat/effectChips.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 /** How far ahead the trail draws. Enough to see the next boss and then some. */
@@ -348,6 +348,12 @@ function buildPreview(
         size: 34,
         autoTick: false,
       }),
+    );
+    // The chips carry their own cards: what the effect does, to which number,
+    // and for how long — the read that decides whether to drink first.
+    tipEffects(
+      bar.el,
+      generated.effects.map((applied) => applied.effect),
     );
     rows.push(
       h('p', { class: 'omf-tower__effects-label', text: t('tower.preview.effects') }),

@@ -136,6 +136,8 @@ export function createGachaScreen(options: GachaScreenOptions): GachaScreen {
         title: t(banner.nameKey),
         variant: 'alt',
         width: '100%',
+        height: '100%',
+        scroll: true,
         content: [
           key.el,
           h('p', { class: 'omf-gacha__blurb', text: t(banner.blurbKey) }),

@@ -72,7 +72,20 @@
 | Sell/dispose flow (Q16: sell for a fraction of value at any merchant) | `InventoryGrid` + confirm `Modal` |
 | Merchant NPC presence (reference shows illustrated scenes) | `SceneBackdrop` + FantasyUI theme art only in 0.1 (Q11); owner backdrops may replace later by asset id |
 
-**As built (M5):** both merchants are one screen with different stock, because they are the same shop with different stock — separate implementations would mean fixing every bug twice. The free restock countdown sits beside the paid reroll, never the paid option alone: a shop that hides the free path is a shop that is selling impatience dishonestly (Q17). Selling goes through the same gear dialog the character screen uses, so a sale is always two deliberate clicks rather than one misclick in a grid. Buying a draught drinks it (Q29, confirmed).
+**As built (M5, split in the second polish round):** both merchants are one screen
+with different stock, because they *are* the same shop with different stock —
+separate implementations would mean fixing every bug twice. They are two
+**destinations** though, not one screen with a tab strip: Equipment and Alchemist
+each have their own rail entry, their own restock clock and their own red dot. A
+dot shared between two counters cannot say which one has something on it, and
+sends the player to the wrong door half the time.
+
+The free restock countdown sits beside the paid reroll, inside the shop's frame
+under its header — never the paid option alone: a shop that hides the free path
+is selling impatience dishonestly (Q17). Selling goes through the same gear
+dialog the character screen uses, so a sale is always two deliberate clicks
+rather than one misclick in a grid. Buying a draught drinks it (Q29, confirmed).
+
 
 ## 6. Gacha — DE for the reveal, SV for the banner lobby (§16)
 
@@ -136,7 +149,18 @@ Anything beyond this list needs a written justification in this file before it's
 10. `SummonScreen` bakes in the same ten-pull button plus a pity counter (`pity`/`pityCap`) that is not optional in spirit — a gacha without pity has to render a meter reading nothing. Making the pity block omissible and the pull buttons configurable would open it to non-pity games.
 11. `Paperdoll` puts **no id on its socket cells**, so a screen that wants to say something about a particular slot — "this one is locked until ascension 3", or the stat block of the piece in it — has no way to address one. Ours pairs sockets with cells by walking each column in the order the defs were given and stamps `data-slot-id` on as it goes. A `data-slot-id` from the component (or a `slotEl(id)` accessor) would remove a positional assumption from a screen that should not need one. *This is not theoretical: the M5 pass addressed sockets with a `[data-slot-id]` selector that matched nothing, and locked sockets were silent from then until it was caught in the first polish round.*
 12. `Tooltip` switches from `position: relative` to `position: fixed` through a `[style*='left']` attribute selector, so an instance created up front and parked on `<body>` sits **in the page flow** until its first `showAt()`. Thirty-two empty pixels at the end of the document made every screen taller than the viewport. A class (`is-positioned`) set by `showAt()`, or a `positioned: true` option, would be robust; ours is overridden locally for the service's own instance.
-13. `StageTrail` draws each chapter divider as a full-width band carrying its own chapter art. That is right for a campaign map where every chapter is a different place; it is wrong for a trail whose chapters share one backdrop, where the divider lays a second crop of the same scene over the first with hard edges and the path running behind it. A `chapterStyle: 'plaque' | 'band'` option — or simply honouring `art: undefined` by fading the scrim in both directions — would cover both.
+13. `Paperdoll` has no place to put a per-slot picture, so the "what does this
+    socket take?" ghost icons are attached from our stylesheet against the
+    `data-slot-id` we stamp on (see 11). A `placeholder` per `EquipSlotDef`
+    exists on the type but is only honoured for a handful of defaults; honouring
+    it for every slot would make this a component feature rather than an
+    override.
+14. `Tooltip` sizes itself in fixed pixels, so on a 2560-wide screen the one
+    surface a player has to read *while the cursor is elsewhere* stayed the same
+    physical size while the eye got further away. Ours is scaled by breakpoint
+    from our own stylesheet. A `scale` option, or type set in `em` against a
+    root the host controls, would make that the component's job.
+15. `StageTrail` draws each chapter divider as a full-width band carrying its own chapter art. That is right for a campaign map where every chapter is a different place; it is wrong for a trail whose chapters share one backdrop, where the divider lays a second crop of the same scene over the first with hard edges and the path running behind it. A `chapterStyle: 'plaque' | 'band'` option — or simply honouring `art: undefined` by fading the scrim in both directions — would cover both.
 
 ## 12. The tooltip service (Brief §20.4)
 

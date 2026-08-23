@@ -27,7 +27,7 @@ import { BANNERS } from '@/content/balance/gacha.ts';
 import { canPull } from '@/domain/gacha/gacha.ts';
 import { offersFor } from '@/domain/account/upgrades.ts';
 import type { ItemInstance } from '@/domain/items/types.ts';
-import { MERCHANT_IDS, needsRestock, stockOf } from '@/domain/merchants/merchants.ts';
+import { needsRestock, stockOf, type MerchantId } from '@/domain/merchants/merchants.ts';
 import { potionStock } from '@/domain/merchants/merchants.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import { UPGRADABLE_STAT_IDS } from '@/domain/stats.ts';
@@ -40,7 +40,11 @@ export function computeBadges(character: Character, now: number, account?: Accou
     // Climbing is always available, so a dot here would say nothing.
     tower: false,
     character: hasCharacterAction(character),
-    merchants: hasMerchantAction(character, now),
+    // One dot per shop, because they are two destinations now: a dot on the
+    // rail has to say *which* counter has something on it, or it sends the
+    // player to the wrong one and reads as a lie (§20.5).
+    equipmentMerchant: hasMerchantAction('equipment', character, now),
+    magicMerchant: hasMerchantAction('magic', character, now),
     // A quest dot means a reward is sitting there — never "the board changed".
     quests: claimableCount(character.quests) > 0,
     // §16.3's whole target reaction is "finally I can pull again" — so the dot
@@ -99,27 +103,29 @@ function canAffordAscension(character: Character, item: ItemInstance): boolean {
   );
 }
 
-function hasMerchantAction(character: Character, now: number): boolean {
+function hasMerchantAction(id: MerchantId, character: Character, now: number): boolean {
   const bracket = bracketForCharacter(character);
-  const context = {
-    now,
-    bracketIndex: bracket.index,
-    highestFloor: character.tower.highestFloorEverCleared,
-  };
+  const state = character.merchants[id];
   const gold = character.currencies.gold;
 
-  for (const id of MERCHANT_IDS) {
-    const state = character.merchants[id];
-    // Fresh goods are worth a look even before affordability is known.
-    if (needsRestock(state, context)) return true;
-
-    const affordable = stockOf(id, character, state, bracket).some(
-      (entry) => !entry.sold && entry.price <= gold,
-    );
-    if (affordable) return true;
+  // Fresh goods are worth a look even before affordability is known.
+  if (
+    needsRestock(state, {
+      now,
+      bracketIndex: bracket.index,
+      highestFloor: character.tower.highestFloorEverCleared,
+    })
+  ) {
+    return true;
   }
 
-  return potionStock(bracket).some((potion) => potion.price <= gold);
+  const affordableGear = stockOf(id, character, state, bracket).some(
+    (entry) => !entry.sold && entry.price <= gold,
+  );
+  if (affordableGear) return true;
+
+  // Only one of the two counters pours draughts.
+  return id === 'magic' && potionStock(bracket).some((potion) => potion.price <= gold);
 }
 
 function ownedItems(character: Character): ItemInstance[] {

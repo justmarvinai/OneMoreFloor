@@ -5,6 +5,51 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Changed — second polish round
+
+- **The two merchants are two destinations.** Equipment and Alchemist each have
+  their own entry on the rail, their own restock clock and their own red dot,
+  instead of one "Merchants" entry with a tab strip inside it. They sell
+  different things and a player walks to one or the other already knowing which,
+  so the tab was a click the rail could have saved — and a dot shared between two
+  counters could not say which one had something on it, which sent the player to
+  the wrong door half the time. The free restock countdown moved inside the
+  shop's frame while it was there; with the tabs gone it was the only thing left
+  floating outside a window, and a countdown with no frame around it reads as
+  debug output.
+- **Empty gear sockets show what they take.** Fourteen identical holes said
+  nothing about which was the cape and which the relic, and hovering each in turn
+  to find out is not reading a character sheet. Each empty socket now carries a
+  faint mask of its own slot — tinted with the panel's ink and held at a whisper,
+  so a socket with something *in* it is still obviously the interesting one.
+  Icons are from [Open Game Icons](https://open-game-icons.net) (CC BY 3.0),
+  vendored by `npm run vendor:slot-icons` and credited in `docs/CREDITS.md`.
+- **Buffs and debuffs say what they do.** A chip read "Rusted — Whole fight",
+  which names an affliction without telling the player anything they can act on.
+  The card now carries the stat it moves and by how much, how long it lasts, and
+  a sentence — "Defense is 10% lower while this holds." It is derived from the
+  effect's own data rather than authored per effect, so a new debuff describes
+  itself the moment it is added.
+- **Tooltips grow with the screen.** Everything else is laid out in fixed pixels
+  against §20.6's 1080p target, which is fine for a panel; it is not fine for the
+  one surface a player reads while the cursor is somewhere else. On a 2560-wide
+  screen the card was the same physical size as at 1920 with the eye further from
+  it. They are a third larger there now, and slightly larger everywhere.
+- **The summoning lobby fills its frame**, both rites the same height, the way
+  the quest board's two columns do. Sized to their own content, the rite with
+  five odds rows stood a head taller than the one with three and neither reached
+  the bottom of the screen.
+
+### Fixed — second polish round
+
+- **The backpack hung out of its own frame.** Five 64px sockets and their gaps
+  need 344px of content box; the column gave them 268 and the fifth column sat on
+  the ornament. Both grids are now sized to what they hold, and a smoke test
+  measures every visible grid against its panel rather than trusting the sum.
+- **An item's type was unreadable.** The line that tells a chest piece from a
+  cape was set in the faintest ink in the palette at 11px — under 3:1 against the
+  stone behind it.
+
 ### Fixed — first polish round
 
 - **Items said nothing but their own name.** `itemTooltip` has always built a full
