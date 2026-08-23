@@ -25,12 +25,16 @@ import {
   type TrailNode,
 } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
-import { bandForFloor } from '@/content/floors/index.ts';
+import { CLASSES } from '@/content/classes/index.ts';
+import { bandForFloor, bandRange, type FloorBand } from '@/content/floors/index.ts';
+import { combatStatsOf } from '@/domain/character/character.ts';
 import type { Character } from '@/domain/character/types.ts';
 import { generateFloor, type GeneratedFloor } from '@/domain/tower/floors.ts';
+import { floorRewardEstimate } from '@/domain/tower/rewards.ts';
 import { quickRaidCeiling } from '@/domain/tower/run.ts';
-import type { StatId } from '@/domain/stats.ts';
-import { effectChip, tipEffects } from '@/ui/combat/effectChips.ts';
+import type { StatBlock, StatId } from '@/domain/stats.ts';
+import { effectChip, effectTooltip, tipEffects } from '@/ui/combat/effectChips.ts';
+import { setTip } from '@/ui/tooltips.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 /** How far ahead the trail draws. Enough to see the next boss and then some. */
@@ -41,6 +45,8 @@ const PREVIEW_STATS: readonly StatId[] = ['strength', 'defense', 'hp', 'speed', 
 
 export interface TowerScreenOptions {
   character: Character;
+  /** Wall-clock time, so the matchup counts draughts that are still running. */
+  now: number;
   /** Fight the floor the hero is standing on. */
   onFight: (floor: number) => void;
   /** Quick-Raid every cleared floor up to and including `throughFloor` (Q8). */
@@ -53,7 +59,7 @@ export interface TowerScreen {
 }
 
 export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
-  const { character, onFight, onRaid } = options;
+  const { character, now, onFight, onRaid } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -85,7 +91,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
     else if (target > floor && target <= ceiling) onRaid(target);
   });
 
-  const preview = buildPreview(generated, track);
+  const preview = buildPreview(character, combatStatsOf(character, now), generated, track);
 
   const actions: SplitAction[] = canRaid
     ? [
@@ -163,6 +169,8 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
     h('div', { class: 'omf-tower__path' }, trail.el),
     h('div', { class: 'omf-tower__side' }, side.el),
   );
+
+  markTrail(trail.el, character, floor);
 
   const releaseDrag = dragToScroll(trail.el.querySelector('.fui-trail__scroller'));
 
@@ -285,7 +293,7 @@ function buildChapters(character: Character, floor: number, ceiling: number): Tr
       chapters.push({
         id: band.id,
         title: t(band.nameKey),
-        subtitle: t('tower.floor', { floor: band.from }),
+        subtitle: bandCaption(band),
         art: band.backdrop,
         nodes: [node],
       });
@@ -295,41 +303,239 @@ function buildChapters(character: Character, floor: number, ceiling: number): Tr
   return chapters;
 }
 
-/** The enemy waiting on this floor: who it is, roughly how hard, and what it brings. */
+/** "Floors 1–20", or "Floor 101 and above" for the band that never ends. */
+function bandCaption(band: FloorBand): string {
+  const [from, to] = bandRange(band);
+  return to === null ? t('tower.band.rangeOpen', { from }) : t('tower.band.range', { from, to });
+}
+
+/**
+ * The two things the path could not say for itself.
+ *
+ * `StageTrail` draws every stop as the same numbered disc, which on a tower
+ * leaves a player scanning twenty identical circles for the one they are
+ * standing on — and gives a boss floor no more warning than the corridor
+ * outside it. Both are marks on the rendered node rather than options, because
+ * the component takes neither; the boss's is a class, the hero's is their own
+ * face, pinned to the disc they are on.
+ */
+function markTrail(root: HTMLElement, character: Character, floor: number): void {
+  for (const node of root.querySelectorAll<HTMLElement>(".fui-trail__node[data-kind='boss']")) {
+    node.classList.add('omf-tower__boss');
+    setTip(node, t('tower.bossTip'));
+  }
+
+  const current = root.querySelector<HTMLElement>(".fui-trail__node[data-state='current']");
+  if (!current) return;
+  const marker = h('span', {
+    class: 'omf-tower__here',
+    dataset: { testid: 'tower-here' },
+    style: {
+      backgroundImage: `var(--fui-img-${CLASSES[character.identity.classId].art.portrait})`,
+    },
+    attrs: { 'aria-hidden': 'true' },
+  });
+  current.appendChild(marker);
+  setTip(current, t('tower.hereTip', { floor }));
+}
+
+/**
+ * What is waiting on this floor, and whether you can take it.
+ *
+ * The first pass showed the enemy's five stats as chips and left it there,
+ * which is half an answer: a number means nothing without the number it is
+ * being measured against. A player standing on a floor is asking one question —
+ * *can I take this?* — and the honest way to answer it is to put both sides of
+ * the fight next to each other and let them read it.
+ *
+ * The panel is tall, so it is laid out to be tall: the matchup at the top, the
+ * stat-by-stat comparison filling the middle, and what the floor imposes at the
+ * bottom, right above the button that commits to it.
+ */
 function buildPreview(
+  character: Character,
+  hero: StatBlock,
   generated: GeneratedFloor,
   track: <T extends FuiComponent>(component: T) => T,
 ): HTMLElement {
-  const portrait = track(
+  const heroPortrait = track(
+    new Portrait({
+      art: CLASSES[character.identity.classId].art.portrait,
+      shape: 'square',
+      size: 84,
+      fit: 'cover',
+      name: character.identity.name,
+    }),
+  );
+
+  const enemyPortrait = track(
     new Portrait({
       art: generated.enemy.avatar,
       shape: 'square',
-      size: 128,
+      size: 84,
       fit: 'contain',
       name: t(generated.enemy.nameKey),
     }),
   );
 
-  const chips = h(
+  const face = (portrait: Portrait, name: string, note: string): HTMLElement =>
+    h(
+      'div',
+      { class: 'omf-tower__face' },
+      portrait.el,
+      h('span', { class: 'omf-tower__face-name fui-title', text: name }),
+      h('span', { class: 'omf-tower__face-note', text: note }),
+    );
+
+  const matchup = h(
     'div',
-    { class: 'omf-tower__stats' },
-    ...PREVIEW_STATS.map(
-      (stat) =>
-        track(
-          new StatChip({
-            label: t(`tower.stat.${stat}` as StringKey),
-            value: generated.stats[stat],
-            compact: true,
-            size: 'sm',
-          }),
-        ).el,
+    { class: 'omf-tower__matchup' },
+    face(heroPortrait, character.identity.name, t(CLASSES[character.identity.classId].nameKey)),
+    h('span', { class: 'omf-tower__vs-mark fui-title', text: 'VS' }),
+    face(
+      enemyPortrait,
+      t(generated.enemy.nameKey),
+      generated.isBoss ? t('tower.bossFloor') : t('tower.floor', { floor: generated.floor }),
     ),
   );
 
   const rows: HTMLElement[] = [
-    h('h3', { class: 'omf-tower__preview-title fui-title', text: t(generated.enemy.nameKey) }),
-    portrait.el,
-    chips,
+    matchup,
+    buildCompare(hero, generated),
+    buildPays(generated, track),
+    buildThreats(generated, track),
+  ];
+
+  return h('div', { class: 'omf-tower__preview', dataset: { testid: 'floor-preview' } }, ...rows);
+}
+
+/**
+ * Five stats, both sides, one bar apiece.
+ *
+ * The bar is a tug-of-war rather than two bars side by side: each stat is
+ * normalised against the pair's own total, so a stat where the numbers differ by
+ * an order of magnitude (health) reads exactly as clearly as one where they
+ * differ by two points (speed). The numbers are still printed, because a bar is
+ * an impression and a fight is decided by arithmetic.
+ */
+function buildCompare(hero: StatBlock, generated: GeneratedFloor): HTMLElement {
+  let ahead = 0;
+
+  const rows = PREVIEW_STATS.map((stat) => {
+    const mine = hero[stat];
+    const theirs = generated.stats[stat];
+    const total = mine + theirs;
+    // A stat neither side has cannot be led on, and 0/0 has no split to draw.
+    const share = total > 0 ? (mine / total) * 100 : 50;
+    const lead = mine > theirs ? 'you' : mine < theirs ? 'them' : 'level';
+    if (lead === 'you') ahead += 1;
+
+    const row = h(
+      'div',
+      { class: 'omf-tower__cmp', dataset: { lead } },
+      h('span', { class: 'omf-tower__cmp-mine fui-num', text: String(mine) }),
+      h('span', { class: 'omf-tower__cmp-label', text: t(`tower.stat.${stat}` as StringKey) }),
+      h('span', { class: 'omf-tower__cmp-theirs fui-num', text: String(theirs) }),
+      h(
+        'span',
+        { class: 'omf-tower__cmp-bar', style: { '--omf-share': `${share.toFixed(1)}%` } },
+        h('span', { class: 'omf-tower__cmp-fill' }),
+      ),
+    );
+
+    setTip(
+      row,
+      t('tower.preview.statTip', {
+        stat: t(`stat.${stat}` as StringKey),
+        you: mine,
+        them: theirs,
+        verdict:
+          lead === 'you'
+            ? t('tower.preview.ahead')
+            : lead === 'them'
+              ? t('tower.preview.behind')
+              : t('tower.preview.level'),
+      }),
+    );
+    return row;
+  });
+
+  return h(
+    'section',
+    { class: 'omf-tower__compare', dataset: { testid: 'floor-matchup' } },
+    h(
+      'header',
+      { class: 'omf-tower__compare-head' },
+      h('span', { class: 'omf-tower__compare-side fui-label', text: t('tower.preview.you') }),
+      h('span', {
+        class: 'omf-tower__compare-title fui-label',
+        text: t('tower.preview.leads', { count: ahead, total: PREVIEW_STATS.length }),
+      }),
+      h('span', { class: 'omf-tower__compare-side fui-label', text: t('tower.preview.them') }),
+    ),
+    ...rows,
+  );
+}
+
+/**
+ * What clearing it is worth.
+ *
+ * A boss is several floors' pay in one fight, and until now nothing said so
+ * before the fight — the player found out in the aftermath. The figures are the
+ * reward curves with the dice left out (`floorRewardEstimate`), so the preview
+ * cannot drift from what the floor actually hands over.
+ */
+function buildPays(
+  generated: GeneratedFloor,
+  track: <T extends FuiComponent>(component: T) => T,
+): HTMLElement {
+  const estimate = floorRewardEstimate(generated.floor, generated.isBoss);
+  const percent = Math.round(estimate.itemChance * 100);
+
+  const chip = (label: string, value: string, glyph: string): HTMLElement =>
+    track(new StatChip({ label, value, glyph, size: 'sm', tone: 'gold' })).el;
+
+  const strip = h(
+    'div',
+    { class: 'omf-tower__pays', dataset: { testid: 'floor-pays' } },
+    h('span', { class: 'omf-tower__effects-label fui-label', text: t('tower.preview.pays') }),
+    h(
+      'div',
+      { class: 'omf-tower__pays-row' },
+      chip(
+        t('currency.gold'),
+        t('tower.preview.paysGold', { gold: estimate.gold }),
+        'glyph-trophy-cup',
+      ),
+      chip(
+        t('tower.preview.xp'),
+        t('tower.preview.paysXp', { xp: estimate.xp }),
+        'glyph-shooting-stars',
+      ),
+      chip(
+        t('tower.preview.gear'),
+        t('tower.preview.paysGear', { percent }),
+        'glyph-crossed-swords',
+      ),
+    ),
+  );
+  setTip(strip, t('tower.preview.paysTip', { gold: estimate.gold, xp: estimate.xp, percent }));
+  return strip;
+}
+
+/**
+ * What the floor does to you before the first blow (Brief §3.2).
+ *
+ * Each effect is named beside its chip rather than left as a bare icon: a row of
+ * unlabelled squares is a puzzle, and the whole point of stating this before the
+ * fight is that the player can act on it — drink something, or walk away.
+ */
+function buildThreats(
+  generated: GeneratedFloor,
+  track: <T extends FuiComponent>(component: T) => T,
+): HTMLElement {
+  const rows: HTMLElement[] = [
+    h('h3', { class: 'omf-tower__effects-label fui-label', text: t('tower.preview.effects') }),
   ];
 
   if (generated.modifier) {
@@ -341,27 +547,30 @@ function buildPreview(
     );
   }
 
-  if (generated.effects.length > 0) {
-    const bar = track(
-      new BuffBar({
-        buffs: generated.effects.map((applied) => effectChip(applied.effect)),
-        size: 34,
-        autoTick: false,
-      }),
-    );
-    // The chips carry their own cards: what the effect does, to which number,
-    // and for how long — the read that decides whether to drink first.
-    tipEffects(
-      bar.el,
-      generated.effects.map((applied) => applied.effect),
-    );
-    rows.push(
-      h('p', { class: 'omf-tower__effects-label', text: t('tower.preview.effects') }),
-      bar.el,
-    );
+  if (generated.effects.length === 0) {
+    rows.push(h('p', { class: 'omf-tower__effects-none', text: t('tower.preview.noEffects') }));
   } else {
-    rows.push(h('p', { class: 'omf-tower__effects-label', text: t('tower.preview.noEffects') }));
+    for (const applied of generated.effects) {
+      const chip = track(
+        new BuffBar({ buffs: [effectChip(applied.effect)], size: 30, autoTick: false }),
+      );
+      const name = h('span', {
+        class: 'omf-tower__threat-name',
+        text: t(applied.effect.nameKey as StringKey),
+      });
+      const row = h('div', { class: 'omf-tower__threat' }, chip.el, name);
+
+      // The card carries what it does, to which number, and for how long — the
+      // read that decides whether to drink first. It goes on the chip as well as
+      // the row: `BuffBar` writes its own `title` on each chip, and the tooltip
+      // service serves the *closest* tip to the cursor, so a card left on the
+      // row alone would be shadowed by the component's one-line summary.
+      tipEffects(chip.el, [applied.effect]);
+      setTip(name, effectTooltip(applied.effect));
+      setTip(row, effectTooltip(applied.effect));
+      rows.push(row);
+    }
   }
 
-  return h('div', { class: 'omf-tower__preview', dataset: { testid: 'floor-preview' } }, ...rows);
+  return h('section', { class: 'omf-tower__threats' }, ...rows);
 }

@@ -41,7 +41,15 @@ import { isActive } from '@/domain/potions/potions.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
-import { itemCard, itemName, itemSlot, itemTooltip, statLine } from '@/ui/itemView.ts';
+import {
+  compareGear,
+  isUpgrade,
+  itemCard,
+  itemName,
+  itemSlot,
+  itemTooltip,
+  statLine,
+} from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
 import { openSellDialog } from '@/ui/sellDialog.ts';
@@ -98,11 +106,24 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
     return `${detail} · ${t('merchant.short', { missing: price - gold })}`;
   };
 
+  /**
+   * A shelf row says whether it beats what the hero is wearing, before it is
+   * hovered. Five rows and five hovers is how a player learns to stop reading a
+   * shop; the word is the same verdict the tooltip leads with (`compareGear`),
+   * so the two can never disagree.
+   */
+  const shelfDetail = (entry: (typeof shelf)[number]): string => {
+    const slot = requireItemDef(entry.item.defId).slot;
+    const comparison = compareGear(entry.item, character.equipment[slot] ?? null);
+    const line = statLine(entry.item);
+    return isUpgrade(comparison) ? `${t('item.compare.upgrade')} · ${line}` : line;
+  };
+
   const gear: ItemCardData[] = shelf.map((entry) => ({
     ...itemCard(entry.item, entry.price),
     id: String(entry.index),
     disabled: entry.sold,
-    detail: withReason(statLine(entry.item), entry.price, entry.sold),
+    detail: withReason(shelfDetail(entry), entry.price, entry.sold),
   }));
 
   if (gear.length > 0) {
@@ -182,13 +203,17 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
 
       const entry = shelf[Number(card.id)];
       if (!entry) return;
+      const worn = character.equipment[requireItemDef(entry.item.defId).slot] ?? null;
       setTip(
         row,
         itemTooltip(entry.item, {
-          compareTo: character.equipment[requireItemDef(entry.item.defId).slot] ?? null,
+          compareTo: worn,
           hint: entry.sold ? t('merchant.sold') : t('item.buyHint'),
         }),
       );
+      if (!entry.sold && isUpgrade(compareGear(entry.item, worn))) {
+        row.classList.add('omf-upgrade');
+      }
     });
   };
 

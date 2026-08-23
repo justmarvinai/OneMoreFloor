@@ -358,6 +358,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createTowerScreen({
               character: requireCharacter(),
+              now: clock().now(),
               onFight: startFight,
               onRaid: startRaid,
             }),

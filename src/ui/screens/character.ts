@@ -51,7 +51,7 @@ import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
-import { itemSlot, itemTooltip } from '@/ui/itemView.ts';
+import { compareGear, isUpgrade, itemSlot, itemTooltip } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { shortDuration } from '@/ui/format.ts';
 import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
@@ -404,6 +404,29 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
         hint: t('item.dragToEquip'),
       }),
     );
+
+    /**
+     * Which pieces are worth wearing, without hovering any of them.
+     *
+     * A twenty-slot bag means twenty hovers to find the one upgrade in it, and
+     * a player who has to do that stops doing it — which is how a hunter ends
+     * up nine floors deep with six better pieces sitting in the bag (found in
+     * M9's playtest, and the reason the Character rail dot exists at all). The
+     * mark says the same thing the dot does, one slot at a time.
+     *
+     * Gated on `equipCheck` because a piece this hero cannot wear is not an
+     * upgrade for them however good it is.
+     */
+    if (unlocked.has(slot) && equipCheck(item.uid, slot).ok) {
+      const comparison = compareGear(item, character.equipment[slot] ?? null);
+      if (isUpgrade(comparison)) {
+        cell.classList.add('omf-upgrade');
+        cell.appendChild(
+          h('span', { class: 'omf-upgrade__mark', attrs: { 'aria-hidden': 'true' } }),
+        );
+      }
+    }
+
     releases.push(makeItemDraggable(cell, () => ({ uid: item.uid, from: 'backpack' })));
   }
 

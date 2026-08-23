@@ -192,7 +192,10 @@ test('reports no console errors through the whole lifecycle', async ({ page }) =
 
 /** Start the floor the hero is standing on, from the tower. */
 async function startFight(page: Page): Promise<void> {
-  await page.getByRole('button', { name: /Fight Floor|Face the Boss/i }).click();
+  // Anchored: once a Quick-Raid is available the control is a `SplitButton`, and
+  // its caret is labelled "More fight floor 1 options" — which an unanchored
+  // /Fight Floor/ matches just as well as the button that starts the fight.
+  await page.getByRole('button', { name: /^(Fight Floor|Face the Boss)/i }).click();
   await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
 }
 
@@ -1302,5 +1305,89 @@ test('nothing in the rail grows through what is under it', async ({ page }) => {
       return button.contains(hit) ? null : `covered by .${hit.className.split(' ').join('.')}`;
     });
     expect(covered, `Switch hero at ${size.width}x${size.height}`).toBeNull();
+  }
+});
+
+/**
+ * Round four: the two questions the game asks most often — "can I take this
+ * floor?" and "is this piece better than the one I am wearing?" — answered
+ * where they are asked rather than one screen away.
+ */
+test('the floor preview puts both sides of the fight side by side', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const matchup = page.locator('[data-testid="floor-matchup"]');
+  await expect(matchup).toBeVisible();
+
+  // Every stat the preview claims to compare has a number for each side.
+  const rows = await matchup.locator('.omf-tower__cmp').all();
+  expect(rows.length, 'stats compared').toBe(5);
+  for (const row of rows) {
+    const lead = await row.getAttribute('data-lead');
+    expect(['you', 'them', 'level']).toContain(lead);
+    await expect(row.locator('.omf-tower__cmp-mine')).toHaveText(/^\d+$/);
+    await expect(row.locator('.omf-tower__cmp-theirs')).toHaveText(/^\d+$/);
+  }
+
+  // And what clearing it pays, before the fight rather than in the aftermath.
+  await expect(page.locator('[data-testid="floor-pays"]')).toContainText('~');
+
+  // The hero's own face marks the floor they are standing on.
+  await expect(page.locator('[data-testid="tower-here"]')).toBeVisible();
+});
+
+test('a gear tooltip leads with the verdict, not with the stat block', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const bag = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await climb(page, 4);
+    await goToSection(page, 'Character');
+    if ((await bag.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await bag.count(), 'nothing dropped in twenty floors').toBeGreaterThan(0);
+
+  await bag.first().hover();
+  const tooltip = page.locator('body > .fui-tooltip');
+  await expect(tooltip).toBeVisible();
+  const lines = (await tooltip.innerText()).split('\n').filter(Boolean);
+
+  // The verdict is the first thing under the item's own header — a player asking
+  // "is this better?" should not have to read to the bottom of the card.
+  const verdict = lines.findIndex((line) => /upgrade|worse|sidegrade|nothing worn/i.test(line));
+  expect(verdict, `no verdict in the card: ${lines.join(' / ')}`).toBeGreaterThanOrEqual(0);
+  expect(verdict, 'verdict is buried under the stat block').toBeLessThan(4);
+
+  // And every stat that moves is written as a swap, not a bare delta.
+  expect(lines.join('\n'), 'no before → after anywhere').toMatch(/\d+\s*→\s*\d+/);
+});
+
+test('marks the bag pieces worth wearing without being hovered', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const bag = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await climb(page, 4);
+    await goToSection(page, 'Character');
+    if ((await bag.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await bag.count(), 'nothing dropped in twenty floors').toBeGreaterThan(0);
+
+  // A fresh Warrior wears three pieces, so most of what drops fills an empty
+  // socket — at least one bag slot must carry the mark.
+  await expect(page.locator('.omf-character__side .fui-inv .omf-upgrade').first()).toBeVisible();
+
+  // The shelf says it in words, and says the same thing the tooltip does.
+  await goToSection(page, 'Equipment');
+  const marked = page.locator('.fui-shop__list .fui-itemcard.omf-upgrade').first();
+  if ((await marked.count()) > 0) {
+    await expect(marked).toContainText(/Upgrade/i);
   }
 });
