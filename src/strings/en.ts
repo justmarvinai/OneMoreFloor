@@ -12,6 +12,35 @@ export const en = {
   'app.build': 'Early Access {version} — foundation build',
   'app.cast': 'Five heroes',
 
+  // --- The rail (the hero's own frame, on every hub screen) ---
+  'rail.level': 'Level {level}',
+  'rail.xp': '{xp} / {next}',
+  'rail.xpTip': '{remaining} XP to level {next}. The tower is the only source.',
+  'rail.ascension': 'Ascension {tier} of {max}',
+  'rail.climb': 'The climb',
+  'rail.power': 'PWR',
+  'rail.bag': 'BAG',
+  'rail.bagTip': '{used} of {capacity} backpack slots used. {free} still free.',
+  'rail.bagFullTip':
+    'The backpack is full. The next drop cannot be picked up until something is sold, ' +
+    'worn or scrapped.',
+  'rail.powerTip':
+    'Everything you have, as one number: gear, stats, ascension and how deep you have been. ' +
+    'It is what decides the quality of every item the tower, the merchants and the rites offer you.',
+  'rail.thisRun': 'This run',
+  'rail.thisRunTip':
+    'Where this climb has reached. A death sends it back to floor 1 — and takes nothing you own.',
+  'rail.bestEver': 'Best ever',
+  'rail.bestEverTip': 'The deepest floor you have ever cleared. Death never touches this number.',
+  'rail.floorValue': 'Floor {floor}',
+  'rail.noClimb': 'Not yet',
+  'rail.running': 'Running',
+  'rail.noPotions': 'No draughts running',
+  'rail.walletGold': 'Gold — what merchants, stat points and rerolls cost.',
+  'rail.walletTickets': 'Summon Tickets — one rite each at the Rite of Embers.',
+  'rail.walletLucky':
+    'Lucky Tickets — one rite each at the Rite of Fortune, where the odds are kinder.',
+
   'nav.hero.toCharacter': 'Open the character sheet',
   'nav.hero.here': 'You are looking at the character sheet',
   'nav.section.tower': 'Tower',

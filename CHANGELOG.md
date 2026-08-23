@@ -5,6 +5,37 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Changed — the rail
+
+- **The sidebar says what it knows.** It is the only thing on screen at all
+  times and it carried a portrait, a coloured bar with nothing written on it,
+  one gold figure, the destinations, and half a rail of empty space above the
+  Account entry. It now carries the numbers a player checks between every
+  action — and only those:
+  - **Level and XP as numbers**, above the bar. A bar that says neither what it
+    measures nor how far along it is is decoration.
+  - **PWR** and **BAG** chips under it. Power Level silently decides the quality
+    of every item the tower, the merchants and the rites will offer (§13); the
+    backpack is finite and a full one changes what happens to a drop (Q16).
+    Both were a screen away.
+  - **The wallet, whole.** Gold was the only balance visible anywhere outside
+    the summoning lobby, so a player holding two Lucky Tickets had no way to know
+    it. Tickets appear once held — a nought beside a currency a new player has
+    never heard of explains nothing and costs a line.
+  - **The climb** — the floor this run has reached, and the deepest floor ever
+    cleared. This is a tower climber, and neither number was on screen unless the
+    tower itself happened to be open.
+  - **Draughts still running**, with what is left of each. They expire in real
+    time whether the player is looking at them or not (§12), and the rail
+    refreshes them on its own rather than only when a screen is rebuilt.
+- **The rail is one frame, not five stacked things.** `SideNav` was the only
+  block in it with a plate; the hero floated above it on bare background. Every
+  block wears the same plate now, and the destinations share out whatever height
+  is left instead of stacking at the top of an empty column — capped against the
+  viewport, so a 2K rail spends its extra half-screen on taller rows rather than
+  on a hole. A window too short to hold all of it scrolls rather than dropping
+  anything, and the smoke suite asserts nothing ever grows over the button below.
+
 ### Added — third polish round
 
 - **Items can be dragged.** Pull a piece out of the backpack and drop it on the

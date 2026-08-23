@@ -70,6 +70,34 @@ body {
   flex-direction: column;
   gap: var(--omf-gap);
   min-height: 0;
+  /* On a window too short to hold the rail, the rail scrolls. The alternative
+     is what a squeezed flex column does by default: the nav's rows refuse to go
+     below their own minimum and the whole group grows straight through the
+     button underneath it. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Nothing in the rail is squeezed to make room — see above. The nav is the one
+   exception, and it only ever grows. */
+.omf-shell__rail > * {
+  flex: none;
+}
+
+/**
+ * The rail's blocks.
+ *
+ * `SideNav` brings its own plate — a hairline, a rounded corner and a top-lit
+ * gradient — and it was the only thing in the rail that had one, so the hero
+ * floated above it on bare background. Everything in the rail wears the same
+ * plate now, which is what turns four stacked things into one frame.
+ */
+.omf-rail__plate {
+  border: 1px solid rgb(0 0 0 / 62%);
+  border-radius: var(--fui-radius, 4px);
+  background: linear-gradient(180deg, rgb(255 255 255 / 8%), rgb(0 0 0 / 46%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 7%);
 }
 
 .omf-shell__hero {
@@ -77,11 +105,71 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  padding: 14px 12px 12px;
 }
 
-.omf-shell__rail > :last-child {
+/* The nav takes whatever the fixed blocks leave, rather than the save line
+   under it silently doing so — and its rows stand taller than the component's
+   default, because a rail 264px wide with 46px rows in it looks like a menu
+   that was squeezed in from somewhere narrower. */
+.omf-shell__rail > .fui-sidenav {
+  --fui-nav-size: 52px;
+  /* `1 0 auto`: take the spare height, never give any back. `fill: true` also
+     asks the component for `height: 100%`, which in a scrolling column would
+     size it against the wrong box. */
+  flex: 1 0 auto;
+  height: auto;
+}
+
+/**
+ * The destinations share out whatever height is left instead of stacking at the
+ * top of an empty column.
+ *
+ * `SideNav` sizes its rows to a fixed minimum and lets the footer's `margin-top:
+ * auto` push everything else up, which in a rail this tall left a hand's width
+ * of nothing between the last destination and Account. Letting the main group
+ * grow spends that space on the rows themselves — capped, because a nav entry
+ * the height of a button is a nav entry, and one the height of a card is not.
+ */
+.omf-shell__rail .fui-sidenav__group:not(.fui-sidenav__group--footer) {
   flex: 1 1 auto;
-  min-height: 0;
+}
+
+.omf-shell__rail .fui-sidenav__group:not(.fui-sidenav__group--footer) .fui-sidenav__item {
+  flex: 1 1 auto;
+  /* The ceiling rises with the glass, because a 2K rail has half a screen more
+     to give away than a laptop one — and a row sized for 1080p leaves the same
+     hole there that the fixed height left everywhere. */
+  max-height: clamp(60px, 6.8vh, 96px);
+}
+
+/**
+ * Below the art-directed target (§20.6), the rail gives up padding before it
+ * gives up content: every number in it is one a player checks between actions,
+ * and hiding one to save 20px trades the thing for the space it sits in.
+ */
+@media (max-height: 900px) {
+  .omf-shell {
+    --omf-gap: 11px;
+  }
+
+  .omf-shell__hero {
+    gap: 6px;
+    padding: 10px 10px 9px;
+  }
+
+  .omf-shell__rail > .fui-sidenav {
+    --fui-nav-size: 42px;
+  }
+
+  .omf-rail__climb {
+    gap: 3px;
+    padding: 8px 10px 9px;
+  }
+
+  .omf-save-status {
+    margin-top: 6px;
+  }
 }
 
 .omf-shell__main {
@@ -250,10 +338,144 @@ body > .fui-tooltip .fui-tooltip__price {
 }
 
 .omf-shell__class {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin: -4px 0 2px;
   font-size: 0.85rem;
-  opacity: 0.72;
-  text-align: center;
+  opacity: 0.78;
+}
+
+/* --- The rail's readouts -------------------------------------------------- */
+
+/**
+ * Level and XP as numbers.
+ *
+ * `StatBar` can print its own ratio inside the fill, but at rail width a level
+ * label and "12,430 / 18,900" together end up set at a size nobody reads. Two
+ * elements with room to be legible beat one crowded overlay — and the bar keeps
+ * its own job, which is the shape of the distance rather than the count.
+ */
+.omf-rail__xp {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  cursor: default;
+}
+
+.omf-rail__xp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.omf-rail__xp-level {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--fui-gold-soft);
+}
+
+.omf-rail__xp-count {
+  font-size: 0.76rem;
+  color: var(--fui-ink-dim);
+}
+
+.omf-rail__chips {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.omf-rail__chips .fui-chip {
+  flex: 1;
+  justify-content: center;
+  cursor: default;
+}
+
+/* Three balances have to fit a 264px rail; the component spaces two. */
+.omf-shell__rail .fui-currency {
+  justify-content: space-around;
+  gap: 10px;
+  padding: 7px 12px;
+}
+
+/**
+ * The climb.
+ *
+ * This is a tower climber, and until now neither number that describes the
+ * climb was on screen unless the tower happened to be open: the run a death
+ * resets, and the record a death never touches (§3.4). Power Level joins them
+ * because it silently decides the quality of every item the game will offer
+ * (§13) — a number that important should not live one click away.
+ */
+.omf-rail__climb {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 12px 12px;
+}
+
+.omf-rail__plate-title {
+  margin: 0 0 3px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  color: var(--fui-accent-soft);
+}
+
+.omf-rail__stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: default;
+}
+
+.omf-rail__stat-label {
+  font-size: 0.78rem;
+  color: var(--fui-ink-dim);
+}
+
+.omf-rail__stat-value {
+  font-size: 0.86rem;
+  color: var(--fui-gold-soft);
+}
+
+/* Draughts run in wall-clock time and expire whether the player is looking or
+   not (§12), so the rail is where the countdown belongs. */
+.omf-rail__potions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-rail__potion {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 4px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 10px;
+  background: rgb(0 0 0 / 35%);
+  font-size: 0.72rem;
+  color: var(--fui-ink-dim);
+  cursor: default;
+}
+
+.omf-rail__potion-icon {
+  width: 15px;
+  height: 15px;
+  background: center / contain no-repeat;
 }
 
 .omf-save-status {

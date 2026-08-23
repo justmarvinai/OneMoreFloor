@@ -53,6 +53,7 @@ import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { itemSlot, itemTooltip } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
+import { shortDuration } from '@/ui/format.ts';
 import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
 import { refuse } from '@/ui/toasts.ts';
 import { t, type StringKey } from '@/strings/index.ts';
@@ -560,8 +561,3 @@ function hintFor(
 }
 
 /** "2h 14m" — the shape a potion timer wants, not a stopwatch. */
-function shortDuration(ms: number): string {
-  const minutes = Math.max(0, Math.round(ms / 60_000));
-  const hours = Math.floor(minutes / 60);
-  return hours > 0 ? `${hours}h ${minutes % 60}m` : `${minutes}m`;
-}

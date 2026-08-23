@@ -905,13 +905,17 @@ test('tells you what an item is, not just what it is called (Brief §20.4)', asy
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');
 
-  // Two floors is enough to put something in the backpack.
-  await climb(page, 4);
-  await goToSection(page, 'Character');
-
+  // Drops are rolled from the run's own seed, so "four floors" is a likelihood
+  // rather than a promise — climb until the bag has something in it.
   const tooltip = page.locator('body > .fui-tooltip');
   const filled = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
-  expect(await filled.count(), 'nothing dropped in four floors').toBeGreaterThan(0);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await climb(page, 4);
+    await goToSection(page, 'Character');
+    if ((await filled.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await filled.count(), 'nothing dropped in twenty floors').toBeGreaterThan(0);
 
   await filled.first().hover();
   await expect(tooltip).toBeVisible();
@@ -1237,4 +1241,66 @@ test('offers Reset only for a slot that actually holds a hero', async ({ page })
   // every click, which is what used to take Reset away with it.
   await page.locator('.fui-charsel__card').first().click();
   await expect(reset).toBeVisible();
+});
+
+/**
+ * The rail. It is the only thing on screen at all times, so what it says has to
+ * be true and what it draws has to stay inside it.
+ */
+test('the rail carries the numbers a player checks between actions', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const rail = page.locator('.omf-shell__rail');
+  // Level and progress as numbers, not a coloured bar with nothing on it.
+  await expect(rail.locator('[data-testid="rail-xp"]')).toContainText('Level 1');
+  await expect(rail.locator('[data-testid="rail-xp"]')).toContainText('/');
+
+  // Power decides the quality of everything the game will offer (§13), and the
+  // backpack is finite (Q16) — both were a screen away.
+  await expect(rail.getByText('PWR')).toBeVisible();
+  await expect(rail.getByText('BAG')).toBeVisible();
+
+  const climbPlate = rail.locator('[data-testid="rail-climb"]');
+  await expect(climbPlate).toContainText('Floor 1');
+  // The record a death never touches (§3.4), stated even before there is one.
+  await expect(climbPlate).toContainText('Not yet');
+
+  // And it tracks the hero rather than the screen build: clearing a floor moves
+  // both numbers without the rail being rebuilt around them.
+  await climb(page, 1);
+  await expect(climbPlate).toContainText('Floor 2');
+  await expect(climbPlate).not.toContainText('Not yet');
+});
+
+test('nothing in the rail grows through what is under it', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // The nav takes the rail's spare height, so on a window shorter than the rail
+  // wants its rows would otherwise refuse to shrink and cover the button below.
+  // The proof is the pointer: whatever is at Switch Hero's centre must be it.
+  for (const size of [
+    { width: 1920, height: 1080 },
+    { width: 1280, height: 720 },
+    { width: 2560, height: 1440 },
+  ]) {
+    await page.setViewportSize(size);
+    const covered = await page.evaluate(() => {
+      const rail = document.querySelector('.omf-shell__rail');
+      const button = [...(rail?.querySelectorAll('button') ?? [])].find((candidate) =>
+        /switch hero/i.test(candidate.textContent ?? ''),
+      );
+      if (!button) return 'no switch-hero button in the rail';
+      // A window shorter than the rail scrolls it, which is the intended answer;
+      // what must never happen is the nav sitting *on top* of what it scrolled
+      // past. So look where the button actually is, not where it started.
+      button.scrollIntoView({ block: 'center' });
+      const box = button.getBoundingClientRect();
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+      if (!hit) return 'button is off-screen even after scrolling to it';
+      return button.contains(hit) ? null : `covered by .${hit.className.split(' ').join('.')}`;
+    });
+    expect(covered, `Switch hero at ${size.width}x${size.height}`).toBeNull();
+  }
 });
