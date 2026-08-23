@@ -1,5 +1,5 @@
 /**
- * Account upgrades (Brief §15; UI_FANTASYUI_MAP §8).
+ * The account screen: upgrades, and credits (Brief §15, §21; UI_FANTASYUI_MAP §8).
  *
  * Two upgrades, and the brief says so twice: "Exactly two account upgrades
  * exist in EA 0.1. Do not add more." The screen is built to match — two cards,
@@ -20,6 +20,7 @@ import {
   slotCost,
   type UpgradeId,
 } from '@/domain/account/upgrades.ts';
+import { CREDITS } from '@/content/credits/index.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
@@ -115,11 +116,47 @@ export function createUpgradesScreen(options: UpgradesScreenOptions): UpgradesSc
     t('upgrades.slotsMax'),
   );
 
+  /**
+   * Credits, where a player can actually reach them.
+   *
+   * `docs/CREDITS.md` records the same list for anyone reading the repository,
+   * but CC BY asks for attribution in front of the *audience* — and a file in a
+   * source tree is not an audience. This is the screen a player already opens to
+   * look at what their account owns, which makes it the honest home for what the
+   * game itself borrowed.
+   */
+  const credits = track(
+    new Panel({
+      title: t('credits.title'),
+      subtitle: t('credits.subtitle'),
+      variant: 'default',
+      width: '100%',
+      content: CREDITS.map((entry) =>
+        h(
+          'section',
+          { class: 'omf-credits__entry', dataset: { credit: entry.id } },
+          h('h3', { class: 'omf-credits__name fui-title', text: t(entry.titleKey) }),
+          h('p', { class: 'omf-credits__body', text: t(entry.bodyKey) }),
+          ...(entry.credit ? [h('p', { class: 'omf-credits__line', text: entry.credit })] : []),
+          h(
+            'dl',
+            { class: 'omf-credits__meta' },
+            h('dt', { text: t('credits.licence') }),
+            h('dd', { text: entry.licence }),
+            h('dt', { text: t('credits.source') }),
+            h('dd', { text: entry.source }),
+          ),
+        ),
+      ),
+    }),
+  );
+
   const el = h(
     'div',
     { class: 'omf-upgrades', dataset: { fuiTheme: 'stone-vine', testid: 'upgrades' } },
     track(new OrnateHeader({ title: t('upgrades.title'), subtitle: t('upgrades.subtitle') })).el,
     h('div', { class: 'omf-upgrades__cards' }, speed, slots),
+    h('div', { class: 'omf-credits', dataset: { testid: 'credits' } }, credits.el),
   );
 
   return {

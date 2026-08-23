@@ -526,12 +526,16 @@ test('sells the two account upgrades, and only those two (Brief §15)', async ({
   const screen = page.locator('[data-testid="upgrades"]');
   await expect(screen.getByText('Battle Speed')).toBeVisible();
   await expect(screen.getByText('Account Slots')).toBeVisible();
-  await expect(screen.locator('.fui-panel')).toHaveCount(2);
+  // Scoped to the upgrade rack, not the whole screen: §15's guarantee is that
+  // there are exactly two things to *buy*, and the screen also carries the
+  // credits panel, which sells nothing.
+  const cards = screen.locator('.omf-upgrades__cards .fui-panel');
+  await expect(cards).toHaveCount(2);
 
   // Earn until the cheap upgrade is within reach, then buy it. A `CostButton`
   // that cannot be paid for stays pressable and says how short you are, so the
   // shortfall line — not a disabled attribute — is what "affordable" looks like.
-  const slotsCard = screen.locator('.fui-panel').nth(1);
+  const slotsCard = cards.nth(1);
   const buy = slotsCard.getByRole('button', { name: /Unlock slot 2/i });
   const shortfall = slotsCard.getByText(/gold needed/i);
 
@@ -1075,4 +1079,162 @@ test('says what a buff or debuff actually does (Brief §3.2)', async ({ page }) 
   // moves and a sentence about it.
   expect(card, `no magnitude in the card: ${card}`).toMatch(/[+−-]\d+%/);
   expect(card.split('\n').length, `thin effect card: ${card}`).toBeGreaterThan(3);
+});
+
+/**
+ * Round three, as tests: the credits a licence actually asks for, and the drag
+ * gestures — which are the first thing in this game that can be *aimed wrong*,
+ * so each one is covered both landing and missing.
+ */
+test('credits what the game borrowed, where a player can reach it', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Account');
+
+  const credits = page.locator('[data-testid="credits"]');
+  await expect(credits).toBeVisible();
+
+  // CC BY is the reason this screen exists at all: the licence wants the artists
+  // named in front of the audience, not only in a file in the source tree.
+  await expect(credits.getByText(/CC BY 3\.0/)).toBeVisible();
+  await expect(credits.getByText(/Lorc, Delapouite/)).toBeVisible();
+  await expect(credits.locator('[data-credit]')).toHaveCount(2);
+
+  // §21: nothing on this screen sends the player off-origin.
+  await expect(credits.locator('a')).toHaveCount(0);
+});
+
+/** A backpack cell whose piece wants `slot`, or null if the bag holds none. */
+function bagCellFor(page: Page, slot: string) {
+  return page.locator(`[data-testid="character"] .fui-inv [data-item-slot="${slot}"]`).first();
+}
+
+test('drags a piece out of the bag and onto the socket it belongs in', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Climb until the bag holds something for a socket the hero can use.
+  let slot = '';
+  for (let attempt = 0; attempt < 8 && !slot; attempt += 1) {
+    await climb(page, 3);
+    await goToSection(page, 'Character');
+    slot =
+      (
+        await page.$$eval('[data-testid="character"] .fui-inv [data-item-slot]', (cells) =>
+          cells.map((cell) => (cell as HTMLElement).dataset.itemSlot ?? ''),
+        )
+      ).find((candidate) => candidate !== '') ?? '';
+    if (!slot) await goToSection(page, 'Tower');
+  }
+  test.skip(!slot, 'no wearable drop came out of 24 floors');
+
+  const socket = page.locator(`[data-testid="character"] [data-slot-id="${slot}"]`).first();
+  await bagCellFor(page, slot).dragTo(socket);
+
+  // The screen rebuilds on equip, so the proof is the toast that outlives it and
+  // a socket that is no longer empty.
+  await expect(page.locator('.fui-toast').getByText(/equipped/i)).toBeVisible();
+  await expect(
+    page.locator(`[data-testid="character"] [data-slot-id="${slot}"].fui-slot--empty`),
+  ).toHaveCount(0);
+});
+
+test('refuses a drop the socket cannot take, and says why (§20.5)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  let slot = '';
+  for (let attempt = 0; attempt < 8 && !slot; attempt += 1) {
+    await climb(page, 3);
+    await goToSection(page, 'Character');
+    slot =
+      (
+        await page.$$eval('[data-testid="character"] .fui-inv [data-item-slot]', (cells) =>
+          cells.map((cell) => (cell as HTMLElement).dataset.itemSlot ?? ''),
+        )
+      ).find((candidate) => candidate !== '') ?? '';
+    if (!slot) await goToSection(page, 'Tower');
+  }
+  test.skip(!slot, 'no wearable drop came out of 24 floors');
+
+  // Any *other* unlocked socket is the wrong one, whatever the piece turned out
+  // to be — a helmet does not go on a boot, and nor does anything else.
+  const wrong = page
+    .locator(`[data-testid="character"] [data-slot-id]:not([data-slot-id="${slot}"])`)
+    .first();
+  await bagCellFor(page, slot).dragTo(wrong);
+
+  const toast = page.locator('.fui-toast');
+  await expect(toast).toBeVisible();
+  // A refusal that only says "no" is the bug; the card has to carry a reason.
+  expect((await toast.innerText()).split('\n').length).toBeGreaterThan(1);
+});
+
+const SELLABLE = '[data-testid="merchant"] .fui-inv .fui-slot:not(.fui-slot--empty)';
+
+test('drags a piece to the merchant and sells it, once it is confirmed', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await climb(page, 3);
+    await goToSection(page, 'Equipment');
+    // The merchant's only `.fui-inv` is the sell bag; the shop's own stock is a
+    // `.fui-shop__list`. `Slot` marks empty, never filled, so ask for not-empty.
+    if ((await page.locator(SELLABLE).count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  const bag = page.locator(SELLABLE).first();
+  test.skip((await bag.count()) === 0, 'no sellable drop came out of 24 floors');
+
+  const gold = page.locator('.fui-currency__value').first();
+  const goldBefore = await gold.innerText();
+  await bag.dragTo(page.locator('[data-testid="merchant"] .fui-shop').first());
+
+  // A sale cannot be undone, so it asks first — and the price is on the button.
+  const dialog = page.locator('.fui-modal');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: /Keep it/i })).toBeVisible();
+  await dialog.getByRole('button', { name: /^Sell for/i }).click();
+
+  await expect(page.locator('.fui-toast').getByText(/sold/i)).toBeVisible();
+  await expect(gold).not.toHaveText(goldBefore);
+});
+
+test('a locked slot says what unlocks it without covering its own name', async ({ page }) => {
+  await enterSelect(page);
+
+  const overlaps = await page.$$eval('.fui-charsel__card', (cards) =>
+    cards.flatMap((card) => {
+      const name = card.querySelector('.fui-charsel__name');
+      const lock = card.querySelector('.fui-charsel__lock');
+      if (!name || !lock) return [];
+      const a = name.getBoundingClientRect();
+      const b = lock.getBoundingClientRect();
+      // Both are pinned to the card's bottom edge, so a hint that wraps grows
+      // straight up through the name unless the two are kept apart.
+      return a.bottom > b.top + 0.5 ? [`${name.textContent}: name over hint`] : [];
+    }),
+  );
+  expect(overlaps, 'slot labels colliding').toEqual([]);
+});
+
+test('offers Reset only for a slot that actually holds a hero', async ({ page }) => {
+  await enterSelect(page);
+  const reset = page.getByRole('button', { name: /Reset this slot/i });
+  // Nothing to erase in an empty slot, so the row is not there to be clicked.
+  await expect(reset).toBeHidden();
+
+  await createHero(page, 'Grimhild', 'Warrior');
+  await page.getByRole('button', { name: /Switch hero/i }).click();
+  await expect(page.locator('[data-testid="character-select"]')).toBeVisible();
+  await expect(reset).toBeVisible();
+
+  // And it survives a selection: the component rebuilds its detail column on
+  // every click, which is what used to take Reset away with it.
+  await page.locator('.fui-charsel__card').first().click();
+  await expect(reset).toBeVisible();
 });

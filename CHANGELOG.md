@@ -5,6 +5,58 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Added — third polish round
+
+- **Items can be dragged.** Pull a piece out of the backpack and drop it on the
+  socket it belongs in to wear it, or drag it back into the bag to take it off;
+  drop it on a merchant's window to sell it. Clicking still opens the gear
+  dialog — the drag is a shortcut for the action people reach for most, not a
+  replacement for the screen that also upgrades and sells. A socket that will not
+  take what is over it says so before the mouse comes up and *why* after it
+  (§20.5): a drop that silently does nothing is the worst possible answer. A sale
+  asks first and puts the price on the confirm button, because a drag is a cheap
+  gesture to make by accident and a sale cannot be undone.
+- **Credits, on the Account screen.** FantasyUI and Open Game Icons, with their
+  licences and the artists named. The slot icons are CC BY 3.0, which asks for
+  attribution in front of the audience — and a file in a source tree is not an
+  audience. Fed from `src/content/credits/`, so a new asset is one entry rather
+  than an edit to a screen.
+
+### Changed — third polish round
+
+- **The title screen is a front door rather than a placeholder.** It was a title,
+  a line and a button floating in the left third of a black frame, beside key art
+  the gate had pasted on as a hard-edged orange slab with a seam down the middle
+  of the screen. The art is now masked back into the dark on every edge and lit
+  from behind, the backdrop is warmed rather than left as a black field, and the
+  five classes stand under the tagline with their names and their hooks — a front
+  door should answer "what is this game" before the button is pressed, and five
+  painted faces answer it faster than a sentence does.
+- **The character-select screen has art on every slot.** Four fifths of a fresh
+  roster used to be blank grey rectangles. A hero's card now carries their own
+  portrait, an empty slot the pale outline of the one it is waiting for, a locked
+  slot a sealed rune and a damaged slot a fractured stone. The roster and its
+  detail column are sized to their content and centred as a pair, so they stay
+  one object from a laptop to a 2K screen instead of drifting apart with a metre
+  of black between them.
+- **A locked slot no longer covers its own name.** `CharacterSelect` pins a
+  card's name and its unlock hint to the same bottom edge, so "Unlocked with an
+  Account Slot upgrade" wrapped to two lines and grew straight up through
+  "Locked slot". Both now have a band of their own. Filed upstream
+  (UI_FANTASYUI_MAP §10, wish 15) rather than forked.
+- **Reset survives a click, and only offers itself when there is a hero to
+  erase.** The button was appended to a detail column that `CharacterSelect`
+  rebuilds on every selection, so the first card click took it away; and it was
+  hidden with `el.hidden`, which any author `display` outranks, so it was never
+  hidden at all. It is re-attached after each selection, the whole row goes when
+  the slot holds nobody, and `[hidden]` now actually hides throughout the game —
+  which also settles `DeathScreen`'s expired countdown ring.
+- **A destructive button looks destructive.** `.omf-danger` set a tint that a
+  grey stone plate could not show and a `color` that the ghost variant's own rule
+  outranked, so "Reset this slot" was indistinguishable from "Continue". The
+  label is red now. The confirmation dialog is still what protects the hero — this
+  is so the player does not reach it by accident.
+
 ### Changed — second polish round
 
 - **The two merchants are two destinations.** Equipment and Alchemist each have

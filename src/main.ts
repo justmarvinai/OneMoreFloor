@@ -31,6 +31,11 @@ import type { EquipSlotId, SlotId } from './domain/character/types.ts';
 import { renderErrorPanel, renderLockGate } from './ui/errorPanel.ts';
 import { openResetDialog } from './ui/resetDialog.ts';
 import { installTooltipService } from './ui/tooltips.ts';
+import { installToastService, notify } from './ui/toasts.ts';
+import { itemName } from './ui/itemView.ts';
+import { t } from './strings/index.ts';
+import { sellValue } from './domain/items/upgrade.ts';
+import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
@@ -78,6 +83,9 @@ export async function boot(mount: HTMLElement): Promise<void> {
   // before the first screen means vendored components never get a chance to show
   // one, whatever they put in the DOM.
   const tooltips = installTooltipService(mount);
+  // Refusals from a drag have nowhere else to go — the screen they happened on is
+  // rebuilt in the same beat (`ui/toasts.ts`).
+  const toasts = installToastService(mount);
 
   try {
     const lock = await acquireSessionLock();
@@ -253,6 +261,16 @@ export async function boot(mount: HTMLElement): Promise<void> {
       });
     };
 
+    /** A carried or worn piece's name, for the line a toast prints about it. */
+    const nameOfOwnedItem = (uid: string): string => {
+      const character = requireCharacter();
+      const owned = [
+        ...character.inventory,
+        ...Object.values(character.equipment).filter((item) => item !== undefined),
+      ].find((item) => item.uid === uid);
+      return owned ? itemName(owned) : '';
+    };
+
     const leaveCharacter = (): void => {
       void session.leave().then(() => router.go('select'));
     };
@@ -276,6 +294,16 @@ export async function boot(mount: HTMLElement): Promise<void> {
           onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
           onReroll: () => void session.rerollMerchant(id).then(refreshScreen),
           onSelectItem: inspectItem,
+          onSell: (uid) => {
+            const name = nameOfOwnedItem(uid);
+            const character = requireCharacter();
+            const item = character.inventory.find((candidate) => candidate.uid === uid);
+            const gold = item ? sellValue(item) : 0;
+            void session.sell(uid).then(() => {
+              notify(t('item.sold.toast', { name, gold: commas(gold) }));
+              refreshScreen();
+            });
+          },
         }),
       });
     };
@@ -345,6 +373,21 @@ export async function boot(mount: HTMLElement): Promise<void> {
               character: requireCharacter(),
               now: clock().now(),
               onSelectItem: inspectItem,
+              onEquip: (uid) => {
+                const name = nameOfOwnedItem(uid);
+                void session.equip(uid).then(() => {
+                  notify(t('item.equipped.toast', { name }));
+                  refreshScreen();
+                });
+              },
+              onUnequip: (slot) => {
+                const worn = requireCharacter().equipment[slot];
+                const name = worn ? itemName(worn) : '';
+                void session.unequipSlot(slot).then(() => {
+                  notify(t('item.unequipped.toast', { name }));
+                  refreshScreen();
+                });
+              },
               onBuyStat: (stat) => void session.buyStat(stat, 1).then(refreshScreen),
               onAscend: () => void session.ascend().then(refreshScreen),
             }),
@@ -424,6 +467,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
       'pagehide',
       () => {
         tooltips.destroy();
+        toasts.destroy();
         save.close();
         lock.release();
       },
