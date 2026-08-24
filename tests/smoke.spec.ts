@@ -2054,3 +2054,50 @@ test('the road forks every ten floors, and the choice holds (Q41)', async ({ pag
   await expect(fork).toHaveAttribute('data-open', 'false');
   await expect(fork).toContainText('Walking: The Even Road');
 });
+
+test('the ledger counts what the account does, and pays for it (Q40)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  await goToSection(page, 'Records');
+  const ledger = page.locator('[data-testid="deeds"]');
+  await expect(ledger).toBeVisible();
+  await expect(ledger.locator('.omf-deed')).toHaveCount(9);
+
+  // Nothing done yet, so nothing owed — and the rows say what they are counting
+  // towards rather than going blank (§20.5).
+  const deepest = page.locator('[data-testid="deed-deed.deepest"]');
+  await expect(deepest).toHaveAttribute('data-state', 'open');
+  await expect(deepest).toContainText('0 / 10');
+
+  // Climbing moves the ledger, without anything in it having to be told twice.
+  await goToSection(page, 'Tower');
+  await climb(page, 3);
+  await goToSection(page, 'Records');
+  await expect(page.locator('[data-testid="deed-deed.climber"]')).toContainText('3 / 10');
+  await expect(deepest).toContainText('3 / 10');
+
+  // Keep climbing until the first tier is reached. Counted in attempts rather
+  // than floors on purpose: a death resets the run, and the deed measures the
+  // deepest floor ever cleared rather than how many times it was tried.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if ((await deepest.getAttribute('data-state')) === 'claimable') break;
+    await goToSection(page, 'Tower');
+    await climb(page, 8);
+    await goToSection(page, 'Records');
+  }
+  await expect(deepest, 'forty-eight floors never reached floor ten').toHaveAttribute(
+    'data-state',
+    'claimable',
+  );
+  const gold = page.locator('[data-testid="wallet-gold"]');
+  const before = Number((await gold.innerText()).replace(/[^0-9.]/g, ''));
+
+  await page.locator('[data-testid="claim-deed.deepest"]').click();
+  await expect(deepest).not.toHaveAttribute('data-state', 'claimable');
+
+  // Paid once, and the row now counts towards the next tier.
+  await expect(deepest).toContainText('/ 200');
+  expect(Number((await gold.innerText()).replace(/[^0-9.]/g, ''))).toBeGreaterThan(before);
+});

@@ -91,6 +91,7 @@ import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
 import { recordKills } from '@/domain/account/bestiary.ts';
+import { claimDeed, recordDeeds, type DeedDef, type DeedRefusal } from '@/domain/account/deeds.ts';
 import {
   buyEchoRank,
   echoBonuses,
@@ -144,6 +145,9 @@ export type Refusal =
   | 'noSuchTalent'
   | 'noSuchPet'
   | 'notFound'
+  | 'noSuchDeed'
+  | 'notEarned'
+  | 'alreadyClaimed'
   | 'noSuchPath'
   | 'notOffered'
   | 'alreadyChosen'
@@ -166,6 +170,13 @@ export type Refusal =
 
 export type Outcome<T = undefined> =
   { ok: true; value: T; character: Character } | { ok: false; reason: Refusal };
+
+/** What a settled deed handed over, for the caller to announce (Q40). */
+export interface DeedSpoils {
+  def: DeedDef;
+  tier: number;
+  reward: FloorReward;
+}
 
 /** What a finished expedition handed over, for the caller to announce (Q37). */
 export interface ExpeditionSpoils {
@@ -226,6 +237,8 @@ export interface GameActions {
   toggleCurse(id: string): Promise<Outcome>;
   /** Take a road at the fork this leg opens with (Q41). */
   choosePath(id: string): Promise<Outcome>;
+  /** Settle one tier of one deed; the value is what it paid (Q40). */
+  claimDeed(id: string, tier: number): Promise<Outcome<DeedSpoils>>;
 
   /** Send a party out on a route (Q37); the value is when they are due back. */
   sendExpedition(slot: number, id: string): Promise<Outcome<number>>;
@@ -268,7 +281,42 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
   async function commit(character: Character): Promise<Character> {
     await save.saveCharacter(character);
     characterEntered(store, character);
+    // After the character is safe, never before: a tab that dies between the two
+    // loses a deed's progress rather than the floor that earned it.
+    await flushDeeds();
     return character;
+  }
+
+  /**
+   * Events waiting to reach the deed ledger (Q40).
+   *
+   * Buffered rather than written where they happen, for one reason: `withQuests`
+   * is the single place every event in the game passes through, and hanging the
+   * ledger off it means a deed cannot fall out of step with the quest board that
+   * counts the same thing. Twenty call sites each remembering to record a deed
+   * is nineteen chances to forget.
+   */
+  let pendingDeeds: QuestEvent[] = [];
+
+  /**
+   * Fold what has happened into the ledger and save the account if it moved.
+   *
+   * Runs on every commit rather than only when events are pending, because two
+   * deeds are high-water marks read off the state — the deepest floor and the
+   * best Boss Rush — and those move without an event to announce them.
+   */
+  async function flushDeeds(): Promise<void> {
+    const events = pendingDeeds;
+    pendingDeeds = [];
+
+    const account = store.get().account;
+    if (!account) return;
+
+    const updated = recordDeeds(account, events, store.get().activeCharacter);
+    if (updated === account) return;
+
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
   }
 
   function questContext(character: Character) {
@@ -289,6 +337,9 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
    * and the new one starts counting from the very next floor (Q10).
    */
   function withQuests(character: Character, events: QuestEvent[]): Character {
+    // Every event the quest board sees, the deed ledger sees (Q40).
+    if (events.length > 0) pendingDeeds.push(...events);
+
     const timing = clock();
     const refreshed = refreshBoards(
       character.quests,
@@ -339,6 +390,18 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
    */
   function refusalOf(reason: TransmuteRefusal): Refusal {
     return reason === 'atCeiling' ? 'atCeiling' : 'notEnoughMaterials';
+  }
+
+  /** The ledger's refusals, in the vocabulary the UI already translates (Q40). */
+  function refusalOfDeed(reason: DeedRefusal): Refusal {
+    switch (reason) {
+      case 'noSuchDeed':
+        return 'noSuchDeed';
+      case 'notEarned':
+        return 'notEarned';
+      case 'alreadyClaimed':
+        return 'alreadyClaimed';
+    }
   }
 
   /** The board's refusals, in the vocabulary the UI already translates (Q37). */
@@ -851,6 +914,34 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       await save.saveAccount(result);
       accountLoaded(store, result);
       return { ok: true, value: undefined, character: active() };
+    },
+
+    async claimDeed(id, tier) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      const result = claimDeed(account, id, tier, {
+        record: character.tower.highestFloorEverCleared,
+        bracket: bracketForCharacter(character, companion()),
+        rng: createRng(`deed:${id}:${tier}:${account.deedsClaimed.length}`),
+      });
+      if (typeof result === 'string') return { ok: false, reason: refusalOfDeed(result) };
+
+      // The claim is written before the character is paid: a tab that dies
+      // between the two loses the spoils, never doubles them.
+      await save.saveAccount(result.account);
+      accountLoaded(store, result.account);
+
+      const granted = grantReward(character, result.reward);
+      const paid = withQuests(granted.character, [
+        { kind: 'goldEarned', amount: result.reward.gold },
+      ]);
+      return {
+        ok: true,
+        value: { def: result.def, tier: result.tier, reward: result.reward },
+        character: await commit(paid),
+      };
     },
 
     async choosePath(id) {

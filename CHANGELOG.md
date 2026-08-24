@@ -7,6 +7,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Deeds — the ledger of everything an account has ever done.** Nine of them,
+  three tiers each, on the Records screen beside the runs that earned them. Every
+  deed counts something the game was **already** counting: seven read the quest
+  board's own event stream — the same events that advance a daily — and two are
+  high-water marks read off the account, the deepest floor any hero has cleared
+  and the best Boss Rush. Nothing here has a counter that exists only for deeds,
+  which is what keeps a deed from drifting out of step with the thing it claims
+  to measure. They pay, and what they pay is priced against the depth the account
+  has reached, so a tier claimed at floor 40 is worth forty floors' effort and the
+  same tier at floor 900 is worth nine hundred — a fixed payout would be a fortune
+  at the bottom of the tower and a rounding error at the top, which is how an
+  achievement list quietly stops being read. First tiers are deliberately shallow
+  (ten floors, the first gate, five purchases) because a ledger whose first payout
+  is hours away teaches a new player it is not for them; third tiers are hundreds
+  of hours, which is what makes the middle one worth working towards. The ledger
+  belongs to the account, so a hero's death costs none of it and a second hero
+  inherits every one.
 - **Branching paths — a fork at every gate.** The tower's shape was a line, and
   a line has no decisions in it. Every ten floors — the tower's own cadence, so
   the fork sits where the player already stops to look up — the road splits three
@@ -189,6 +206,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- The Records screen's red dot now means something: it lights when a deed tier is
+  sitting there earned and unpaid. It was hard-coded off, because history has
+  nothing to do in it — the ledger does.
 - "One More Floor" now returns to the tower when the next floor opens a new leg,
   because that is where the fork is. It walks straight into the next fight
   otherwise, so a refusal alone would have left the player on the aftermath

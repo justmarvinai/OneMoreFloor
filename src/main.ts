@@ -479,6 +479,15 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'nothingOut':
           refuse(t('expedition.refused.empty'), t('expedition.refused.emptyBody'));
           return;
+        case 'noSuchDeed':
+          refuse(t('deed.refused.unknown'), t('deed.refused.unknownBody'));
+          return;
+        case 'notEarned':
+          refuse(t('deed.refused.notEarned'), t('deed.refused.notEarnedBody'));
+          return;
+        case 'alreadyClaimed':
+          refuse(t('deed.refused.alreadyClaimed'), t('deed.refused.alreadyClaimedBody'));
+          return;
         case 'noSuchPath':
           refuse(t('path.refused.unknown'), t('path.refused.unknownBody'));
           return;
@@ -790,6 +799,21 @@ export async function boot(mount: HTMLElement): Promise<void> {
             main: createRecordsScreen({
               character: requireCharacter(),
               account: store.get().account!,
+              onClaimDeed: (id, tier) => {
+                void session.claimDeed(id, tier).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else {
+                    notify(
+                      t('deed.claimedToast', {
+                        name: t(outcome.value.def.nameKey),
+                        tier: outcome.value.tier + 1,
+                      }),
+                      t('deed.claimedBody'),
+                    );
+                  }
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

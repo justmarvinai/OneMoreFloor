@@ -553,6 +553,50 @@ export const en = {
   'echo.refused.notEnough': 'Not enough echoes',
   'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
 
+  // Deeds (Q40).
+  'deed.climber': 'The Long Climb',
+  'deed.climber.desc': 'Floors cleared, by every hero this account has ever owned.',
+  'deed.gatebreaker': 'Gatebreaker',
+  'deed.gatebreaker.desc':
+    'Gates thrown down. Every tenth floor has one, and none of them go quietly.',
+  'deed.deepest': 'High Water',
+  'deed.deepest.desc':
+    'The deepest floor anyone on this account has ever cleared. It only goes up.',
+  'deed.rush': 'Ten Gates',
+  'deed.rush.desc': 'Gates taken in a single Boss Rush, on one health bar.',
+  'deed.fortune': 'A Spire-Keeper’s Fortune',
+  'deed.fortune.desc':
+    'Gold banked, lifetime. The Spire has a great deal of it and no use for any.',
+  'deed.patron': 'Patron of the Landings',
+  'deed.patron.desc':
+    'Gold handed back to the Spire, lifetime. Somebody has to keep the merchants in business.',
+  'deed.smith': 'The Smith',
+  'deed.smith.desc': 'Levels bought into gear. Nothing you were given, and everything you made.',
+  'deed.magpie': 'Magpie',
+  'deed.magpie.desc':
+    'Pieces bought from a counter, rather than pulled off something that objected.',
+  'deed.apothecary': 'The Apothecary',
+  'deed.apothecary.desc': 'Draughts drunk. Not one of them lasted, and every one of them helped.',
+  'deed.title': 'Deeds',
+  'deed.subtitle': 'What this account has done, and what it is owed for it.',
+  'deed.tier': 'Tier {tier} of {max}',
+  'deed.progress': '{have} / {need}',
+  'deed.done': 'Done',
+  'deed.claim': 'Claim',
+  'deed.claimed': 'Claimed',
+  'deed.allClaimed': 'Every tier claimed',
+  'deed.locked': 'Tier {tier} at {need}',
+  'deed.pays': 'Pays about {gold} gold and {materials} materials',
+  'deed.paysTicket': 'Pays about {gold} gold, {materials} materials and a summoning ticket',
+  'deed.claimedToast': '{name} — tier {tier}',
+  'deed.claimedBody': 'The Spire settles up. Its spoils are in your purse and your pack.',
+  'deed.refused.unknown': 'No such deed',
+  'deed.refused.unknownBody': 'Nothing by that name is on the ledger.',
+  'deed.refused.notEarned': 'Not done yet',
+  'deed.refused.notEarnedBody': 'The tier has to be reached before it can be claimed.',
+  'deed.refused.alreadyClaimed': 'Already settled',
+  'deed.refused.alreadyClaimedBody': 'That tier has been paid once. It does not pay twice.',
+
   // Branching paths (Q41).
   'path.evenRoad': 'The Even Road',
   'path.evenRoad.desc':
