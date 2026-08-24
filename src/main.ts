@@ -34,7 +34,7 @@ import { openResetDialog } from './ui/resetDialog.ts';
 import { installTooltipService } from './ui/tooltips.ts';
 import { installToastService, notify, refuse } from './ui/toasts.ts';
 import { itemName } from './ui/itemView.ts';
-import { t } from './strings/index.ts';
+import { t, type StringKey } from './strings/index.ts';
 import { sellValue } from './domain/items/upgrade.ts';
 import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
@@ -544,6 +544,15 @@ export async function boot(mount: HTMLElement): Promise<void> {
               character: requireCharacter(),
               capacity: bagSize(),
               onPull: startRite,
+              onWish: (slot) => {
+                void session.setWishlist(slot).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else if (slot) {
+                    notify(t('gacha.wish.set', { slot: t(`slot.${slot}` as StringKey) }));
+                  } else notify(t('gacha.wish.cleared'));
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

@@ -7,6 +7,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **A wish list for the rites.** Aim the gear a summoning hands over at one
+  socket. It is pity-free by construction — no counter, no escalating promise —
+  and it moves *where* a prize lands, never *whether* one comes: not its rarity,
+  not its budget, not whether the pull pays gear at all. Every number on the
+  rates table is about rarity, so the wish sits directly under that table without
+  making a liar of it. A socket the hero has not unlocked is shown, disabled, and
+  says what opens it (§20.5).
 - **Salvage, beside Sell.** A piece you do not want can be broken into the
   materials ascension eats instead of sold for gold. The two sit side by side
   because they are the same decision asked in two currencies — and salvage is
@@ -104,6 +111,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Fixed
 
+- **A flaky shop test made honest.** "Buy a piece, wear it, hit harder" bought
+  whatever was affordable and asserted the power rose — a coin flip on a
+  bracketed shelf, and one this round's narrower budget window made worse. It now
+  buys until the backpack marks a piece as an upgrade and wears *that* one, which
+  is the game's own answer to the question the test is asking.
 - **Dialogs showed the browser's own tooltips (§20.4).** The tooltip service
   listened on the app node, and modals mount themselves on the document body —
   outside it. Every `title` a vendored component put inside a dialog therefore

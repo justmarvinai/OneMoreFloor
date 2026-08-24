@@ -411,20 +411,31 @@ test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ 
   }
   expect(await buyButtons.count(), 'nothing on the shelf was ever affordable').toBeGreaterThan(0);
 
-  await goToSection(page, 'Character');
   const power = page.locator('[data-testid="character"] .fui-power__value');
-  const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
 
-  await goToSection(page, 'Equipment');
-  await buyButtons.first().click();
+  /**
+   * Buy until the pack holds a piece the game itself calls an upgrade.
+   *
+   * The shelf is bracketed, so any single purchase may be worse than what is
+   * already worn — buying one and asserting the power rose is a coin flip. The
+   * chevron the backpack draws on an upgrade (round four) is the game's own
+   * answer to "is this better", so the test buys until that mark appears and
+   * wears *that* piece.
+   */
+  const marked = page.locator('[data-testid="character"] .fui-inv .fui-slot.omf-upgrade');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await goToSection(page, 'Character');
+    if ((await marked.count()) > 0) break;
+    await goToSection(page, 'Equipment');
+    if ((await buyButtons.count()) === 0) break;
+    await buyButtons.first().click();
+  }
 
-  // The piece is in the backpack; wearing it is the point of buying it.
   await goToSection(page, 'Character');
-  // The purchase lands at the end of the pack, behind whatever the climb dropped.
-  await page
-    .locator('[data-testid="character"] .fui-inv .fui-slot:not(.fui-slot--empty)')
-    .last()
-    .click();
+  expect(await marked.count(), 'the shelf never sold an upgrade').toBeGreaterThan(0);
+
+  const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
+  await marked.first().click();
   await expect(page.locator('[data-testid="gear-dialog"]')).toBeVisible();
   await page.getByRole('button', { name: /^Equip$/ }).click();
 
@@ -1450,6 +1461,30 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   // Watching is available from the first floor, and switching it on sticks.
   await page.locator('[data-testid="auto-watching"]').click();
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
+});
+
+test('the rites take a wish for a socket, and refuse a locked one (§20.5)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Summoning');
+
+  const wish = page.locator('[data-testid="wishlist"]');
+  await expect(wish).toBeVisible();
+  // The wish is under both tables and says outright that it moves nothing on them.
+  await expect(wish).toContainText(/rates above stay exactly as printed/i);
+
+  // A socket a fresh hero has not unlocked is shown, disabled, and says why.
+  const artifact = page.locator('[data-testid="wish-artifact"]');
+  await expect(artifact).toBeDisabled();
+  await artifact.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/Ascend to unlock/i);
+
+  // One that is open takes the wish, and the wish sticks.
+  await page.locator('[data-testid="wish-helmet"]').click();
+  await expect(page.locator('[data-testid="wish-helmet"]')).toHaveClass(/is-on/);
+  await goToSection(page, 'Tower');
+  await goToSection(page, 'Summoning');
+  await expect(page.locator('[data-testid="wish-helmet"]')).toHaveClass(/is-on/);
 });
 
 test('a piece can be broken down or reforged, not only sold', async ({ page }) => {

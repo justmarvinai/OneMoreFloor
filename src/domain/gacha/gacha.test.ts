@@ -204,6 +204,63 @@ describe('gacha pulls', () => {
   });
 });
 
+describe('the wish list (fifth polish round)', () => {
+  /** Pull until the rites hand over gear, and report what slot it filled. */
+  function slotsFrom(character: Character, rounds: number): string[] {
+    const slots: string[] = [];
+    for (let index = 0; index < rounds; index += 1) {
+      for (const banner of BANNERS) {
+        const result = pull({ character, banner: banner.id, bracket: BRACKET, pullNumber: index });
+        if (result.item) slots.push(requireItemDef(result.item.defId).slot);
+      }
+    }
+    return slots;
+  }
+
+  it('lands every gear prize in the wished socket', () => {
+    const wished = hero({ wishlist: 'helmet' });
+    const slots = slotsFrom(wished, 60);
+
+    expect(slots.length, 'sixty rounds paid no gear at all').toBeGreaterThan(0);
+    expect(new Set(slots)).toEqual(new Set(['helmet']));
+  });
+
+  it('leaves the odds exactly as printed — it moves where, never whether', () => {
+    const plain = hero();
+    const wished = hero({ wishlist: 'helmet' });
+
+    for (const banner of BANNERS) {
+      for (let index = 0; index < 40; index += 1) {
+        const a = pull({
+          character: plain,
+          banner: banner.id,
+          bracket: BRACKET,
+          pullNumber: index,
+        });
+        const b = pull({
+          character: wished,
+          banner: banner.id,
+          bracket: BRACKET,
+          pullNumber: index,
+        });
+        // Same entry, same rarity, same consolation: only the base differs.
+        expect(b.entryId).toBe(a.entryId);
+        expect(b.rarity).toBe(a.rarity);
+        expect(b.reward.gold).toBe(a.reward.gold);
+      }
+    }
+  });
+
+  it('ignores a wish the hero cannot wear yet rather than paying nothing', () => {
+    const locked = availableSlots(0);
+    const wished = hero({ progression: { level: 60, xp: 0, ascension: 0 }, wishlist: 'artifact' });
+    expect(locked).not.toContain('artifact');
+
+    const slots = slotsFrom(wished, 40);
+    expect(slots.length, 'a wish for a locked socket stopped the gear').toBeGreaterThan(0);
+  });
+});
+
 describe('banner configuration', () => {
   it('spends no weight on nothing', () => {
     for (const banner of BANNERS) {

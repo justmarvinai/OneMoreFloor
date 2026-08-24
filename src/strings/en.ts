@@ -492,6 +492,17 @@ export const en = {
   'records.best': 'Best ever',
   'records.runsHint': 'The last {count} runs, newest first.',
 
+  // The summoning wish list.
+  'gacha.wish.title': 'Wish list',
+  'gacha.wish.hint':
+    'Aim the gear the rites hand over at one socket. It changes where a prize lands, never how likely one is — the rates above stay exactly as printed.',
+  'gacha.wish.none': 'No wish',
+  'gacha.wish.noneTip': 'Let the rites give whatever they like.',
+  'gacha.wish.tip': 'Gear from a rite arrives as {slot}, when the depth has one to give.',
+  'gacha.wish.locked': '{slot} is not open on this hero yet. Ascend to unlock it.',
+  'gacha.wish.set': 'Wishing for {slot}',
+  'gacha.wish.cleared': 'Wish cleared',
+
   // Saved gear sets, on the Character screen.
   'loadout.title': 'Saved sets',
   'loadout.wear': 'Wear',

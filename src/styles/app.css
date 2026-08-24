@@ -2894,3 +2894,65 @@ body > .fui-tooltip .fui-tooltip__price {
   text-transform: uppercase;
   color: var(--fui-ink-faint);
 }
+
+/* --- The summoning wish list ---------------------------------------------- */
+
+/**
+ * Under both rate tables rather than inside either: the wish applies to every
+ * rite, and a copy on each card would read as two different settings.
+ */
+.omf-wish {
+  padding: 12px 14px 14px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 22%);
+}
+
+.omf-wish__title {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-wish__hint {
+  margin: 4px 0 10px;
+  max-width: 62ch;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-wish__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.omf-wish__chip {
+  padding: 5px 11px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+}
+
+.omf-wish__chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 46%, transparent);
+  color: var(--fui-ink);
+}
+
+.omf-wish__chip.is-on {
+  border-color: var(--fui-gold, #d8b26a);
+  background: color-mix(in srgb, var(--fui-gold, #d8b26a) 22%, transparent);
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-wish__chip:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}

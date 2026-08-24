@@ -19,6 +19,7 @@ import {
   levelUp,
 } from '@/domain/items/upgrade.ts';
 import { backpackCapacity } from '@/domain/character/account.ts';
+import { availableSlots } from '@/domain/items/equip.ts';
 import { equipFromInventory, unequip, type LoadoutRefusal } from '@/domain/items/loadout.ts';
 import {
   applyLoadout,
@@ -133,6 +134,12 @@ export interface GameActions {
   /** Bring both quest boards up to date for the current period (Q10). */
   visitQuests(): Promise<Character>;
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
+  /**
+   * Aim what the rites hand over at one slot, or clear the wish (Q33).
+   * Refuses a slot the hero has not unlocked, rather than wishing into a
+   * socket that does not exist yet.
+   */
+  setWishlist(slot: EquipSlotId | null): Promise<Outcome>;
   /** Buy one of the two account upgrades (Brief §15). */
   buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
 
@@ -539,6 +546,18 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         ok: true,
         value: claimableCount(claimed),
         character: await commit(granted.character),
+      };
+    },
+
+    async setWishlist(slot) {
+      const character = active();
+      if (slot !== null && !availableSlots(character.progression.ascension).includes(slot)) {
+        return { ok: false, reason: 'slotLocked' };
+      }
+      return {
+        ok: true,
+        value: undefined,
+        character: await commit({ ...character, wishlist: slot }),
       };
     },
 
