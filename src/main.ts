@@ -25,6 +25,7 @@ import { createRouter, type Router } from './app/router.ts';
 import { createSession } from './app/session.ts';
 import type { Refusal } from './app/gameActions.ts';
 import { CURSE_UNLOCK_LEVEL } from './domain/tower/curses.ts';
+import { getMaterial, materialForTier } from './content/items/materials.ts';
 import { createAppStore, saveLoaded, type AppStore } from './app/state.ts';
 import { createClock, setClock } from './app/time.ts';
 import { acquireSessionLock } from './save/sessionLock.ts';
@@ -397,6 +398,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'tooMany':
           refuse(t('curse.refused.tooMany'), t('curse.refused.tooManyBody'));
           return;
+        case 'atCeiling':
+          refuse(t('bench.refused.atCeiling'), t('bench.refused.atCeilingBody'));
+          return;
+        case 'notEnoughMaterials':
+          refuse(t('item.reforgeShort'), t('item.reforgeShortBody'));
+          return;
         default:
           refuse(t('item.cannotEquip'));
       }
@@ -424,6 +431,29 @@ export async function boot(mount: HTMLElement): Promise<void> {
           now: clock().now(),
           onBuy: (index) => void session.buyFromMerchant(id, index).then(refreshScreen),
           onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
+          onBrew: (stat) => {
+            void session.brewPotion(stat).then((outcome) => {
+              if (outcome.ok) notify(t('bench.brewed'));
+              else sayNo(outcome.reason);
+              refreshScreen();
+            });
+          },
+          onTransmute: (materialId, times) => {
+            void session.transmuteMaterial(materialId, times).then((outcome) => {
+              if (!outcome.ok) sayNo(outcome.reason);
+              else {
+                const source = getMaterial(materialId);
+                const made = source ? materialForTier(source.tier + 1) : null;
+                notify(
+                  t('bench.made', {
+                    count: outcome.value,
+                    name: made ? t(made.nameKey as StringKey) : '',
+                  }),
+                );
+              }
+              refreshScreen();
+            });
+          },
           onReroll: () => void session.rerollMerchant(id).then(refreshScreen),
           onSelectItem: inspectItem,
           onSell: (uid) => {

@@ -66,6 +66,13 @@ import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
 import { recordKills } from '@/domain/account/bestiary.ts';
+import {
+  BREW_MATERIAL_COST,
+  canBrew,
+  spendBrew,
+  transmute,
+  type TransmuteRefusal,
+} from '@/domain/items/workbench.ts';
 import { toggleCurse, type CurseRefusal } from '@/domain/tower/curses.ts';
 import { reforge, salvageFromInventory } from '@/domain/items/salvage.ts';
 import {
@@ -89,6 +96,7 @@ export type Refusal =
   | CurseRefusal
   | PresetApplyRefusal
   | PresetCaptureRefusal
+  | 'atCeiling'
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -132,6 +140,10 @@ export interface GameActions {
   buyFromMerchant(id: MerchantId, index: number): Promise<Outcome<ItemInstance>>;
   rerollMerchant(id: MerchantId): Promise<Outcome<number>>;
   drinkPotion(stat: UpgradableStatId): Promise<Outcome<number>>;
+  /** Brew a draught from materials instead of gold (Q43). */
+  brewPotion(stat: UpgradableStatId): Promise<Outcome<number>>;
+  /** Push one rung up the material ladder; the value is how many were made. */
+  transmuteMaterial(materialId: string, times: number): Promise<Outcome<number>>;
 
   /** Bring both quest boards up to date for the current period (Q10). */
   visitQuests(): Promise<Character>;
@@ -229,6 +241,15 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
     await save.saveAccount(updated);
     accountLoaded(store, updated);
+  }
+
+  /**
+   * The workbench speaks its own small vocabulary of refusals; the UI speaks
+   * one. Mapping here rather than widening `Refusal` with a synonym keeps
+   * "not enough materials" a single phrase everywhere it is said.
+   */
+  function refusalOf(reason: TransmuteRefusal): Refusal {
+    return reason === 'atCeiling' ? 'atCeiling' : 'notEnoughMaterials';
   }
 
   /** The bag's size right now — an account upgrade, so it is read, not assumed. */
@@ -529,6 +550,36 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         [{ kind: 'potionDrunk' }, { kind: 'goldSpent', amount: potion.price }],
       );
       return { ok: true, value: potion.price, character: await commit(next) };
+    },
+
+    async brewPotion(stat) {
+      const character = active();
+      const bracket = bracketForCharacter(character);
+      if (!canBrew(character.materials, bracket.materialTier)) {
+        return { ok: false, reason: 'notEnoughMaterials' };
+      }
+
+      const potion = potionFor(stat, bracket.index);
+      const next = withQuests(
+        {
+          ...character,
+          materials: spendBrew(character.materials, bracket.materialTier),
+          potions: drink(character.potions, potion, clock().now()),
+        },
+        [{ kind: 'potionDrunk' }],
+      );
+      return { ok: true, value: BREW_MATERIAL_COST, character: await commit(next) };
+    },
+
+    async transmuteMaterial(materialId, times) {
+      const character = active();
+      const result = transmute(character.materials, materialId, times);
+      if (typeof result === 'string') return { ok: false, reason: refusalOf(result) };
+      return {
+        ok: true,
+        value: result.count,
+        character: await commit({ ...character, materials: result.materials }),
+      };
     },
 
     async visitQuests() {

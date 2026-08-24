@@ -1481,6 +1481,46 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
 });
 
+/* --- Round six: more to do, and more to tinker with ----------------------- */
+
+test('the workbench rescues material the hero has climbed past (Q43)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Alchemist');
+
+  const bench = page.locator('[data-testid="workbench"]');
+  await expect(bench).toBeVisible();
+  // Every rung is drawn, not only the affordable ones — a blank bench teaches
+  // nobody what it is for.
+  const dust = page.locator('[data-testid="transmute-mat.spire-dust"]');
+  await expect(dust).toBeVisible();
+  await expect(dust).toHaveAttribute('data-ready', 'false');
+  await expect(dust).toContainText('0 held');
+
+  // And the button says what would open it rather than only going grey.
+  const make = dust.getByRole('button', { name: 'Make' });
+  await expect(make).toBeDisabled();
+  await make.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/rung opens/i);
+
+  // Climb until the tower pays materials, then the rung opens and works.
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await goToSection(page, 'Tower');
+    await climb(page, 3);
+    await goToSection(page, 'Alchemist');
+    if ((await dust.getAttribute('data-ready')) === 'true') break;
+  }
+  await expect(dust, 'the tower never paid five of the shallowest material').toHaveAttribute(
+    'data-ready',
+    'true',
+  );
+
+  await dust.getByRole('button', { name: 'Make' }).click();
+  await expect(page.locator('.fui-toast').last()).toContainText(/Made/i);
+  await expect(page.locator('[data-testid="transmute-mat.iron-sigil"]')).toContainText(/[1-9]/);
+});
+
 test('curses are offered long before they can be taken (§20.5)', async ({ page }) => {
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');

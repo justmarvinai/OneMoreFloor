@@ -522,6 +522,27 @@ export const en = {
   'curse.dominion.desc':
     'Everything in the Spire is greater in every way. The Spire pays most for this one.',
 
+  // The workbench, at the Alchemist's counter (Q43).
+  'bench.title': 'Workbench',
+  'bench.hint':
+    'Materials you have climbed past are not dead weight. Five of a kind become one of the next kind, and a pouch can pay for a draught when the purse cannot.',
+  'bench.from': '{count} × {name}',
+  'bench.to': '{count} × {name}',
+  'bench.held': '{held} held',
+  'bench.make': 'Make',
+  'bench.makeAll': 'All',
+  'bench.makeTip': 'Melt five down into one {name}.',
+  'bench.makeAllTip': 'Do it {count} times over, in one press.',
+  'bench.short': '{count} more and this rung opens.',
+  'bench.brew': 'Brew a draught — {count} × {name}',
+  'bench.brewCost': 'Costs {count} × {name}',
+  'bench.brewShort': 'Not enough of the material this depth asks for.',
+  'bench.brewed': 'Brewed and drunk',
+  'bench.made': 'Made {count} × {name}',
+  'bench.refused.atCeiling': 'Nothing above it',
+  'bench.refused.atCeilingBody':
+    'This is the deepest material the Spire has. There is no rung above.',
+
   // The summoning wish list.
   'gacha.wish.title': 'Wish list',
   'gacha.wish.hint':

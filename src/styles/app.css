@@ -3032,3 +3032,140 @@ body > .fui-tooltip .fui-tooltip__price {
 .omf-curses[data-unlocked='false'] .omf-curses__hint {
   opacity: 0.7;
 }
+
+/* --- The workbench, at the Alchemist's counter ---------------------------- */
+
+/**
+ * Two benches in one panel, because they answer the same question — what do I
+ * do with the materials I have outgrown? — and a player who has just seen the
+ * ladder is exactly the player who wants the brew under it.
+ */
+.omf-bench {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/**
+ * The bench shares the shelf's column rather than the sell panel's.
+ *
+ * The Alchemist stocks five draughts and stops, leaving most of its frame
+ * empty, while the side column is narrow enough that a ladder row truncates to
+ * "5 × …". Putting the bench under the shelf gives it the width its rows need
+ * and gives the screen back the space the shelf was not using — so on that one
+ * screen the shelf takes only the height it needs and the bench takes the rest,
+ * which is the reverse of the column's default.
+ */
+.omf-shop__main:has(.omf-bench) > .omf-shop__panel {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.omf-bench__title {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-bench__hint {
+  margin: 4px 0 10px;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-bench__ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/**
+ * A rung. The columns line up down the list so the ladder reads as a ladder:
+ * five of this becomes one of that, and here is how close you are.
+ */
+.omf-bench__row {
+  display: grid;
+  /* Fixed columns rather than fractions: stretched across a full-width panel a
+     ladder stops reading as a ladder and starts reading as a table of unrelated
+     words. It stays a tight list on the left however wide the frame gets. */
+  grid-template-columns: 11em 1.2em 11em 5.5em auto auto;
+  align-items: center;
+  justify-content: start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  color: var(--fui-ink-dim);
+}
+
+.omf-bench__row:nth-child(odd) {
+  background: rgb(255 255 255 / 3%);
+}
+
+.omf-bench__row[data-ready='false'] {
+  opacity: 0.62;
+}
+
+.omf-bench__from,
+.omf-bench__to {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omf-bench__to {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-bench__arrow {
+  color: var(--fui-ink-faint);
+}
+
+.omf-bench__held {
+  text-align: right;
+  color: var(--fui-ink-faint);
+}
+
+.omf-bench__row .fui-btn {
+  padding-inline: 9px;
+}
+
+.omf-bench__subtitle {
+  display: block;
+  margin: 12px 0 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-bench__brews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.omf-bench__brew {
+  padding: 4px 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+}
+
+.omf-bench__brew:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 46%, transparent);
+  color: var(--fui-ink);
+}
+
+.omf-bench__brew:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
