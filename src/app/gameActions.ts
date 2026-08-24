@@ -62,6 +62,15 @@ import {
   type OwnedPet,
 } from '@/domain/pets/pets.ts';
 import type { PetDef } from '@/content/pets/index.ts';
+import {
+  claimExpedition,
+  recallExpedition,
+  sendExpedition,
+  type ClaimRefusal,
+  type SendRefusal,
+} from '@/domain/expeditions/expeditions.ts';
+import type { ExpeditionDef } from '@/content/expeditions/index.ts';
+import type { FloorReward } from '@/domain/tower/rewards.ts';
 import { canAutoClimb } from '@/domain/tower/autoClimb.ts';
 import type { FloorResult, QuickRaidResult } from '@/domain/tower/run.ts';
 import {
@@ -128,6 +137,12 @@ export type Refusal =
   | 'noSuchTalent'
   | 'noSuchPet'
   | 'notFound'
+  | 'noSuchExpedition'
+  | 'noSuchSlot'
+  | 'slotBusy'
+  | 'tooDeep'
+  | 'notBack'
+  | 'nothingOut'
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -141,6 +156,12 @@ export type Refusal =
 
 export type Outcome<T = undefined> =
   { ok: true; value: T; character: Character } | { ok: false; reason: Refusal };
+
+/** What a finished expedition handed over, for the caller to announce (Q37). */
+export interface ExpeditionSpoils {
+  def: ExpeditionDef;
+  reward: FloorReward;
+}
 
 /** What a climb did for the companions, for the caller to announce (Q42). */
 export interface PetHarvest {
@@ -191,6 +212,13 @@ export interface GameActions {
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
   /** Take a curse, or lift one (Q35). */
   toggleCurse(id: string): Promise<Outcome>;
+
+  /** Send a party out on a route (Q37); the value is when they are due back. */
+  sendExpedition(slot: number, id: string): Promise<Outcome<number>>;
+  /** Take a finished expedition's spoils; the value is what came home. */
+  claimExpedition(slot: number): Promise<Outcome<ExpeditionSpoils>>;
+  /** Call a party home early, for nothing (Q37). */
+  recallExpedition(slot: number): Promise<Outcome>;
   /**
    * Aim what the rites hand over at one slot, or clear the wish (Q33).
    * Refuses a slot the hero has not unlocked, rather than wishing into a
@@ -297,6 +325,28 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
    */
   function refusalOf(reason: TransmuteRefusal): Refusal {
     return reason === 'atCeiling' ? 'atCeiling' : 'notEnoughMaterials';
+  }
+
+  /** The board's refusals, in the vocabulary the UI already translates (Q37). */
+  function refusalOfSend(reason: SendRefusal): Refusal {
+    switch (reason) {
+      case 'noSuchExpedition':
+        return 'noSuchExpedition';
+      case 'noSuchSlot':
+        return 'noSuchSlot';
+      case 'slotBusy':
+        return 'slotBusy';
+      case 'tooDeep':
+        return 'tooDeep';
+    }
+  }
+
+  function refusalOfClaim(reason: ClaimRefusal): Refusal {
+    return reason === 'notBack'
+      ? 'notBack'
+      : reason === 'nothingOut'
+        ? 'nothingOut'
+        : 'noSuchExpedition';
   }
 
   /** What the account's echo tree is worth right now (Q36). */
@@ -717,6 +767,76 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         value: claimableCount(claimed),
         character: await commit(granted.character),
       };
+    },
+
+    async sendExpedition(slot, id) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      const result = sendExpedition(
+        account,
+        slot,
+        id,
+        character.tower.highestFloorEverCleared,
+        clock().now(),
+      );
+      if (typeof result === 'string') return { ok: false, reason: refusalOfSend(result) };
+
+      await save.saveAccount(result);
+      accountLoaded(store, result);
+      return {
+        ok: true,
+        value: result.expeditions[String(slot)]?.endsAt ?? 0,
+        character,
+      };
+    },
+
+    async claimExpedition(slot) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      const result = claimExpedition(
+        account,
+        slot,
+        {
+          record: character.tower.highestFloorEverCleared,
+          // The *claiming* hero's bracket decides the material tier, so a party
+          // can never hand over something the hero could not have earned (§13).
+          bracket: bracketForCharacter(character, companion()),
+          rng: createRng(`expedition:${slot}:${account.expeditions[String(slot)]?.startedAt ?? 0}`),
+        },
+        clock().now(),
+      );
+      if (typeof result === 'string') return { ok: false, reason: refusalOfClaim(result) };
+
+      // The account is written before the character is paid: a tab that dies
+      // between the two loses the spoils, never doubles them.
+      await save.saveAccount(result.account);
+      accountLoaded(store, result.account);
+
+      const granted = grantReward(character, result.reward);
+      const paid = withQuests(granted.character, [
+        { kind: 'goldEarned', amount: result.reward.gold },
+      ]);
+      return {
+        ok: true,
+        value: { def: result.def, reward: result.reward },
+        character: await commit(paid),
+      };
+    },
+
+    async recallExpedition(slot) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const result = recallExpedition(account, slot);
+      if (typeof result === 'string') return { ok: false, reason: 'nothingOut' };
+
+      await save.saveAccount(result);
+      accountLoaded(store, result);
+      return { ok: true, value: undefined, character: active() };
     },
 
     async toggleCurse(id) {

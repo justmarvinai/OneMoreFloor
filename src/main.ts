@@ -42,6 +42,8 @@ import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
 import { createTalentsScreen } from './ui/screens/talents.ts';
 import { ownedPets } from './domain/pets/pets.ts';
+import { getExpedition } from './content/expeditions/index.ts';
+import { shortDuration } from './ui/format.ts';
 import type { PetHarvest } from './app/gameActions.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
@@ -424,6 +426,24 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'atCeiling':
           refuse(t('bench.refused.atCeiling'), t('bench.refused.atCeilingBody'));
           return;
+        case 'noSuchExpedition':
+          refuse(t('expedition.refused.noSuch'), t('expedition.refused.noSuchBody'));
+          return;
+        case 'noSuchSlot':
+          refuse(t('expedition.refused.noSlot'), t('expedition.refused.noSlotBody'));
+          return;
+        case 'slotBusy':
+          refuse(t('expedition.refused.slotBusy'), t('expedition.refused.slotBusyBody'));
+          return;
+        case 'tooDeep':
+          refuse(t('expedition.refused.tooDeep'), t('expedition.refused.tooDeepBody'));
+          return;
+        case 'notBack':
+          refuse(t('expedition.refused.notReady'), t('expedition.refused.notReadyBody'));
+          return;
+        case 'nothingOut':
+          refuse(t('expedition.refused.empty'), t('expedition.refused.emptyBody'));
+          return;
         case 'noSuchPet':
           refuse(t('pet.refused.noSuchPet'), t('pet.refused.noSuchPetBody'));
           return;
@@ -663,9 +683,39 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createQuestScreen({
               character: requireCharacter(),
+              account: store.get().account!,
               now: clock().now(),
               onClaim: (cadence, index) =>
                 void session.claimQuest(cadence, index).then(refreshScreen),
+              onSend: (slot, id) => {
+                void session.sendExpedition(slot, id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else {
+                    const def = getExpedition(id);
+                    notify(
+                      t('expedition.sent', { name: def ? t(def.nameKey) : '' }),
+                      t('expedition.sentBody', {
+                        time: shortDuration(outcome.value - clock().now()),
+                      }),
+                    );
+                  }
+                  refreshScreen();
+                });
+              },
+              onClaimExpedition: (slot) => {
+                void session.claimExpedition(slot).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else notify(t('expedition.claimed'), t('expedition.claimedBody'));
+                  refreshScreen();
+                });
+              },
+              onRecall: (slot) => {
+                void session.recallExpedition(slot).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else notify(t('expedition.recalled'), t('expedition.recalledBody'));
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

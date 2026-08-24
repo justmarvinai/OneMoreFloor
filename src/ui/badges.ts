@@ -18,6 +18,7 @@ import {
 } from '@/domain/items/upgrade.ts';
 import { materialIdForTier } from '@/content/items/materials.ts';
 import { talentTree } from '@/domain/talents/talents.ts';
+import { anyReady } from '@/domain/expeditions/expeditions.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { canEquip } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
@@ -53,7 +54,10 @@ export function computeBadges(character: Character, now: number, account?: Accou
     equipmentMerchant: hasMerchantAction('equipment', character, now),
     magicMerchant: hasMerchantAction('magic', character, now),
     // A quest dot means a reward is sitting there — never "the board changed".
-    quests: claimableCount(character.quests) > 0,
+    // The expedition board lives on the same screen (Q37), so a party standing
+    // in the hall with its spoils lights the same dot: one destination, one
+    // question, and the answer is still "there is something to collect".
+    quests: claimableCount(character.quests) > 0 || (account ? anyReady(account, now) : false),
     // A record is history. There is nothing to *do* there, so a dot would be
     // decoration — and one decorative dot teaches a player to ignore all of them.
     records: false,

@@ -553,6 +553,67 @@ export const en = {
   'echo.refused.notEnough': 'Not enough echoes',
   'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
 
+  // Expeditions (Q37).
+  'expedition.scavenge': 'Scavenging Run',
+  'expedition.scavenge.desc':
+    'Two hours on the lower landings, turning over what the last climbers left behind. Mostly coin, and mostly small.',
+  'expedition.survey': 'Survey of the Stair',
+  'expedition.survey.desc':
+    'Somebody has to write down which steps give way. The party comes back with less in their packs than in their notes.',
+  'expedition.quarry': 'Quarry Detail',
+  'expedition.quarry.desc':
+    'Down to where the Spire is still raw stone, with picks. Hard work, and the only thing they bring back is what ascension eats.',
+  'expedition.pilgrimage': 'Pilgrimage',
+  'expedition.pilgrimage.desc':
+    'A slow walk to a shrine nobody has found twice. They carry little and look for one thing: a rite worth performing.',
+  'expedition.reclaim': 'Reclamation March',
+  'expedition.reclaim.desc':
+    'Twelve hours retaking a landing that was taken from you. Everything the Spire owes, in equal measure.',
+  'expedition.descent': 'The Long Descent',
+  'expedition.descent.desc':
+    'A full day down a route the Spire does not advertise. Only send them if you already know how deep it goes.',
+  'expedition.title': 'Expeditions',
+  'expedition.subtitle': 'Send a party out. Come back to what they found.',
+  'expedition.slot': 'Party {index}',
+  'expedition.idle': 'Waiting for orders',
+  'expedition.away': 'Away · {time} left',
+  'expedition.ready': 'Back, and carrying something',
+  'expedition.send': 'Send',
+  'expedition.claim': 'Take the spoils',
+  'expedition.recall': 'Recall',
+  'expedition.recallTitle': 'Call them back?',
+  'expedition.recallBody':
+    'They are {time} from being done. Recalling them now brings the party home with nothing.',
+  'expedition.recallConfirm': 'Call them back',
+  'expedition.recallCancel': 'Let them finish',
+  'expedition.hours': '{hours}h',
+  'expedition.pays': 'About {gold} gold, {xp} xp, {materials} materials',
+  'expedition.paysTickets': 'and looks for a summoning ticket',
+  'expedition.paysNoTickets': 'and will not find a ticket on this route',
+  'expedition.locked': 'Opens once the Spire has been climbed to floor {floor}',
+  'expedition.noSlots': 'No party free',
+  'expedition.noSlotsBody':
+    'Every party is out. More open with every character slot the account buys.',
+  'expedition.claimed': 'The party is back',
+  'expedition.claimedBody': 'Their spoils are in your purse and your pack.',
+  'expedition.recalled': 'Party recalled',
+  'expedition.recalledBody': 'They came home empty-handed, and the slot is free again.',
+  'expedition.sent': '{name} is under way',
+  'expedition.sentBody':
+    'They will be back in {time}. The Spire does not wait for them, and neither should you.',
+  'expedition.refused.notReady': 'They are not back yet',
+  'expedition.refused.notReadyBody': 'Give them the time they were sent for.',
+  'expedition.refused.slotBusy': 'That party is already out',
+  'expedition.refused.slotBusyBody': 'Wait for them, or recall them and lose what they carry.',
+  'expedition.refused.noSlot': 'No party there',
+  'expedition.refused.noSlotBody': 'That slot is not one the account has opened.',
+  'expedition.refused.tooDeep': 'Nobody knows that route',
+  'expedition.refused.tooDeepBody': 'Climb further, and someone will.',
+  'expedition.refused.noSuch': 'No such expedition',
+  'expedition.refused.noSuchBody': 'Nothing by that name is on the board.',
+  'expedition.refused.empty': 'Nobody is out',
+  'expedition.refused.emptyBody': 'There is nothing to call back.',
+
   // Companions (Q42).
   'pet.emberling': 'Emberling',
   'pet.emberling.desc':

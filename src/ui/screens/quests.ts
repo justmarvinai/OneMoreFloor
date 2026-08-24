@@ -25,7 +25,17 @@ import type { FuiComponent } from '@/ui/fui/index.ts';
 import { questTemplate } from '@/content/quests/index.ts';
 import type { QuestCadence } from '@/content/quests/types.ts';
 import { getMaterial } from '@/content/items/materials.ts';
-import type { Character } from '@/domain/character/types.ts';
+import type { Account, Character } from '@/domain/character/types.ts';
+import {
+  EXPEDITIONS,
+  estimate,
+  expeditionsFor,
+  parties,
+  type ExpeditionDef,
+  type PartyStatus,
+} from '@/domain/expeditions/expeditions.ts';
+import { openRecallDialog } from '@/ui/recallDialog.ts';
+import { shortDuration } from '@/ui/format.ts';
 import { isClaimable, isComplete, type QuestState } from '@/domain/quests/quests.ts';
 import { nextDayBoundary, nextWeekBoundary } from '@/app/time.ts';
 import { setTip } from '@/ui/tooltips.ts';
@@ -33,8 +43,16 @@ import { t, type StringKey } from '@/strings/index.ts';
 
 export interface QuestScreenOptions {
   character: Character;
+  /** The account, for the expedition board it owns (Q37). */
+  account: Account;
   now: number;
   onClaim: (cadence: QuestCadence, index: number) => void;
+  /** Send a party out on a route. */
+  onSend: (slot: number, id: string) => void;
+  /** Take a finished expedition's spoils. */
+  onClaimExpedition: (slot: number) => void;
+  /** Call a party home early, for nothing. */
+  onRecall: (slot: number) => void;
 }
 
 export interface QuestScreen {
@@ -43,7 +61,7 @@ export interface QuestScreen {
 }
 
 export function createQuestScreen(options: QuestScreenOptions): QuestScreen {
-  const { character, now, onClaim } = options;
+  const { character, account, now, onClaim, onSend, onClaimExpedition, onRecall } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -147,6 +165,160 @@ export function createQuestScreen(options: QuestScreenOptions): QuestScreen {
     );
   }
 
+  /**
+   * The expedition board (Q37).
+   *
+   * On the quest screen rather than a rail destination of its own, because it is
+   * the same thing asked in a different tense: a quest board is work you are
+   * doing, an expedition board is work being done for you. Both are lists of
+   * things you come back to and collect.
+   */
+  function expeditionBoard(): HTMLElement {
+    const record = character.tower.highestFloorEverCleared;
+    const routes = expeditionsFor(record);
+    const block = h('section', { class: 'omf-expeditions', dataset: { testid: 'expeditions' } });
+
+    block.appendChild(
+      h(
+        'div',
+        { class: 'omf-expeditions__head' },
+        h('h3', { class: 'omf-expeditions__title fui-title', text: t('expedition.title') }),
+        h('span', { class: 'omf-expeditions__sub', text: t('expedition.subtitle') }),
+      ),
+    );
+
+    const row = h('div', { class: 'omf-expeditions__parties' });
+    for (const party of parties(account, now)) {
+      row.appendChild(partyCard(party, routes, record));
+    }
+    block.appendChild(row);
+    return block;
+  }
+
+  /** One party slot: out, back, or waiting for orders. */
+  function partyCard(
+    party: PartyStatus,
+    routes: readonly ExpeditionDef[],
+    record: number,
+  ): HTMLElement {
+    const card = h('div', {
+      class: 'omf-party',
+      dataset: {
+        testid: `party-${party.slot}`,
+        state: party.state === null ? 'idle' : party.back ? 'ready' : 'away',
+      },
+    });
+
+    card.appendChild(
+      h('span', {
+        class: 'omf-party__slot',
+        text: t('expedition.slot', { index: party.slot }),
+      }),
+    );
+
+    if (party.state === null) {
+      card.appendChild(h('p', { class: 'omf-party__status', text: t('expedition.idle') }));
+      card.appendChild(routeList(party.slot, routes, record));
+      return card;
+    }
+
+    const name = party.def ? t(party.def.nameKey) : t('expedition.title');
+    card.appendChild(h('span', { class: 'omf-party__name fui-title', text: name }));
+
+    if (party.back) {
+      card.appendChild(h('p', { class: 'omf-party__status', text: t('expedition.ready') }));
+      const claim = track(
+        new Button({ label: t('expedition.claim'), size: 'sm', variant: 'primary', block: true }),
+      );
+      claim.on('click', () => onClaimExpedition(party.slot));
+      card.appendChild(claim.el);
+      return card;
+    }
+
+    // Still away: a live countdown, because "how long?" is the only question a
+    // player has in front of this card.
+    card.appendChild(
+      track(
+        new CountdownTimer({
+          endsAt: party.state.endsAt,
+          label: t('expedition.slot', { index: party.slot }),
+          glyph: 'glyph-hourglass',
+          variant: 'chip',
+        }),
+      ).el,
+    );
+
+    const recall = track(
+      new Button({ label: t('expedition.recall'), size: 'sm', variant: 'ghost', block: true }),
+    );
+    const left = shortDuration(party.remainingMs);
+    recall.on('click', () => {
+      openRecallDialog({ time: left, onConfirm: () => onRecall(party.slot) });
+    });
+    setTip(recall.el, {
+      title: t('expedition.recallTitle'),
+      flavor: t('expedition.recallBody', { time: left }),
+    });
+    card.appendChild(recall.el);
+    return card;
+  }
+
+  /** What this party could be sent on, and what each route pays. */
+  function routeList(slot: number, routes: readonly ExpeditionDef[], record: number): HTMLElement {
+    const list = h('div', { class: 'omf-party__routes' });
+
+    for (const def of EXPEDITIONS) {
+      const open = routes.includes(def);
+      const spoils = estimate(def, record);
+      const button = track(
+        new Button({
+          label: `${t(def.nameKey)} · ${t('expedition.hours', { hours: def.hours })}`,
+          size: 'sm',
+          variant: open ? 'primary' : 'ghost',
+          block: true,
+          disabled: !open,
+        }),
+      );
+      button.el.dataset.testid = `route-${def.id}`;
+      button.on('click', () => onSend(slot, def.id));
+      setTip(button.el, {
+        title: t(def.nameKey),
+        subtitle: t('expedition.hours', { hours: def.hours }),
+        stats: [
+          {
+            label: t('expedition.pays', { gold: '', xp: '', materials: '' })
+              .replace(/About.*/, '')
+              .trim(),
+            value: t('expedition.pays', {
+              gold: commas(spoils.gold),
+              xp: commas(spoils.xp),
+              materials: spoils.materials,
+            }),
+          },
+        ],
+        flavor: open
+          ? `${t(def.descriptionKey)} ${
+              spoils.ticketChance > 0 ? t('expedition.paysTickets') : t('expedition.paysNoTickets')
+            }`
+          : t('expedition.locked', { floor: def.minFloor }),
+      });
+
+      // Why not, on the row rather than a hover away (§20.5).
+      const wrap = h('div', { class: 'omf-party__route' }, button.el);
+      if (!open) {
+        wrap.appendChild(
+          h('span', {
+            class: 'omf-party__locked',
+            text: t('expedition.locked', { floor: def.minFloor }),
+          }),
+        );
+      }
+      list.appendChild(wrap);
+    }
+
+    return list;
+  }
+
   const el = h(
     'div',
     { class: 'omf-quests', dataset: { fuiTheme: 'stone-vine', testid: 'quests' } },
@@ -157,6 +329,7 @@ export function createQuestScreen(options: QuestScreenOptions): QuestScreen {
       column('daily', nextDayBoundary(now)),
       column('weekly', nextWeekBoundary(now)),
     ),
+    expeditionBoard(),
   );
 
   return {

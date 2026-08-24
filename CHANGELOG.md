@@ -7,6 +7,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Expeditions — the board that works while you do not.** Six routes out of the
+  Spire, from a two-hour errand to a full day's descent, each gated behind a
+  record deep enough to make the board read as a ladder. Send a party, come back
+  to what they found. The exchange rate is the whole design and it is stated in
+  the only unit this game has: an hour away is worth a handful of *floors* at a
+  fraction of the depth the hero has actually reached, so a player who is
+  climbing always beats a player who is waiting — what a wait buys is the hours
+  nobody was going to spend climbing anyway. Two things a route never pays:
+  **gear**, because every item in the game comes from a source anti-overshoot
+  brackets and a timer is not allowed to be a fourth one, and **echoes**, which
+  are paid for new ground alone. Materials come from the *claiming* hero's
+  bracket, so a party can never hand over something that hero could not have
+  earned. A party can be called home early and comes back with nothing, which is
+  deliberate: a partial payout would make "send, recall, send again" the best way
+  to run the board. Parties are dispatched one per character slot the account has
+  opened — so the §15 slot upgrade finally means something to a player with no
+  interest in a second hero, and the first slot is free.
 - **Companions that actually fight.** Six species, each freed by a floor deep
   enough that finding one is an event — the roster spans floor 5 to floor 260.
   A companion is a **third combatant**, not a stat: its own health bar, its own
@@ -138,6 +155,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- The quest board's red dot now also lights when a party is standing in the hall
+  with its spoils. One destination, one question — "is there something to
+  collect?" — and one honest answer.
 - The combat engine understands three units rather than two, and every action it
   records now names its target. With a companion on the field, "the other one"
   is two of them and the enemy picks which, so a log line that inferred the

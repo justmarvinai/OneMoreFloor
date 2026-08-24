@@ -1923,3 +1923,38 @@ test('the Spire sends a companion, and it fights beside you (Q42)', async ({ pag
   await goToSection(page, 'Character');
   await expect(page.locator('[data-testid="pet-pet.emberling"]')).not.toContainText(/\b0 \//);
 });
+
+test('a party goes out on a route, and can be called back (Q37)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  await goToSection(page, 'Quests');
+  const board = page.locator('[data-testid="expeditions"]');
+  await expect(board).toBeVisible();
+
+  // One party from the start, waiting for orders.
+  const party = page.locator('[data-testid="party-1"]');
+  await expect(party).toHaveAttribute('data-state', 'idle');
+  await expect(party).toContainText('Waiting for orders');
+
+  // The deep routes are shut, and each says what opens it rather than going
+  // grey in silence (§20.5).
+  const deep = page.locator('[data-testid="route-expedition.descent"]');
+  await expect(deep).toBeDisabled();
+  await expect(party).toContainText(/Opens once the Spire has been climbed to floor 500/);
+
+  // Send the short one.
+  await page.locator('[data-testid="route-expedition.scavenge"]').click();
+  await expect(party).toHaveAttribute('data-state', 'away');
+  await expect(party).toContainText('Scavenging Run');
+
+  // Nothing else can be sent from a party that is already out.
+  await expect(page.locator('[data-testid="route-expedition.scavenge"]')).toHaveCount(0);
+
+  // Calling them back asks first, then frees the slot.
+  await party.getByRole('button', { name: 'Recall' }).click();
+  await page.getByRole('button', { name: 'Call them back' }).click();
+  await expect(party).toHaveAttribute('data-state', 'idle');
+  await expect(page.locator('[data-testid="route-expedition.scavenge"]')).toBeEnabled();
+});
