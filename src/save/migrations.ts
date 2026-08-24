@@ -180,6 +180,66 @@ const v5ToV6: Migration = (record) => {
   };
 };
 
+/**
+ * v6 → v7: the sixth round's shelf, in one step.
+ *
+ * Ten features land on these fields — echoes, deeds, boss rush, expeditions,
+ * companions, talents and branching paths — and the same argument as v6 applies:
+ * a bump per feature would be seven migrations and seven captured blobs for what
+ * is, from a save's point of view, one shape change. (Sets, uniques, elites and
+ * the workbench need no new state at all: they are content and rules over the
+ * shapes that already exist.)
+ *
+ * Every default is the honest one for a save written before the feature:
+ *
+ *  - `echoes` and `echoesEarned` start at **zero**, not at a figure derived from
+ *    how deep the account has been. Echoes are paid for new ground; a returning
+ *    player has new ground ahead of them, and back-paying for ground already
+ *    walked would hand out a full tree before the feature was ever played.
+ *  - `echoNodes`, `deeds`, `deedsClaimed`, `talents` and `pets` start empty for
+ *    the same reason the bestiary did: these are things earned, and a migration
+ *    that guesses them is a migration that lies.
+ *  - `bossRushBest` starts at zero — nobody has run one.
+ *  - `expeditions` starts empty: no hero is away, which is true.
+ *  - `activePet` is null, and `pathChoices` empty, because both are choices, and
+ *    a migration does not get to make a choice on the player's behalf.
+ */
+const v6ToV7: Migration = (record) => {
+  const account = record['account'];
+  if (account !== null && typeof account === 'object') {
+    return {
+      ...record,
+      account: {
+        ...(account as Record<string, unknown>),
+        echoes: 0,
+        echoesEarned: 0,
+        echoNodes: {},
+        deeds: {},
+        deedsClaimed: [],
+        bossRushBest: 0,
+        expeditions: {},
+        pets: {},
+      },
+    };
+  }
+
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+
+  const existing = character as Record<string, unknown>;
+  const tower = (existing['tower'] ?? {}) as Record<string, unknown>;
+
+  return {
+    ...record,
+    character: {
+      ...existing,
+      tower: { ...tower, pathChoices: {} },
+      talents: {},
+      activePet: null,
+    },
+  };
+};
+
 /** Keyed by the version being migrated *from*: `1` upgrades v1 → v2. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: v1ToV2,
@@ -187,6 +247,7 @@ export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   3: v3ToV4,
   4: v4ToV5,
   5: v5ToV6,
+  6: v6ToV7,
 };
 
 export class FutureSaveError extends Error {

@@ -13,6 +13,7 @@ import { V3_CHARACTER } from './fixtures/v3.ts';
 import { V4_CHARACTER } from './fixtures/v4.ts';
 import { V5_CHARACTER } from './fixtures/v5.ts';
 import { V6_ACCOUNT, V6_CHARACTER } from './fixtures/v6.ts';
+import { V7_ACCOUNT, V7_CHARACTER } from './fixtures/v7.ts';
 
 /**
  * The migration harness (SAVE_SCHEMA §4/§11).
@@ -32,6 +33,8 @@ const FIXTURES = [
   { version: 5, name: 'character', blob: V5_CHARACTER, validate: isCharacterRecord },
   { version: 6, name: 'account', blob: V6_ACCOUNT, validate: isAccountRecord },
   { version: 6, name: 'character', blob: V6_CHARACTER, validate: isCharacterRecord },
+  { version: 7, name: 'account', blob: V7_ACCOUNT, validate: isAccountRecord },
+  { version: 7, name: 'character', blob: V7_CHARACTER, validate: isCharacterRecord },
 ] as const;
 
 describe('captured save fixtures', () => {
@@ -56,7 +59,7 @@ describe('captured save fixtures', () => {
     const character = (record as { character: Record<string, unknown> }).character;
     const equipment = character['equipment'] as Record<string, { defId: string }>;
 
-    expect(applied).toEqual([1, 2, 3, 4, 5]);
+    expect(applied).toEqual([1, 2, 3, 4, 5, 6]);
     expect(equipment['mainhand']?.defId).toBe('item.mainhand.warrior-arming-sword');
     expect(equipment['offhand']?.defId).toBe('item.offhand.warrior-warded-shield');
     expect(character['currencies']).toEqual({ gold: 0, tickets: 0, luckyTickets: 0 });
@@ -68,7 +71,7 @@ describe('captured save fixtures', () => {
     expect(first).toEqual(second);
     // And it matches the captured blob for the current version exactly.
     expect(first).toEqual({
-      ...V6_CHARACTER,
+      ...V7_CHARACTER,
       integrity: (first as { integrity: unknown }).integrity,
     });
   });
@@ -78,7 +81,7 @@ describe('captured save fixtures', () => {
     const character = (record as { character: Record<string, unknown> }).character;
     const merchants = character['merchants'] as Record<string, { stockedAt: number }>;
 
-    expect(applied).toEqual([2, 3, 4, 5]);
+    expect(applied).toEqual([2, 3, 4, 5, 6]);
     expect(character['potions']).toEqual({});
     // Stamped at the epoch, so the first visit restocks at the hero's real
     // bracket rather than carrying one guessed at migration time (Q17).

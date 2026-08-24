@@ -36,6 +36,7 @@ describe('createCharacter', () => {
       autoClimb: 'off',
       runGold: 0,
       runFights: 0,
+      pathChoices: {},
     });
     expect(hero.purchasedStats).toEqual({
       strength: 0,
@@ -147,6 +148,7 @@ describe('summarize', () => {
         milestonesClaimed: [],
         history: [],
         autoClimb: 'off',
+        pathChoices: {},
         runGold: 0,
         runFights: 0,
       },

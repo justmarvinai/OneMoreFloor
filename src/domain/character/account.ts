@@ -18,6 +18,14 @@ export function createAccount(): Account {
     tutorialCompleted: false,
     backpackSlots: STARTING_BACKPACK_SLOTS,
     bestiary: {},
+    echoes: 0,
+    echoesEarned: 0,
+    echoNodes: {},
+    deeds: {},
+    deedsClaimed: [],
+    bossRushBest: 0,
+    expeditions: {},
+    pets: {},
   };
 }
 

@@ -57,6 +57,7 @@ export function createCharacter(input: CreateCharacterInput): Character {
       autoClimb: 'off',
       runGold: 0,
       runFights: 0,
+      pathChoices: {},
     },
     equipment: createStartingEquipment(input.classId, rng),
     inventory: [],
@@ -71,6 +72,8 @@ export function createCharacter(input: CreateCharacterInput): Character {
     loadouts: [],
     wishlist: null,
     curses: [],
+    talents: {},
+    activePet: null,
   };
 }
 

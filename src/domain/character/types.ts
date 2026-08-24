@@ -109,6 +109,14 @@ export interface TowerProgress {
   /** Gold and fights banked in the run so far, for the record it becomes. */
   runGold: number;
   runFights: number;
+  /**
+   * The route taken through each band of *this* run, keyed by the floor the
+   * band starts on (Q41).
+   *
+   * Run state, so it clears on death: the whole point of a route is that the
+   * next climb can take a different one.
+   */
+  pathChoices: Record<string, string>;
 }
 
 /**
@@ -191,6 +199,20 @@ export interface Character {
    * item may be worth).
    */
   curses: string[];
+  /**
+   * Talent ranks by node id (Q38). Only what has been *spent* is stored: the
+   * points available come from the hero's level, so a level change can never
+   * disagree with a stored total.
+   */
+  talents: Record<string, number>;
+  /**
+   * The companion walking with this hero, or none (Q42).
+   *
+   * Which companions the player *owns* belongs to the account, like the
+   * bestiary — a stable is a collection. Which one is at this hero's side is
+   * this hero's business.
+   */
+  activePet: string | null;
 }
 
 /** Battle Speed tiers (Brief §15.1, shaped by Q19): x1 → x2 → x4 → x8. */
@@ -219,4 +241,47 @@ export interface Account {
    * a hero's reset erases is not one (§3.3 destroys nothing owned).
    */
   bestiary: Record<string, number>;
+  /**
+   * Echoes of the Spire — the permanent currency (Q36).
+   *
+   * `echoes` is what is unspent; `echoesEarned` is the lifetime total, which the
+   * tree prints because a spent currency with no history looks like nothing was
+   * ever achieved. Both are account-wide and survive every reset, which is the
+   * whole point: a death banks something.
+   */
+  echoes: number;
+  echoesEarned: number;
+  /** Ranks bought in the echo tree, by node id. */
+  echoNodes: Record<string, number>;
+  /** Deed progress by id, and the deeds whose reward has been taken (Q40). */
+  deeds: Record<string, number>;
+  deedsClaimed: string[];
+  /** Deepest gate ever reached in a boss rush (Q39). */
+  bossRushBest: number;
+  /**
+   * Heroes away on an expedition, keyed by their slot (Q37).
+   *
+   * On the account rather than on each character so the roster can say who is
+   * away without loading five character records — and so an expedition keeps
+   * running while its hero is not the one being played, which is the feature.
+   */
+  expeditions: Record<string, ExpeditionState>;
+  /** Companions owned, by id, with what each has learned (Q42). */
+  pets: Record<string, PetProgress>;
+}
+
+/** A companion's own progress. Levels with use, never resets. */
+export interface PetProgress {
+  level: number;
+  xp: number;
+}
+
+/** A hero sent away, and when they are due back. */
+export interface ExpeditionState {
+  /** Which expedition, from `content/expeditions`. */
+  id: string;
+  /** Clock time it began, so a wound-back clock cannot shorten it. */
+  startedAt: number;
+  /** Clock time it may be claimed. */
+  endsAt: number;
 }

@@ -1405,24 +1405,42 @@ test('marks the bag pieces worth wearing without being hovered', async ({ page }
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');
 
-  const bag = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await climb(page, 4);
-    await goToSection(page, 'Character');
-    if ((await bag.count()) > 0) break;
-    await goToSection(page, 'Tower');
-  }
-  expect(await bag.count(), 'nothing dropped in twenty floors').toBeGreaterThan(0);
+  /**
+   * Bought rather than waited for.
+   *
+   * Gear is an event since the fifth round's retune — an ordinary floor drops a
+   * piece six times in a hundred — so a test that hopes for a drop is a test
+   * that fails one run in three. The shelf always has stock; it only ever needs
+   * the gold, and a purchase lands in the same backpack a drop would.
+   */
+  const buyButtons = page
+    .locator('[data-testid="merchant"] .fui-itemcard')
+    .getByRole('button', { name: 'Buy', exact: true })
+    .and(page.locator('button:not([disabled])'));
 
-  // A fresh Warrior wears three pieces, so most of what drops fills an empty
-  // socket — at least one bag slot must carry the mark.
-  await expect(page.locator('.omf-character__side .fui-inv .omf-upgrade').first()).toBeVisible();
+  const marked = page.locator('.omf-character__side .fui-inv .fui-slot.omf-upgrade');
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await goToSection(page, 'Character');
+    if ((await marked.count()) > 0) break;
+
+    await goToSection(page, 'Equipment');
+    if ((await buyButtons.count()) === 0) {
+      await goToSection(page, 'Tower');
+      await climb(page, 4);
+      continue;
+    }
+    await buyButtons.first().click();
+  }
+
+  await goToSection(page, 'Character');
+  expect(await marked.count(), 'nothing in the pack was ever worth wearing').toBeGreaterThan(0);
+  await expect(marked.first()).toBeVisible();
 
   // The shelf says it in words, and says the same thing the tooltip does.
   await goToSection(page, 'Equipment');
-  const marked = page.locator('.fui-shop__list .fui-itemcard.omf-upgrade').first();
-  if ((await marked.count()) > 0) {
-    await expect(marked).toContainText(/Upgrade/i);
+  const onTheShelf = page.locator('.fui-shop__list .fui-itemcard.omf-upgrade').first();
+  if ((await onTheShelf.count()) > 0) {
+    await expect(onTheShelf).toContainText(/Upgrade/i);
   }
 });
 

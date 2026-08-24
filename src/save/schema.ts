@@ -24,8 +24,12 @@ import type { Persisted } from './integrity.ts';
  *      a bestiary; characters gained saved loadouts, a rite wish list, curses,
  *      and — inside `tower` — milestones claimed, run history, the auto-climb
  *      mode and the run's running totals.
+ *   7. The sixth round, in one step: accounts gained echoes and the tree they
+ *      buy, deed progress, a boss-rush record, expeditions by slot and a stable
+ *      of companions; characters gained talent ranks, an active companion and —
+ *      inside `tower` — the route chosen through each band of the run.
  */
-export const CURRENT_SCHEMA_VERSION = 6;
+export const CURRENT_SCHEMA_VERSION = 7;
 
 export const DATABASE_NAME = 'onemorefloor';
 
