@@ -67,6 +67,13 @@ import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
 import { recordKills } from '@/domain/account/bestiary.ts';
 import {
+  buyEchoRank,
+  echoBonuses,
+  echoesForNewGround,
+  grantEchoes,
+  type EchoBonuses,
+} from '@/domain/account/echoes.ts';
+import {
   BREW_MATERIAL_COST,
   canBrew,
   spendBrew,
@@ -97,6 +104,7 @@ export type Refusal =
   | PresetApplyRefusal
   | PresetCaptureRefusal
   | 'atCeiling'
+  | 'notEnoughEchoes'
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -158,6 +166,8 @@ export interface GameActions {
   setWishlist(slot: EquipSlotId | null): Promise<Outcome>;
   /** Buy one of the two account upgrades (Brief §15). */
   buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
+  /** Deepen one node of the echo tree; the value is the echoes left (Q36). */
+  buyEchoNode(id: string): Promise<Outcome<number>>;
 
   /**
    * Spend one ticket on one pull (Brief §16, Q20).
@@ -252,6 +262,31 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     return reason === 'atCeiling' ? 'atCeiling' : 'notEnoughMaterials';
   }
 
+  /** What the account's echo tree is worth right now (Q36). */
+  function echoes(): EchoBonuses {
+    return echoBonuses(store.get().account);
+  }
+
+  /**
+   * Bank the echoes a climb earned, if it broke new ground.
+   *
+   * Called with the character *after* the clear, so the record it reads is the
+   * one the clear wrote — and compared against the record before, so a raid
+   * through four new floors is paid for all four.
+   */
+  async function bankEchoes(before: number, after: number): Promise<number> {
+    const account = store.get().account;
+    if (!account || after <= before) return 0;
+
+    const earned = echoesForNewGround(before, after);
+    if (earned <= 0) return 0;
+
+    const updated = grantEchoes(account, earned);
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
+    return earned;
+  }
+
   /** The bag's size right now — an account upgrade, so it is read, not assumed. */
   function capacity(): number {
     return backpackCapacity(store.get().account ?? { backpackSlots: 0 });
@@ -315,10 +350,12 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
   return {
     async fight(floor) {
-      const result = fightFloor(active(), floor, clock().now());
+      const before = active().tower.highestFloorEverCleared;
+      const result = fightFloor(active(), floor, clock().now(), echoes());
       const character = withQuests(result.character, floorEvents(result));
       await commit(character);
       await recordSightings([result]);
+      await bankEchoes(before, character.tower.highestFloorEverCleared);
       return { ...result, character };
     },
 
@@ -338,12 +375,14 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     },
 
     async raid(throughFloor) {
-      const result = quickRaid(active(), throughFloor, clock().now());
+      const before = active().tower.highestFloorEverCleared;
+      const result = quickRaid(active(), throughFloor, clock().now(), echoes());
       const events = result.floors.flatMap(floorEvents);
       const character = withQuests(result.character, events);
       await commit(character);
       // One account write for the whole raid rather than one per floor.
       await recordSightings(result.floors);
+      await bankEchoes(before, character.tower.highestFloorEverCleared);
       return { ...result, character };
     },
 
@@ -620,6 +659,21 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         value: undefined,
         character: await commit({ ...character, wishlist: slot }),
       };
+    },
+
+    async buyEchoNode(id) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const result = buyEchoRank(account, id);
+      if (typeof result === 'string') {
+        return { ok: false, reason: result === 'maxRank' ? 'maxed' : 'notEnoughEchoes' };
+      }
+
+      await save.saveAccount(result);
+      accountLoaded(store, result);
+      // Nothing on the character changed, but every caller expects one back.
+      return { ok: true, value: result.echoes, character: active() };
     },
 
     async buyUpgrade(id) {

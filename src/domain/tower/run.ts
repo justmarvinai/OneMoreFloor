@@ -23,6 +23,7 @@ import type { Character } from '../character/types.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { bracketFor } from '../power/brackets.ts';
 import { wornPowers } from '../items/sets.ts';
+import { NO_ECHOES, type EchoBonuses } from '../account/echoes.ts';
 import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
 import { grantReward } from '../rewards/grant.ts';
@@ -99,7 +100,12 @@ export function bracketForCharacter(character: Character) {
  * Rewards are rolled during resolution from the same seed, so a skipped fight
  * and a watched one produce identical loot (Q8) — the property test asserts it.
  */
-export function fightFloor(character: Character, floor: number, now: number): FloorResult {
+export function fightFloor(
+  character: Character,
+  floor: number,
+  now: number,
+  echoes: EchoBonuses = NO_ECHOES,
+): FloorResult {
   const generated = generateFloor(character.tower.runSeed, floor, character.curses);
   const seed = `${character.tower.runSeed}/combat:${floor}`;
 
@@ -134,6 +140,7 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
     ascension: character.progression.ascension,
     curses: character.curses,
     isElite: generated.isElite,
+    echoes,
     rng: createRng(`${seed}/reward`),
   });
 
@@ -317,6 +324,7 @@ export function quickRaid(
   character: Character,
   throughFloor: number,
   now: number,
+  echoes: EchoBonuses = NO_ECHOES,
 ): QuickRaidResult {
   const floors: FloorResult[] = [];
   let current = character;
@@ -328,7 +336,7 @@ export function quickRaid(
   for (let floor = current.tower.currentRunFloor; floor <= throughFloor; floor += 1) {
     if (!canQuickRaid(current, floor)) break;
 
-    const result = fightFloor(current, floor, now);
+    const result = fightFloor(current, floor, now, echoes);
     floors.push(result);
     current = result.character;
 

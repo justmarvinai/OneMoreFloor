@@ -28,6 +28,18 @@ import type { AutoClimbMode, Character } from '../character/types.ts';
 
 export { AUTO_CLIMB_FLOOR_DELAY_MS, BACKGROUND_AUTO_CLIMB_LEVEL };
 
+/**
+ * How long the climb waits between floors, after the account's Patience (Q36).
+ *
+ * The echo node shortens the wait; it can never remove it. Patience is capped
+ * below one in `echoBonuses` precisely so this stays true — auto-climb must
+ * never become the fastest way to play (Q32), and a node that could make it so
+ * would undo the whole design in six purchases.
+ */
+export function autoClimbDelayMs(patience = 0): number {
+  return Math.max(1000, Math.round(AUTO_CLIMB_FLOOR_DELAY_MS * (1 - Math.min(0.5, patience))));
+}
+
 /** Every mode a player can choose, in the order the control offers them. */
 export const AUTO_CLIMB_MODES: readonly AutoClimbMode[] = ['off', 'watching', 'background'];
 

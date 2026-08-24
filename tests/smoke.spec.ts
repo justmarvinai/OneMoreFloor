@@ -1483,6 +1483,57 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
 
 /* --- Round six: more to do, and more to tinker with ----------------------- */
 
+test('echoes are paid for new ground and bought on the account screen (Q36)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Nothing earned yet, and every node is offered with no prerequisites.
+  await goToSection(page, 'Account');
+  const echoes = page.locator('[data-testid="echoes"]');
+  await expect(echoes).toBeVisible();
+  await expect(echoes.locator('.omf-echoes__card')).toHaveCount(6);
+  await expect(echoes).toContainText('0 earned in all');
+
+  const spoils = page.locator('[data-testid="echo-spoils"]');
+  const deepen = spoils.getByRole('button', { name: 'Deepen' });
+  await expect(deepen).toBeDisabled();
+  // The reason is on the card, not a hover away.
+  await expect(spoils).toContainText(/more echoes/i);
+
+  // Nothing in the rail yet: the balance appears with the first echo, not before.
+  const railEchoes = page.locator('[data-testid="wallet-echoes"]');
+  await expect(railEchoes).toBeHidden();
+
+  // Climbing new ground pays them, and the rail carries the number — no toast
+  // per floor, because on a fresh climb every floor is new ground.
+  await goToSection(page, 'Tower');
+  await climb(page, 3);
+  await expect(railEchoes).toBeVisible();
+
+  await goToSection(page, 'Account');
+  await expect(echoes).not.toContainText('0 earned in all');
+
+  // Keep climbing until the first rank is affordable, then buy it.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await deepen.isEnabled()) break;
+    await goToSection(page, 'Tower');
+    await climb(page, 4);
+    await goToSection(page, 'Account');
+  }
+  await expect(deepen, 'the climb never paid enough echoes for one rank').toBeEnabled();
+
+  // Re-entered rather than clicked in place: the screen rebuilds after every
+  // climb, and a click racing that rebuild lands on a node already gone.
+  await goToSection(page, 'Tower');
+  await goToSection(page, 'Account');
+  await expect(echoes).toBeVisible();
+  await deepen.click();
+  await expect(spoils).toContainText('Rank 1 of 5');
+  // Spent, so the purse fell — and the lifetime total did not.
+  await expect(spoils).not.toContainText('Now: Nothing yet');
+});
+
 test('the workbench rescues material the hero has climbed past (Q43)', async ({ page }) => {
   test.slow();
   await enterSelect(page);

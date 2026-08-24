@@ -7,6 +7,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Echoes of the Spire — the layer that outlives a hero.** A permanent account
+  currency, paid once for each floor the account has never cleared. That one rule
+  is the whole design: re-climbing earns nothing, so echoes cannot be farmed, and
+  death takes none away, so the second hero starts ahead of where the first did
+  because of what the first did. Six nodes on the Account screen deepen five ranks
+  each, all of them offered from the start with no prerequisites — Spoils (gold
+  from every floor), Insight (experience), Prospect (materials), Fortune's Eye
+  (tickets on the way up), Patience (a shorter auto-climb wait) and Coffers
+  (backpack sockets). Patience is capped below half, permanently, so no amount of
+  deepening makes auto-climb the fastest way to play (Q32); Coffers adds sockets
+  *above* the purchased ceiling rather than inside it, so a reward the climb earns
+  does not stop mattering the moment the shop is affordable. The balance rides in
+  the rail beside gold, and nothing toasts: on a fresh climb every floor is new
+  ground, so a toast per floor would be a toast per fight.
 - **Curses: the enemy affix system, on the player's side.** From level 100 a hero
   can take up to three, and each raises a stat on *every* enemy in the Spire
   while raising what every floor pays. It is the mirror of the procedural
@@ -90,6 +104,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- The rail's wallet is built whole and painted from the state rather than
+  assembled from whatever the hero happened to hold when the screen was made.
+  A balance earned while the player stands somewhere else — a background
+  auto-climb banking echoes — now appears where the number keeps rising, instead
+  of waiting for the next screen change.
 - Save schema **v6**. One bump carries the whole polish round's new state:
   accounts gained a backpack size and a bestiary; characters gained saved
   loadouts, a rite wish list, curses, and — inside `tower` — milestones claimed,

@@ -40,6 +40,7 @@ import { defsForBracket, generateItem, pickBase } from '../items/generate.ts';
 import { RARITIES, type ItemInstance, type Rarity } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
 import { curseRewardMultiplier } from './curses.ts';
+import { NO_ECHOES, type EchoBonuses } from '../account/echoes.ts';
 
 export interface FloorReward {
   gold: number;
@@ -61,6 +62,12 @@ export interface RollRewardInput {
   ascension: AscensionTier;
   /** An elite floor pays more, and always pays gear (Q44). */
   isElite?: boolean;
+  /**
+   * What the account's echo tree adds (Q36). Absent means none — every caller
+   * without an account in hand rolls the unmodified floor, which is what the
+   * simulator and the balance gates measure.
+   */
+  echoes?: EchoBonuses;
   /**
    * Curses the player has taken (Q35). They multiply gold, experience and
    * materials — never the bracket, so §13 holds with a full set of them on.
@@ -142,6 +149,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   // than to the curve so the curve keeps meaning "what floor N is worth".
   const curses = curseRewardMultiplier(input.curses ?? []);
   const elite = input.isElite === true;
+  const echoes = input.echoes ?? NO_ECHOES;
   const multiplier =
     (isBoss ? BOSS_REWARD_MULTIPLIER : elite ? ELITE_REWARD_MULTIPLIER : 1) * curses;
 
@@ -150,6 +158,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     Math.round(
       evaluate({ kind: 'exponential', ...FLOOR_GOLD }, floor) *
         multiplier *
+        echoes.gold *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -158,6 +167,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     Math.round(
       evaluate({ kind: 'exponential', ...FLOOR_XP }, floor) *
         multiplier *
+        echoes.xp *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -169,7 +179,10 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   if (rng.chance(materialChance)) {
     const range = isBoss ? BOSS_MATERIAL_COUNT : elite ? ELITE_MATERIAL_COUNT : MATERIAL_COUNT;
     const id = materialIdForTier(bracket.materialTier);
-    materials[id] = Math.max(1, Math.round(rng.int(range.min, range.max) * curses));
+    materials[id] = Math.max(
+      1,
+      Math.round(rng.int(range.min, range.max) * curses * echoes.materials),
+    );
   }
 
   const items: ItemInstance[] = [];
@@ -195,8 +208,8 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     xp,
     materials,
     items,
-    tickets: rng.chance(ticketChance) ? 1 : 0,
-    luckyTickets: rng.chance(luckyChance) ? 1 : 0,
+    tickets: rng.chance(Math.min(1, ticketChance * echoes.tickets)) ? 1 : 0,
+    luckyTickets: rng.chance(Math.min(1, luckyChance * echoes.tickets)) ? 1 : 0,
   };
 }
 

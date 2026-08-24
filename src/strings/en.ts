@@ -48,6 +48,12 @@ export const en = {
   'currency.luckyTickets.use': 'One rite each at the Rite of Fortune, where the odds are kinder.',
   'currency.luckyTickets.where':
     'Rare from floors, likelier from bosses, and the reward the tour pays on completion.',
+  'currency.echoes.what': 'Echo of the Spire',
+  'currency.echoes.use':
+    'Deepened on the Account screen, into bonuses every hero on this account is born with.',
+  'currency.echoes.where':
+    'Paid once for each floor the account has never cleared. Re-climbing earns none, ' +
+    'and death takes none away.',
 
   'nav.hero.toCharacter': 'Open the character sheet',
   'nav.hero.here': 'You are looking at the character sheet',
@@ -525,6 +531,40 @@ export const en = {
   'curse.dominion': 'Dominion',
   'curse.dominion.desc':
     'Everything in the Spire is greater in every way. The Spire pays most for this one.',
+
+  // Echoes of the Spire — the permanent account tree (Q36).
+  'echo.title': 'Echoes of the Spire',
+  'echo.subtitle':
+    'Paid for ground nobody has walked. Spent once, kept forever — no reset touches them.',
+  'echo.held': '{count} unspent',
+  'echo.earned': '{count} earned in all',
+  'echo.rank': 'Rank {rank} of {max}',
+  'echo.buy': 'Deepen',
+  'echo.maxed': 'Fully deepened',
+  'echo.cost': '{cost} echoes',
+  'echo.short': '{missing} more echoes and this rank opens.',
+  'echo.now': 'Now: {value}',
+  'echo.next': 'Next rank: {value}',
+  'echo.none': 'Nothing yet',
+  'echo.percent': '+{percent}%',
+  'echo.sockets': '+{count} sockets',
+  'echo.refused.maxRank': 'Nothing deeper',
+  'echo.refused.maxRankBody': 'This one is as deep as it goes.',
+  'echo.refused.notEnough': 'Not enough echoes',
+  'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
+
+  'echo.spoils': 'Spoils',
+  'echo.spoils.desc': 'Every floor hands over more gold.',
+  'echo.insight': 'Insight',
+  'echo.insight.desc': 'Every floor teaches more.',
+  'echo.prospect': 'Prospect',
+  'echo.prospect.desc': 'Every floor gives up more of what it is made of.',
+  'echo.fortune': "Fortune's Eye",
+  'echo.fortune.desc': 'Tickets turn up more often on the way up.',
+  'echo.patience': 'Patience',
+  'echo.patience.desc': 'The auto-climb waits less between floors.',
+  'echo.coffers': 'Coffers',
+  'echo.coffers.desc': 'More sockets in every backpack this account owns.',
 
   // Sets and named uniques (Q45).
   'set.ironbound': 'Ironbound',

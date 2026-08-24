@@ -401,6 +401,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'atCeiling':
           refuse(t('bench.refused.atCeiling'), t('bench.refused.atCeilingBody'));
           return;
+        case 'notEnoughEchoes':
+          refuse(t('echo.refused.notEnough'), t('echo.refused.notEnoughBody'));
+          return;
+        case 'maxed':
+          refuse(t('echo.refused.maxRank'), t('echo.refused.maxRankBody'));
+          return;
         case 'notEnoughMaterials':
           refuse(t('item.reforgeShort'), t('item.reforgeShortBody'));
           return;
@@ -640,6 +646,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
               account: store.get().account!,
               character: requireCharacter(),
               onBuy: (id) => void session.buyUpgrade(id).then(refreshScreen),
+              onDeepen: (id) => {
+                void session.buyEchoNode(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

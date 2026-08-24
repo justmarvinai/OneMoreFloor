@@ -2383,6 +2383,18 @@ body > .fui-tooltip .fui-tooltip__price {
   overflow-y: auto;
 }
 
+/**
+ * Every block keeps its own height and the column scrolls.
+ *
+ * Flex items shrink by default, and a shrunk block does not clip what it holds
+ * — it lets it spill over whatever is underneath. With the echo tree added
+ * above the upgrade cards that put the tree's buttons *behind* the cards' chips,
+ * which is the kind of bug that only shows up when something tries to click one.
+ */
+.omf-upgrades > * {
+  flex: 0 0 auto;
+}
+
 /* Three cards since Q30 added the backpack. `auto-fit` rather than a fixed
    three, so the rack still reads on a narrow window and would take a fourth
    without a second edit here. */
@@ -3283,4 +3295,101 @@ body > .fui-tooltip .fui-tooltip__price {
 
 .omf-sets__bonus[data-active='false']::before {
   content: '○ ';
+}
+
+/* --- Echoes of the Spire -------------------------------------------------- */
+
+/**
+ * The permanent layer, above the gold upgrades on the account's own screen.
+ *
+ * Six open nodes in one grid rather than a branching lattice: the tree is a set
+ * of choices about *what to speed up first*, and drawing it as a dependency
+ * graph would imply an order it does not have.
+ */
+.omf-echoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.omf-echoes__purse {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.omf-echoes__earned {
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-echoes__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.omf-echoes__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+}
+
+/* Bought out: quiet, but never hidden — a finished node is progress on display. */
+.omf-echoes__card[data-maxed='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 40%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 30%), rgb(0 0 0 / 26%));
+}
+
+.omf-echoes__name {
+  font-size: 0.9rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-echoes__rank {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-echoes__desc {
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--fui-ink-dim);
+}
+
+.omf-echoes__now {
+  margin: 0 0 4px;
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-echoes__maxed {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold, #d8b26a);
+}
+
+.omf-echoes__card .fui-btn {
+  margin-top: auto;
+}
+
+.omf-echoes__short {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--fui-ink-faint);
 }
