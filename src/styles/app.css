@@ -172,6 +172,24 @@ body {
   }
 }
 
+/*
+ * A second step for laptop glass. The rail has always scrolled on a window this
+ * short — that is the designed answer, and the smoke test proves the nav never
+ * grows through the button under it — but every destination added since is
+ * another row below the fold. Tightening the rows here buys back more than the
+ * Talents row cost, so a 720-tall window reaches further down the rail than it
+ * did before the destination existed.
+ */
+@media (max-height: 780px) {
+  .omf-shell__rail > .fui-sidenav {
+    --fui-nav-size: 36px;
+  }
+
+  .omf-shell__rail .fui-sidenav__group:not(.fui-sidenav__group--footer) .fui-sidenav__item {
+    max-height: 44px;
+  }
+}
+
 .omf-shell__main {
   min-width: 0;
   min-height: 0;
@@ -3392,4 +3410,198 @@ body > .fui-tooltip .fui-tooltip__price {
   font-size: 0.68rem;
   line-height: 1.35;
   color: var(--fui-ink-faint);
+}
+
+/* --- Talents (Q38) ------------------------------------------------------- */
+
+.omf-talentsScreen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.omf-talents {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* The ledger: points in hand on the left, the way back out on the right. */
+.omf-talents__ledger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-talents__earned {
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-talents__undo {
+  margin-left: auto;
+}
+
+.omf-talents__tier {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * A row that has not opened is dimmed rather than hidden: what is coming is
+ * half the reason to keep spending, and a tree that only shows what you already
+ * have teaches nothing about where it goes.
+ */
+.omf-talents__tier[data-open='false'] {
+  opacity: 0.62;
+}
+
+.omf-talents__tierHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.omf-talents__tierName {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-talents__tierGate {
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-talents__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.omf-talent {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+}
+
+/* Learned to the brim: gold, and still readable. */
+.omf-talent[data-maxed='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 40%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 30%), rgb(0 0 0 / 26%));
+}
+
+.omf-talent[data-locked='true'] {
+  border-style: dashed;
+}
+
+.omf-talent__mark {
+  width: 30px;
+  height: 30px;
+  background: var(--fui-gold-soft, #f0d9a0);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.omf-talent[data-locked='true'] .omf-talent__mark {
+  background: var(--fui-ink-faint);
+}
+
+.omf-talent__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.omf-talent__name {
+  font-size: 0.9rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-talent__rank {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-talent__desc {
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--fui-ink-dim);
+}
+
+.omf-talent__now {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  color: var(--fui-ink);
+}
+
+/* Five pips, always: the tree is legible from across the screen. */
+.omf-talent__pips {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0 4px;
+}
+
+.omf-talent__pip {
+  width: 12px;
+  height: 5px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 2px;
+  background: rgb(0 0 0 / 35%);
+}
+
+.omf-talent__pip[data-on='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 60%, transparent);
+  background: var(--fui-gold, #d8b26a);
+}
+
+.omf-talent__maxed {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+/* Why not, on the card rather than a hover away (§20.5). */
+.omf-talent__refusal {
+  margin: 4px 0 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--fui-ink-faint);
+}
+
+.omf-respec__body {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--fui-ink-dim);
+}
+
+.omf-respec__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }

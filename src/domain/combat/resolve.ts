@@ -34,12 +34,14 @@ import {
 } from './effects.ts';
 import { fillFor, planSignature, type FillEvent } from './signature.ts';
 import type {
+  CombatTalents,
   Combatant,
   CombatEvent,
   CombatOutcome,
   CombatScript,
   CombatantSnapshot,
   EffectDef,
+  HealSource,
   UnitId,
 } from './types.ts';
 
@@ -132,6 +134,9 @@ export function resolveCombat(input: ResolveInput): CombatScript {
 
     for (const unit of [hero, enemy]) {
       gainResource(unit, 'roundEnd');
+      // Regeneration closes wounds between exchanges rather than during one, so
+      // it can never save a unit from the blow that killed it (Q38).
+      heal(unit, unit.maxHp * talent(unit, 'regeneration'), 'regeneration');
       for (const effectId of tickEffects(unit)) {
         events.push({ type: 'effectExpired', unit: unit.id, effectId });
       }
@@ -159,10 +164,23 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     return unit.powers?.includes(id) === true ? UNIQUE_MAGNITUDE[id] : 0;
   }
 
+  /**
+   * What a unit's talent tree is worth on one lever, or zero when it has none
+   * (Q38).
+   *
+   * Same shape as `power` above and for the same reason: the engine reads a
+   * number, never a character. Enemies simply have no bundle, so every call here
+   * is a zero for them without a single branch saying so.
+   */
+  function talent(unit: Combatant, lever: keyof CombatTalents): number {
+    return unit.talents?.[lever] ?? 0;
+  }
+
   function gainResource(unit: Combatant, event: FillEvent): void {
     // Quickening: the bar fills faster, which is the only thing in the game that
     // changes how *often* a signature happens rather than how hard it hits.
-    const fraction = fillFor(unit, event) * (1 + power(unit, 'swiftCharge'));
+    const fraction =
+      fillFor(unit, event) * (1 + power(unit, 'swiftCharge') + talent(unit, 'resourceFill'));
     if (fraction <= 0 || unit.resource.pool <= 0) return;
 
     const from = unit.resource.current;
@@ -207,7 +225,11 @@ export function resolveCombat(input: ResolveInput): CombatScript {
 
   function performSignature(actor: Combatant, target: Combatant): void {
     const kind = actor.signature!;
-    const plan = planSignature(kind, actor, songIndex);
+    const base = planSignature(kind, actor, songIndex);
+    // Talents scale what the bar buys, not how often it fills — that lever is
+    // `resourceFill`, and keeping the two apart is what lets a build choose
+    // between more signatures and bigger ones (Q38).
+    const plan = { ...base, perHit: base.perHit * (1 + talent(actor, 'signature')) };
     if (kind === 'crescendo') songIndex += 1;
 
     events.push({ type: 'action', unit: actor.id, kind: 'signature', signature: kind });
@@ -244,7 +266,8 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     const crit = rng.chance(bandRelative(attacker.luck, band.critReference, CRIT.cap));
     // Spirekeen: a bigger crit rather than a more frequent one, so it rewards
     // Luck the hero already has instead of replacing the need for it.
-    const critMultiplier = CRIT.multiplier * (1 + power(actor, 'deadlyCrits'));
+    const critMultiplier =
+      CRIT.multiplier * (1 + power(actor, 'deadlyCrits') + talent(actor, 'critDamage'));
     const raw =
       attacker.strength *
       STRIKE_STRENGTH_COEFFICIENT *
@@ -256,7 +279,11 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     const mitigated = raw * diminishing(effectiveDefense, band.defenseK);
     // Stoneward is a flat share off everything, stacking with the effect-based
     // reductions rather than replacing them.
-    const guarded = mitigated * (1 - damageReduction(target)) * (1 - power(target, 'bulwark'));
+    const guarded =
+      mitigated *
+      (1 - damageReduction(target)) *
+      (1 - power(target, 'bulwark')) *
+      (1 - talent(target, 'damageReduction'));
 
     // Every blow does something: a hit that rounds to zero reads as a bug.
     const amount = Math.max(1, Math.round(guarded));
@@ -283,7 +310,7 @@ export function resolveCombat(input: ResolveInput): CombatScript {
   }
 
   /** Return health to a unit, capped at its pool and never below one point. */
-  function heal(unit: Combatant, amount: number, source: UniquePowerId): void {
+  function heal(unit: Combatant, amount: number, source: HealSource): void {
     if (amount <= 0 || unit.hp <= 0 || unit.hp >= unit.maxHp) return;
 
     const given = Math.max(1, Math.round(amount));

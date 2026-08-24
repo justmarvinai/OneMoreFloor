@@ -29,6 +29,15 @@ export interface PowerInputs {
   stats: StatBlock;
   ascension: number;
   highestFloorEverCleared: number;
+  /**
+   * What the hero's talent tree is worth (Q38).
+   *
+   * Required rather than optional, and computed by `talentPower`, because a
+   * caller that could leave it out would be a §13 hole with no symptom: the
+   * drops would simply be a little too generous for a build nobody measured.
+   * Build these inputs with `powerInputsFor` and it cannot be forgotten.
+   */
+  talents: number;
 }
 
 export interface PowerBreakdown {
@@ -45,6 +54,8 @@ export interface PowerBreakdown {
    * line is what keeps §13 honest about them.
    */
   uniques: number;
+  /** What talents that grant no stat are worth (Q38). */
+  talents: number;
   total: number;
 }
 
@@ -82,6 +93,7 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
   const tower =
     evaluate(POWER_TOWER_CURVE, Math.max(0, inputs.highestFloorEverCleared)) * POWER_WEIGHTS.tower;
   const uniques = wornPowers(inputs.equipped).length * UNIQUE_POWER_LEVEL;
+  const talents = Math.max(0, inputs.talents);
 
   return {
     gear,
@@ -89,7 +101,8 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
     ascension,
     tower,
     uniques,
-    total: Math.round(gear + stats + ascension + tower + uniques),
+    talents,
+    total: Math.round(gear + stats + ascension + tower + uniques + talents),
   };
 }
 

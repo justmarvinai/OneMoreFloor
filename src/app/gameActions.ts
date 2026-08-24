@@ -81,6 +81,12 @@ import {
   type TransmuteRefusal,
 } from '@/domain/items/workbench.ts';
 import { toggleCurse, type CurseRefusal } from '@/domain/tower/curses.ts';
+import {
+  learnTalent,
+  pointsAvailable,
+  respecCost,
+  respecTalents,
+} from '@/domain/talents/talents.ts';
 import { reforge, salvageFromInventory } from '@/domain/items/salvage.ts';
 import {
   canPull,
@@ -105,6 +111,11 @@ export type Refusal =
   | PresetCaptureRefusal
   | 'atCeiling'
   | 'notEnoughEchoes'
+  | 'notEnoughPoints'
+  | 'tierLocked'
+  | 'nothingLearned'
+  | 'wrongClass'
+  | 'noSuchTalent'
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -168,6 +179,10 @@ export interface GameActions {
   buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
   /** Deepen one node of the echo tree; the value is the echoes left (Q36). */
   buyEchoNode(id: string): Promise<Outcome<number>>;
+  /** Spend one talent point; the value is the points still unspent (Q38). */
+  learnTalent(id: string): Promise<Outcome<number>>;
+  /** Unlearn the whole tree for gold; the value is what it cost (Q38). */
+  respecTalents(): Promise<Outcome<number>>;
 
   /**
    * Spend one ticket on one pull (Brief §16, Q20).
@@ -674,6 +689,28 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       accountLoaded(store, result);
       // Nothing on the character changed, but every caller expects one back.
       return { ok: true, value: result.echoes, character: active() };
+    },
+
+    async learnTalent(id) {
+      const character = active();
+      const result = learnTalent(character, id);
+      if (typeof result === 'string') {
+        return { ok: false, reason: result === 'maxRank' ? 'maxed' : result };
+      }
+
+      return { ok: true, value: pointsAvailable(result), character: await commit(result) };
+    },
+
+    async respecTalents() {
+      const character = active();
+      const cost = respecCost(character);
+      const result = respecTalents(character);
+      if (typeof result === 'string') return { ok: false, reason: result };
+
+      // Gold spent is gold spent, whatever it bought: the quest board counts it
+      // like any other purchase, so a respec can advance a spending quest.
+      const paid = withQuests(result, [{ kind: 'goldSpent', amount: cost }]);
+      return { ok: true, value: cost, character: await commit(paid) };
     },
 
     async buyUpgrade(id) {

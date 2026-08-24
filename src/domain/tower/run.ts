@@ -18,7 +18,7 @@ import { getClass } from '@/content/classes/index.ts';
 import { signatureFor } from '../combat/signature.ts';
 import { resolveCombat } from '../combat/resolve.ts';
 import type { CombatScript, Combatant } from '../combat/types.ts';
-import { combatStatsOf, equippedItems, totalStatsOf } from '../character/character.ts';
+import { combatStatsOf, equippedItems, powerInputsFor } from '../character/character.ts';
 import type { Character } from '../character/types.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { bracketFor } from '../power/brackets.ts';
@@ -27,6 +27,7 @@ import { NO_ECHOES, type EchoBonuses } from '../account/echoes.ts';
 import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
 import { grantReward } from '../rewards/grant.ts';
+import { talentBonuses } from '../talents/talents.ts';
 import { emptyReward, mergeRewards, rollFloorReward, type FloorReward } from './rewards.ts';
 import { milestoneUnclaimed, rollMilestoneReward } from './milestones.ts';
 
@@ -61,12 +62,23 @@ export function heroCombatant(character: Character, now: number): Combatant {
   const offhand = character.equipment.offhand;
   const hasShield = offhand !== undefined && requireItemDef(offhand.defId).weaponKind === 'shield';
 
+  const talents = talentBonuses(character);
+
   return {
     id: 'hero',
     // Rules carried by named uniques the hero is wearing (Q45). Collected here
     // rather than read from the character inside the engine, because the engine
     // must never know what a character is.
     powers: wornPowers(equippedItems(character)),
+    // The four levers a talent tree pulls inside a fight (Q38), for the same
+    // reason and by the same route. Stats are already in `stats` above them.
+    talents: {
+      signature: talents.signature,
+      resourceFill: talents.resourceFill,
+      critDamage: talents.critDamage,
+      damageReduction: talents.damageReduction,
+      regeneration: talents.regeneration,
+    },
     nameKey: definition.nameKey,
     sourceId: character.identity.classId,
     avatar: definition.art.portrait,
@@ -84,14 +96,7 @@ export function heroCombatant(character: Character, now: number): Combatant {
 }
 
 export function bracketForCharacter(character: Character) {
-  return bracketFor(
-    powerLevel({
-      equipped: equippedItems(character),
-      stats: totalStatsOf(character),
-      ascension: character.progression.ascension,
-      highestFloorEverCleared: character.tower.highestFloorEverCleared,
-    }),
-  );
+  return bracketFor(powerLevel(powerInputsFor(character)));
 }
 
 /**
@@ -141,6 +146,9 @@ export function fightFloor(
     curses: character.curses,
     isElite: generated.isElite,
     echoes,
+    // Read from the hero here rather than passed in by the caller: the tree is
+    // the character's own, so nothing outside can forget to apply it (Q38).
+    talents: talentBonuses(character),
     rng: createRng(`${seed}/reward`),
   });
 

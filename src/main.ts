@@ -40,6 +40,7 @@ import { t, type StringKey } from './strings/index.ts';
 import { sellValue } from './domain/items/upgrade.ts';
 import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
+import { createTalentsScreen } from './ui/screens/talents.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
@@ -77,6 +78,7 @@ type ScreenId =
   | 'combat'
   | 'raid'
   | 'character'
+  | 'talents'
   | 'equipmentMerchant'
   | 'magicMerchant'
   | 'gacha'
@@ -248,6 +250,9 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'records':
           router.go('records');
           return;
+        case 'talents':
+          router.go('talents');
+          return;
         case 'upgrades':
           router.go('upgrades');
           return;
@@ -400,6 +405,15 @@ export async function boot(mount: HTMLElement): Promise<void> {
           return;
         case 'atCeiling':
           refuse(t('bench.refused.atCeiling'), t('bench.refused.atCeilingBody'));
+          return;
+        case 'notEnoughPoints':
+          refuse(t('talent.refused.points'), t('talent.refused.pointsBody'));
+          return;
+        case 'tierLocked':
+          refuse(t('talent.refused.tier'), t('talent.refused.tierBody'));
+          return;
+        case 'nothingLearned':
+          refuse(t('talent.refused.none'), t('talent.refused.noneBody'));
           return;
         case 'notEnoughEchoes':
           refuse(t('echo.refused.notEnough'), t('echo.refused.notEnoughBody'));
@@ -633,6 +647,30 @@ export async function boot(mount: HTMLElement): Promise<void> {
             main: createRecordsScreen({
               character: requireCharacter(),
               account: store.get().account!,
+            }),
+          }),
+
+        talents: () =>
+          createShell({
+            store,
+            active: 'talents',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createTalentsScreen({
+              character: requireCharacter(),
+              onLearn: (id) => {
+                void session.learnTalent(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
+              onRespec: () => {
+                void session.respecTalents().then((outcome) => {
+                  if (outcome.ok) notify(t('talent.respecDone'), t('talent.respecDoneBody'));
+                  else sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

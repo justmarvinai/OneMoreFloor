@@ -58,6 +58,29 @@ export interface CombatantResource {
 }
 
 /** A unit as the engine tracks it through a fight. */
+/**
+ * What a talent tree is worth inside a fight (Q38).
+ *
+ * Only the four levers the engine actually has. Everything else a tree does —
+ * stats, gold, experience, materials — has already been folded in by the time a
+ * fight starts, or belongs to the reward roll rather than to combat.
+ */
+export interface CombatTalents {
+  /** Added to signature-move damage. */
+  signature: number;
+  /** Added to how fast the resource bar fills. */
+  resourceFill: number;
+  /** Added to the extra damage a critical hit deals. */
+  critDamage: number;
+  /** Share of every incoming blow turned aside. */
+  damageReduction: number;
+  /** Share of the unit's pool healed at the end of each round. */
+  regeneration: number;
+}
+
+/** What paid for a heal — a named unique, or the hero's own talent tree. */
+export type HealSource = UniquePowerId | 'regeneration';
+
 export interface Combatant {
   id: UnitId;
   /**
@@ -66,6 +89,15 @@ export interface Combatant {
    * field every enemy definition has to remember to leave blank.
    */
   powers?: readonly UniquePowerId[];
+  /**
+   * Numbers a hero's talent tree contributes (Q38).
+   *
+   * A bundle of plain fractions rather than a reference to the character: the
+   * engine must never know what a character *is*, so `heroCombatant` reads the
+   * tree and hands the engine the arithmetic. Absent is the same as none, which
+   * is why no enemy definition has to carry an empty one.
+   */
+  talents?: CombatTalents;
   nameKey: string;
   /** Class for the hero, enemy definition id otherwise — for the UI's art. */
   sourceId: ClassId | string;
@@ -127,7 +159,7 @@ export type CombatEvent =
       /** Health after it, so the performer never recomputes. */
       unitHp: number;
       /** Which rule paid for it, so the stage can name it. */
-      source: UniquePowerId;
+      source: HealSource;
     }
   | { type: 'resource'; unit: UnitId; from: number; to: number; full: boolean }
   | { type: 'effectApplied'; unit: UnitId; effect: EffectDef }

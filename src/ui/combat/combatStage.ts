@@ -379,7 +379,12 @@ export class CombatStage {
             actor: this.names[step.unit],
             text: t('combat.log.heal', {
               amount: step.amount,
-              power: t(UNIQUE_POWERS[step.source].nameKey),
+              // A heal is named by whatever paid for it: a worn unique, or the
+              // hero's own tree. The log line reads the same either way.
+              power:
+                step.source === 'regeneration'
+                  ? t('talent.regeneration')
+                  : t(UNIQUE_POWERS[step.source].nameKey),
             }),
             turn: this.round,
           },

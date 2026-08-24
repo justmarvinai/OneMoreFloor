@@ -48,7 +48,7 @@ import { CLASSES } from '@/content/classes/index.ts';
 import { potionFor } from '@/content/items/potions.ts';
 import { backpackCapacity } from '@/domain/character/account.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
-import { equippedItems, totalStatsOf } from '@/domain/character/character.ts';
+import { powerInputsFor } from '@/domain/character/character.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
 import { powerLevel } from '@/domain/power/power.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
@@ -74,6 +74,7 @@ import { t } from '@/strings/index.ts';
 export type ShellSection =
   | 'tower'
   | 'character'
+  | 'talents'
   | 'equipmentMerchant'
   | 'magicMerchant'
   | 'gacha'
@@ -85,6 +86,7 @@ export type ShellSection =
 const NAV_ORDER: readonly ShellSection[] = [
   'tower',
   'character',
+  'talents',
   'equipmentMerchant',
   'magicMerchant',
   'gacha',
@@ -152,6 +154,7 @@ export function createShell(options: ShellOptions): Shell {
     : {
         tower: false,
         character: false,
+        talents: false,
         equipmentMerchant: false,
         magicMerchant: false,
         gacha: false,
@@ -307,6 +310,12 @@ export function createShell(options: ShellOptions): Shell {
           ...(badges.character ? { dot: true } : {}),
         },
         {
+          id: 'talents',
+          label: t('nav.section.talents'),
+          glyph: 'glyph-holy-cross',
+          ...(badges.talents ? { dot: true } : {}),
+        },
+        {
           id: 'equipmentMerchant',
           label: t('nav.section.equipmentMerchant'),
           glyph: 'glyph-burning-scroll',
@@ -423,14 +432,7 @@ export function createShell(options: ShellOptions): Shell {
   /** Every number in the climb plate, from one character. */
   const paintClimb = (current: Character | null, now: number): void => {
     if (!current) return;
-    powerChip.set(
-      powerLevel({
-        equipped: equippedItems(current),
-        stats: totalStatsOf(current),
-        ascension: current.progression.ascension,
-        highestFloorEverCleared: current.tower.highestFloorEverCleared,
-      }),
-    );
+    powerChip.set(powerLevel(powerInputsFor(current)));
 
     const used = current.inventory.length;
     const capacity = backpackCapacity(store.get().account ?? { backpackSlots: 0 });

@@ -7,6 +7,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Class talents — the level-up becomes a question.** A tree per class, eleven
+  talents in four rows, five ranks each, and one point every level to spend on
+  them. Deeper rows cost more per rank and open on points already committed
+  rather than on prerequisites between nodes — a tree that gates C behind B is
+  only a longer way of saying "buy B" — so specialising early is genuinely
+  different from spreading thin, and a full tree is a hundred and forty points
+  of climbing rather than a formality. Every tree pulls the same nine levers
+  (five stats, signature damage, resource fill, critical damage, mitigation,
+  regeneration, and the gold, experience and materials a floor pays), and each
+  class leans on the ones its resource already rewards. Unlearning everything
+  costs gold, priced at the rate floors pay it, so changing your mind is about
+  two floors of climbing whether you have spent four points or a hundred.
+  Two rules hold the tree to the rest of the game: **nothing here can raise
+  Speed** — the effect type is built on the stat union that excludes it, so gear
+  stays its only source (§6) — and **every point is visible to the bracket**,
+  stat talents through the hero's stat total and the rest counted explicitly, so
+  a heavily-talented hero cannot draw drops sized for someone weaker (§13).
 - **Echoes of the Spire — the layer that outlives a hero.** A permanent account
   currency, paid once for each floor the account has never cleared. That one rule
   is the whole design: re-climbing earns nothing, so echoes cannot be farmed, and
@@ -104,6 +121,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- Power Level's inputs are built by one constructor rather than assembled by
+  hand at each call site. The number has grown a term a hand-written object can
+  silently omit, and an omission there is an anti-overshoot hole with no symptom
+  at all — the drops simply come out a little too generous for a build nobody
+  measured.
+- The rail's rows tighten on a laptop-height window, so a 720-tall screen now
+  reaches further down the navigation than it did before Talents was added to it.
 - The rail's wallet is built whole and painted from the state rather than
   assembled from whatever the hero happened to hold when the screen was made.
   A balance earned while the player stands somewhere else — a background

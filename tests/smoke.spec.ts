@@ -1839,3 +1839,39 @@ test('a finished run becomes a line in the records, and the record gets a ghost'
   await expect(row).toContainText(/Floor \d+/);
   await expect(row).toContainText(/gold/i);
 });
+
+test('a level buys a talent, and the tree says why it will not (Q38)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // A few floors first: unlearning costs gold, and a hero who has climbed
+  // nothing has none — which is the honest state, not a bug to design around.
+  await climb(page, 5);
+
+  await goToSection(page, 'Talents');
+  const talents = page.locator('[data-testid="talents"]');
+  await expect(talents).toBeVisible();
+
+  // A point per level, and somewhere to put every one of them.
+  await expect(talents).toContainText(/\d+ earned in all/);
+  const brawn = page.locator('[data-testid="talent-talent.warrior.brawn"]');
+  await expect(brawn).toContainText('Rank 0 of 5');
+
+  // The deepest row is shut, and says how far away it is rather than going grey
+  // in silence (§20.5).
+  const capstone = page.locator('[data-testid="talent-talent.warrior.warCry"]');
+  await expect(capstone).toContainText(/more points committed/);
+  await expect(capstone.getByRole('button', { name: /^Learn/ })).toBeDisabled();
+
+  // Spend the point.
+  await brawn.getByRole('button', { name: /^Learn/ }).click();
+  await expect(brawn).toContainText('Rank 1 of 5');
+  await expect(brawn).toContainText('+3% Strength');
+
+  // Unlearning is priced, confirmed, and gives the point back.
+  await page.locator('[data-testid="talent-respec"]').click();
+  await page.getByRole('button', { name: /^Unlearn ·/ }).click();
+  await expect(brawn).toContainText('Rank 0 of 5');
+  await expect(page.locator('[data-testid="talent-respec"]')).toContainText('Nothing learned yet');
+});

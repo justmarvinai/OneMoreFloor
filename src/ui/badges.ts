@@ -17,6 +17,7 @@ import {
   gearLevelCost,
 } from '@/domain/items/upgrade.ts';
 import { materialIdForTier } from '@/content/items/materials.ts';
+import { talentTree } from '@/domain/talents/talents.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { canEquip } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
@@ -41,6 +42,11 @@ export function computeBadges(character: Character, now: number, account?: Accou
     // Climbing is always available, so a dot here would say nothing.
     tower: false,
     character: hasCharacterAction(character),
+    // A point in hand is only news if there is somewhere to put it: a hero with
+    // three points and a tree whose open rows are all full has nothing to do
+    // here, and a dot that led to a screen with no move is the kind of lie that
+    // teaches players to ignore dots (§20.5).
+    talents: talentTree(character).some((node) => node.learnable),
     // One dot per shop, because they are two destinations now: a dot on the
     // rail has to say *which* counter has something on it, or it sends the
     // player to the wrong one and reads as a lie (§20.5).

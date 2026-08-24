@@ -41,7 +41,7 @@ import {
   combatStatsOf,
   equippedItems,
   levelCapFor,
-  totalStatsOf,
+  powerInputsFor,
 } from '@/domain/character/character.ts';
 import { EQUIP_SLOT_IDS, type Character, type EquipSlotId } from '@/domain/character/types.ts';
 import { availableSlots, canEquip, type EquipCheck } from '@/domain/items/equip.ts';
@@ -130,7 +130,6 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
   };
 
   const definition = CLASSES[character.identity.classId];
-  const durable = totalStatsOf(character);
   /**
    * How many pieces of a piece's set the hero already wears (Q45).
    *
@@ -170,14 +169,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       // The sockets belong at the sheet's edges, as they are in the reference.
       // `Paperdoll` writes its width inline, so this is how it is overridden.
       style: { width: '100%' },
-      gearScore: Math.round(
-        powerLevel({
-          equipped: equippedItems(character),
-          stats: durable,
-          ascension: character.progression.ascension,
-          highestFloorEverCleared: character.tower.highestFloorEverCleared,
-        }),
-      ),
+      gearScore: Math.round(powerLevel(powerInputsFor(character))),
     }),
   );
   paperdoll.on<{ slotId: string; item: SlotItem | null }>('equip:click', ({ slotId, item }) => {
@@ -232,14 +224,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
 
   const power = track(
     new PowerRating({
-      value: Math.round(
-        powerLevel({
-          equipped: equippedItems(character),
-          stats: durable,
-          ascension: character.progression.ascension,
-          highestFloorEverCleared: character.tower.highestFloorEverCleared,
-        }),
-      ),
+      value: Math.round(powerLevel(powerInputsFor(character))),
       label: t('character.power'),
       size: 'md',
       compact: true,

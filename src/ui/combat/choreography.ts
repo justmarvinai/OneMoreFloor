@@ -19,7 +19,7 @@ import type {
   SignatureKind,
   UnitId,
 } from '@/domain/combat/types.ts';
-import type { UniquePowerId } from '@/content/items/uniques.ts';
+import type { HealSource } from '@/domain/combat/types.ts';
 
 /**
  * Presentation timing, in milliseconds at x1. These are pacing, not balance:
@@ -83,7 +83,7 @@ export type Step =
       amount: number;
       unitHp: number;
       /** Which rule paid for it, so the card can name what healed. */
-      source: UniquePowerId;
+      source: HealSource;
     }
   | { kind: 'resource'; unit: UnitId; from: number; to: number; full: boolean }
   | { kind: 'effectOn'; unit: UnitId; effect: EffectDef }

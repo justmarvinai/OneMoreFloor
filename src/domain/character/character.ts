@@ -14,6 +14,8 @@ import { createStartingEquipment } from '../items/starting.ts';
 import type { ItemInstance } from '../items/types.ts';
 import { createMerchants } from '../merchants/merchants.ts';
 import { potionBonus } from '../potions/potions.ts';
+import type { PowerInputs } from '../power/power.ts';
+import { talentBonuses, talentPower, talentStats } from '../talents/talents.ts';
 import { emptyQuests } from '../quests/quests.ts';
 import { addStats, toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
 import { normalizeName } from './naming.ts';
@@ -147,7 +149,29 @@ export function totalStatsOf(character: Character): StatBlock {
   const durable = addStats(baseStatsOf(character), equipmentStats(worn));
   // Set bonuses are a percentage *of* the durable total, so they are folded in
   // last and never compound with each other (Q45).
-  return addStats(durable, setBonusStats(durable, worn));
+  const suited = addStats(durable, setBonusStats(durable, worn));
+  // Talents are the last layer, and a share of everything under them (Q38).
+  // Speed is untouched by construction: the talent effect type cannot name it.
+  return addStats(suited, talentStats(suited, talentBonuses(character)));
+}
+
+/**
+ * Everything Power Level is computed from, for one character.
+ *
+ * The only supported way to build them. Power Level has grown a term that a
+ * hand-assembled input object can silently omit — the talent tree (Q38) — and an
+ * omission there is a §13 hole with no symptom at all: drops simply come out a
+ * little too generous for a build nobody measured. One constructor, one place to
+ * add the next term.
+ */
+export function powerInputsFor(character: Character): PowerInputs {
+  return {
+    equipped: equippedItems(character),
+    stats: totalStatsOf(character),
+    ascension: character.progression.ascension,
+    highestFloorEverCleared: character.tower.highestFloorEverCleared,
+    talents: talentPower(character),
+  };
 }
 
 /**

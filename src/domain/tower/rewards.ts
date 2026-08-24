@@ -41,6 +41,7 @@ import { RARITIES, type ItemInstance, type Rarity } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
 import { curseRewardMultiplier } from './curses.ts';
 import { NO_ECHOES, type EchoBonuses } from '../account/echoes.ts';
+import { NO_TALENTS, type TalentBonuses } from '../talents/talents.ts';
 
 export interface FloorReward {
   gold: number;
@@ -68,6 +69,13 @@ export interface RollRewardInput {
    * simulator and the balance gates measure.
    */
   echoes?: EchoBonuses;
+  /**
+   * The hero's talent tree (Q38). Three of its nodes pay in gold, experience and
+   * materials — never in bracket, so §13 holds however the tree is spent. Absent
+   * means an untalented hero, which is what the simulator and the balance gates
+   * measure.
+   */
+  talents?: TalentBonuses;
   /**
    * Curses the player has taken (Q35). They multiply gold, experience and
    * materials — never the bracket, so §13 holds with a full set of them on.
@@ -150,6 +158,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   const curses = curseRewardMultiplier(input.curses ?? []);
   const elite = input.isElite === true;
   const echoes = input.echoes ?? NO_ECHOES;
+  const talents = input.talents ?? NO_TALENTS;
   const multiplier =
     (isBoss ? BOSS_REWARD_MULTIPLIER : elite ? ELITE_REWARD_MULTIPLIER : 1) * curses;
 
@@ -159,6 +168,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
       evaluate({ kind: 'exponential', ...FLOOR_GOLD }, floor) *
         multiplier *
         echoes.gold *
+        talents.gold *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -168,6 +178,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
       evaluate({ kind: 'exponential', ...FLOOR_XP }, floor) *
         multiplier *
         echoes.xp *
+        talents.xp *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -181,7 +192,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     const id = materialIdForTier(bracket.materialTier);
     materials[id] = Math.max(
       1,
-      Math.round(rng.int(range.min, range.max) * curses * echoes.materials),
+      Math.round(rng.int(range.min, range.max) * curses * echoes.materials * talents.materials),
     );
   }
 

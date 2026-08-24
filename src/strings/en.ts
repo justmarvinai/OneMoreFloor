@@ -553,6 +553,211 @@ export const en = {
   'echo.refused.notEnough': 'Not enough echoes',
   'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
 
+  // The talents screen (Q38).
+  'talent.title': 'The {class}\u2019s Talents',
+  'talent.subtitle': 'One point a level, and a long way down.',
+  'talent.available': 'Points',
+  'talent.spent': 'Committed',
+  'talent.earned': '{count} earned in all',
+  'talent.rank': 'Rank {rank} of {max}',
+  'talent.tier': 'Row {tier}',
+  'talent.tierOpen': '{cost} per rank',
+  'talent.tierClosed': 'Opens at {points} points committed',
+  'talent.tierShort': '{missing} more points committed and this row opens.',
+  'talent.pointsShort': '{missing} more points and this rank opens.',
+  'talent.learn': 'Learn \u00b7 {cost}',
+  'talent.cost': '{cost} points',
+  'talent.maxed': 'Fully learned',
+  'talent.now': 'Now: {value}',
+  'talent.next': 'Next rank: {value}',
+  'talent.none': 'Nothing yet',
+  'talent.value.stat': '+{percent}% {stat}',
+  'talent.value.percent': '+{percent}%',
+  'talent.value.reduction': '{percent}% of every blow turned aside',
+  'talent.value.regeneration': '{percent}% of your health each round',
+  'talent.respec': 'Unlearn all \u00b7 {cost}g',
+  'talent.respecNone': 'Nothing learned yet',
+  'talent.respecNoneBody': 'There is nothing to unlearn. Spend a point first.',
+  'talent.respecTitle': 'Unlearn everything?',
+  'talent.respecBody':
+    'Every talent is forgotten and {points} points come back to spend again. It costs {cost} gold, and the gold does not come back.',
+  'talent.respecCost': '{cost} gold',
+  'talent.respecConfirm': 'Unlearn \u00b7 {cost}g',
+  'talent.respecCancel': 'Keep them',
+  'talent.respecShort': '{missing} more gold and you could unlearn them.',
+  'talent.respecDone': 'Talents unlearned',
+  'talent.respecDoneBody': 'Every point is back in your hands.',
+  'talent.refused.points': 'Not enough points',
+  'talent.refused.pointsBody': 'Talent points come one per level. Climb.',
+  'talent.refused.tier': 'That row is not open',
+  'talent.refused.tierBody': 'Commit more points in the rows above it first.',
+  'talent.refused.none': 'Nothing to unlearn',
+  'talent.refused.noneBody': 'This hero has not spent a point yet.',
+  'nav.section.talents': 'Talents',
+
+  // What names a heal the tree paid for, in the combat log.
+  'talent.regeneration': 'Regeneration',
+
+  // The Warrior's tree (Q38).
+  'talent.warrior.brawn': 'Brawn',
+  'talent.warrior.brawn.desc':
+    'Years of swinging something heavy. Adds to everything Strength already gives you.',
+  'talent.warrior.thickHide': 'Thick Hide',
+  'talent.warrior.thickHide.desc': 'Scar over scar. Adds to the Defense you already carry.',
+  'talent.warrior.deepLungs': 'Deep Lungs',
+  'talent.warrior.deepLungs.desc':
+    'One more round in you than the fight expected. Adds to your health pool.',
+  'talent.warrior.ironSkin': 'Iron Skin',
+  'talent.warrior.ironSkin.desc': 'A share of every blow simply fails to land properly.',
+  'talent.warrior.rageBorn': 'Rage-Born',
+  'talent.warrior.rageBorn.desc':
+    'Anger arrives sooner. Rage fills faster from both giving and taking.',
+  'talent.warrior.spoilsOfWar': 'Spoils of War',
+  'talent.warrior.spoilsOfWar.desc':
+    'You go through their pockets afterwards. Every floor pays more gold.',
+  'talent.warrior.secondWind': 'Second Wind',
+  'talent.warrior.secondWind.desc':
+    'You close up between exchanges. Recover health at the end of each round.',
+  'talent.warrior.cleavingBlows': 'Cleaving Blows',
+  'talent.warrior.cleavingBlows.desc':
+    'When one lands right, it lands all the way through. Critical hits hurt more.',
+  'talent.warrior.scavenger': 'Scavenger',
+  'talent.warrior.scavenger.desc':
+    'Nothing usable gets left on the floor. Every floor gives up more materials.',
+  'talent.warrior.unbreakable': 'Unbreakable',
+  'talent.warrior.unbreakable.desc':
+    'The blow that should have ended it does not. A further share of all damage turned aside.',
+  'talent.warrior.warCry': 'War Cry',
+  'talent.warrior.warCry.desc':
+    'The bar empties into something the room hears. Berserk Strike and Shield Slam hit harder.',
+
+  // The Mage's tree (Q38).
+  'talent.mage.arcaneFocus': 'Arcane Focus',
+  'talent.mage.arcaneFocus.desc':
+    'Intent sharpened to a point. Adds to the Strength your spells are cut from.',
+  'talent.mage.deepWell': 'Deep Well',
+  'talent.mage.deepWell.desc':
+    'More to draw on before you have to stop. Adds to your resource pool.',
+  'talent.mage.wardingSigil': 'Warding Sigil',
+  'talent.mage.wardingSigil.desc':
+    'A sign held in the off hand. Adds to the Defense you already carry.',
+  'talent.mage.quickenedCasting': 'Quickened Casting',
+  'talent.mage.quickenedCasting.desc': 'The words come shorter. Mana gathers faster each round.',
+  'talent.mage.runicInsight': 'Runic Insight',
+  'talent.mage.runicInsight.desc':
+    'You read the tower as well as fight it. Every floor teaches more.',
+  'talent.mage.manaShield': 'Mana Shield',
+  'talent.mage.manaShield.desc':
+    'A thin skin of held power. A share of every blow is absorbed before it reaches you.',
+  'talent.mage.overchannel': 'Overchannel',
+  'talent.mage.overchannel.desc':
+    'More through the same channel than is strictly wise. Arcane Blast hits harder.',
+  'talent.mage.elementalFury': 'Elemental Fury',
+  'talent.mage.elementalFury.desc':
+    'When it goes right it goes very right. Critical hits hurt more.',
+  'talent.mage.transmuterEye': "Transmuter's Eye",
+  'talent.mage.transmuterEye.desc':
+    'You see what a thing could become. Every floor gives up more materials.',
+  'talent.mage.archmage': 'Archmage',
+  'talent.mage.archmage.desc':
+    'The title is not honorary. A further, large increase to Arcane Blast.',
+  'talent.mage.leylineTap': 'Leyline Tap',
+  'talent.mage.leylineTap.desc': 'Something under the Spire answers. Mana gathers faster still.',
+
+  // The Hunter's tree (Q38).
+  'talent.hunter.steadyHands': 'Steady Hands',
+  'talent.hunter.steadyHands.desc':
+    'The draw does not waver. Adds to the Strength behind every shot.',
+  'talent.hunter.keenEye': 'Keen Eye',
+  'talent.hunter.keenEye.desc': 'You see the gap before it opens. Adds to your Luck.',
+  'talent.hunter.endurance': 'Endurance',
+  'talent.hunter.endurance.desc':
+    'Days in the field teach a body to keep going. Adds to your health pool.',
+  'talent.hunter.killerInstinct': 'Killer Instinct',
+  'talent.hunter.killerInstinct.desc': 'You know where it hurts. Critical hits deal more damage.',
+  'talent.hunter.trophyHunter': 'Trophy Hunter',
+  'talent.hunter.trophyHunter.desc':
+    'Everything worth carrying gets carried. Every floor pays more gold.',
+  'talent.hunter.bracing': 'Bracing',
+  'talent.hunter.bracing.desc':
+    'You take it on the shoulder, not the ribs. A share of every blow turned aside.',
+  'talent.hunter.rapidNocking': 'Rapid Nocking',
+  'talent.hunter.rapidNocking.desc':
+    'The next arrow is already moving. Focus gathers faster from every hit.',
+  'talent.hunter.fieldDressing': 'Field Dressing',
+  'talent.hunter.fieldDressing.desc':
+    'Nothing usable is wasted. Every floor gives up more materials.',
+  'talent.hunter.huntersMark': "Hunter's Mark",
+  'talent.hunter.huntersMark.desc':
+    'You pick the spot before you loose. Piercing Volley hits harder.',
+  'talent.hunter.deadeye': 'Deadeye',
+  'talent.hunter.deadeye.desc':
+    'The shot that counts, counts double. A further, large increase to critical damage.',
+  'talent.hunter.volleyMaster': 'Volley Master',
+  'talent.hunter.volleyMaster.desc':
+    'Four arrows in the air at once, and all of them yours. A further increase to Piercing Volley.',
+
+  // The Bard's tree (Q38).
+  'talent.bard.silverTongue': 'Silver Tongue',
+  'talent.bard.silverTongue.desc': 'Fortune likes to be flattered. Adds to your Luck.',
+  'talent.bard.resonance': 'Resonance',
+  'talent.bard.resonance.desc': 'The note hangs longer than it should. Adds to your resource pool.',
+  'talent.bard.poise': 'Poise',
+  'talent.bard.poise.desc': 'A performer does not flinch. Adds to the Defense you already carry.',
+  'talent.bard.encore': 'Encore',
+  'talent.bard.encore.desc': 'They always want another. Inspiration gathers faster each round.',
+  'talent.bard.patronsPurse': "Patron's Purse",
+  'talent.bard.patronsPurse.desc':
+    'Somebody always pays for a good story. Every floor pays more gold.',
+  'talent.bard.balladOfVigour': 'Ballad of Vigour',
+  'talent.bard.balladOfVigour.desc':
+    'You sing yourself upright. Recover health at the end of each round.',
+  'talent.bard.risingCrescendo': 'Rising Crescendo',
+  'talent.bard.risingCrescendo.desc':
+    'The song builds to something worth waiting for. Crescendo hits harder.',
+  'talent.bard.sharpWit': 'Sharp Wit',
+  'talent.bard.sharpWit.desc': 'The line that lands, lands hard. Critical hits deal more damage.',
+  'talent.bard.curioCollector': 'Curio Collector',
+  'talent.bard.curioCollector.desc': 'You keep the odd bits. Every floor gives up more materials.',
+  'talent.bard.maestro': 'Maestro',
+  'talent.bard.maestro.desc':
+    'Nobody in the Spire plays it better. A further, large increase to Crescendo.',
+  'talent.bard.everlastingSong': 'Everlasting Song',
+  'talent.bard.everlastingSong.desc': 'It never quite stops. Inspiration gathers faster still.',
+
+  // The Swashbuckler's tree (Q38).
+  'talent.swashbuckler.sinewAndSpring': 'Sinew and Spring',
+  'talent.swashbuckler.sinewAndSpring.desc':
+    'Light, and stronger than light looks. Adds to your Strength.',
+  'talent.swashbuckler.fortunesFavour': "Fortune's Favour",
+  'talent.swashbuckler.fortunesFavour.desc':
+    'You have always been lucky, and you have always known it. Adds to your Luck.',
+  'talent.swashbuckler.windRead': 'Wind-Read',
+  'talent.swashbuckler.windRead.desc':
+    'You know which way the fight is leaning. Adds to your resource pool.',
+  'talent.swashbuckler.riposte': 'Riposte',
+  'talent.swashbuckler.riposte.desc':
+    'Their blade goes where you are not. A share of every blow turned aside.',
+  'talent.swashbuckler.pickpocket': 'Pickpocket',
+  'talent.swashbuckler.pickpocket.desc':
+    'You were closer to them than they realised. Every floor pays more gold.',
+  'talent.swashbuckler.duellistsRhythm': "Duellist's Rhythm",
+  'talent.swashbuckler.duellistsRhythm.desc': 'Step, feint, step. Focus gathers faster each round.',
+  'talent.swashbuckler.precision': 'Precision',
+  'talent.swashbuckler.precision.desc':
+    'One inch left and it would have been nothing. Critical hits deal more damage.',
+  'talent.swashbuckler.quickStudy': 'Quick Study',
+  'talent.swashbuckler.quickStudy.desc':
+    'You only need to be shown once. Every floor teaches more.',
+  'talent.swashbuckler.feintingFlurry': 'Feinting Flurry',
+  'talent.swashbuckler.feintingFlurry.desc':
+    'Three blades where there is one. Flurry and Feint hits harder.',
+  'talent.swashbuckler.bladeDance': 'Blade Dance',
+  'talent.swashbuckler.bladeDance.desc':
+    'It stops looking like fighting. A further, large increase to Flurry and Feint.',
+  'talent.swashbuckler.devilsOwnLuck': "Devil's Own Luck",
+  'talent.swashbuckler.devilsOwnLuck.desc':
+    'The kind nobody should have. A further, large increase to critical damage.',
   'echo.spoils': 'Spoils',
   'echo.spoils.desc': 'Every floor hands over more gold.',
   'echo.insight': 'Insight',
