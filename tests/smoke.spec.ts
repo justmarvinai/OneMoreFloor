@@ -1463,6 +1463,29 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
 });
 
+test('curses are offered long before they can be taken (§20.5)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // The one thing in the game that makes the tower harder on purpose is shown to
+  // a level-1 hero rather than hidden, with the level that opens it.
+  const curses = page.locator('[data-testid="curses"]');
+  await expect(curses).toBeVisible();
+  await expect(curses).toHaveAttribute('data-unlocked', 'false');
+  await expect(curses).toContainText(/Level 100/i);
+
+  // And it says what the trade is, including what it will not do to the loot.
+  await expect(curses).toContainText(/never gear you have not earned/i);
+
+  const wrath = page.locator('[data-testid="curse-curse.wrath"]');
+  await expect(wrath).toBeDisabled();
+  await wrath.hover({ force: true });
+  const tip = page.locator('body > .fui-tooltip');
+  await expect(tip).toContainText(/Curses open at level 100/i);
+  // The reward half of the trade is on the chip too, not only the cost.
+  await expect(tip).toContainText(/from every floor/i);
+});
+
 test('the rites take a wish for a socket, and refuse a locked one (§20.5)', async ({ page }) => {
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');

@@ -37,6 +37,7 @@ import type { AscensionTier } from '../character/types.ts';
 import { defsForBracket, generateItem } from '../items/generate.ts';
 import { RARITIES, type ItemInstance, type Rarity } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
+import { curseRewardMultiplier } from './curses.ts';
 
 export interface FloorReward {
   gold: number;
@@ -56,6 +57,11 @@ export interface RollRewardInput {
   classId: string;
   /** Ascension tier, which gates relic and artifact drops (Q22). */
   ascension: AscensionTier;
+  /**
+   * Curses the player has taken (Q35). They multiply gold, experience and
+   * materials — never the bracket, so §13 holds with a full set of them on.
+   */
+  curses?: readonly string[];
   rng: Rng;
 }
 
@@ -107,8 +113,12 @@ export interface FloorRewardEstimate {
  * lives here rather than in the screen so the preview can never drift from what
  * the floor actually pays — one curve, two callers.
  */
-export function floorRewardEstimate(floor: number, isBoss: boolean): FloorRewardEstimate {
-  const multiplier = isBoss ? BOSS_REWARD_MULTIPLIER : 1;
+export function floorRewardEstimate(
+  floor: number,
+  isBoss: boolean,
+  curses: readonly string[] = [],
+): FloorRewardEstimate {
+  const multiplier = (isBoss ? BOSS_REWARD_MULTIPLIER : 1) * curseRewardMultiplier(curses);
   return {
     gold: Math.max(
       1,
@@ -121,7 +131,10 @@ export function floorRewardEstimate(floor: number, isBoss: boolean): FloorReward
 
 export function rollFloorReward(input: RollRewardInput): FloorReward {
   const { floor, isBoss, bracket, rng } = input;
-  const multiplier = isBoss ? BOSS_REWARD_MULTIPLIER : 1;
+  // A cursed tower pays more for the same floor. Applied to the payout rather
+  // than to the curve so the curve keeps meaning "what floor N is worth".
+  const curses = curseRewardMultiplier(input.curses ?? []);
+  const multiplier = (isBoss ? BOSS_REWARD_MULTIPLIER : 1) * curses;
 
   const gold = Math.max(
     1,
@@ -145,7 +158,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   if (rng.chance(materialChance)) {
     const range = isBoss ? BOSS_MATERIAL_COUNT : MATERIAL_COUNT;
     const id = materialIdForTier(bracket.materialTier);
-    materials[id] = rng.int(range.min, range.max);
+    materials[id] = Math.max(1, Math.round(rng.int(range.min, range.max) * curses));
   }
 
   const items: ItemInstance[] = [];

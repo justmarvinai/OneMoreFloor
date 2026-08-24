@@ -40,6 +40,14 @@ import {
   effectiveMode,
 } from '@/domain/tower/autoClimb.ts';
 import { isMilestone, milestoneUnclaimed } from '@/domain/tower/milestones.ts';
+import {
+  CURSES,
+  CURSE_UNLOCK_LEVEL,
+  MAX_ACTIVE_CURSES,
+  activeCurses,
+  curseRewardMultiplier,
+  cursesUnlocked,
+} from '@/domain/tower/curses.ts';
 import { MILESTONE_EVERY } from '@/content/balance/rewards.ts';
 import type { StatBlock, StatId } from '@/domain/stats.ts';
 import { effectChip, effectTooltip, tipEffects } from '@/ui/combat/effectChips.ts';
@@ -70,6 +78,8 @@ export interface TowerScreenOptions {
   onRaid: (throughFloor: number) => void;
   /** Change what auto-climb is doing (Q32). */
   onAutoClimb: (mode: AutoClimbMode) => void;
+  /** Take a curse, or lift one (Q35). */
+  onCurse: (id: string) => void;
 }
 
 export interface TowerScreen {
@@ -78,7 +88,7 @@ export interface TowerScreen {
 }
 
 export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
-  const { character, now, onFight, onRaid, onAutoClimb } = options;
+  const { character, now, onFight, onRaid, onAutoClimb, onCurse } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -89,7 +99,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
   const highest = character.tower.highestFloorEverCleared;
   const ceiling = quickRaidCeiling(character);
   const canRaid = ceiling >= floor;
-  const generated = generateFloor(character.tower.runSeed, floor);
+  const generated = generateFloor(character.tower.runSeed, floor, character.curses);
   const current = effectiveMode(character);
 
   const trail = track(
@@ -205,6 +215,72 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
   }
   auto.appendChild(modeRow);
 
+  /**
+   * Curses — the one thing in the game that makes the tower harder on purpose.
+   *
+   * They live in the panel body under the preview rather than in the footer,
+   * because the preview is already the place that says what the floor imposes
+   * and what it pays, and a curse changes both. Below the unlock level the whole
+   * block is shown with the level that opens it rather than hidden: a player
+   * should know the choice exists long before they can make it (§20.5).
+   */
+  function buildCurses(): HTMLElement {
+    const open = cursesUnlocked(character);
+    const taken = new Set(activeCurses(character).map((curse) => curse.id));
+    const full = taken.size >= MAX_ACTIVE_CURSES;
+
+    const block = h('div', {
+      class: 'omf-curses',
+      dataset: { testid: 'curses', unlocked: String(open) },
+    });
+    block.appendChild(
+      h(
+        'div',
+        { class: 'omf-curses__head' },
+        h('span', { class: 'omf-curses__label fui-label', text: t('curse.title') }),
+        h('span', {
+          class: 'omf-curses__count',
+          text: open
+            ? t('curse.active', { count: taken.size, max: MAX_ACTIVE_CURSES })
+            : t('curse.lockedChip', { level: CURSE_UNLOCK_LEVEL }),
+        }),
+      ),
+    );
+
+    const row = h('div', { class: 'omf-curses__row' });
+    for (const curse of CURSES) {
+      const on = taken.has(curse.id);
+      const reward = Math.round((curseRewardMultiplier([curse.id]) - 1) * 100);
+      const chip = h('button', {
+        class: 'omf-curses__chip',
+        attrs: { type: 'button' },
+        dataset: { testid: `curse-${curse.id}`, on: String(on) },
+        text: t(curse.nameKey),
+      });
+      if (on) chip.classList.add('is-on');
+
+      // Lifting a curse is always allowed; taking one is what the gates guard.
+      const allowed = on || (open && !full);
+      if (!allowed) chip.disabled = true;
+      else chip.addEventListener('click', () => onCurse(curse.id));
+
+      setTip(chip, {
+        title: t(curse.nameKey),
+        subtitle: t('curse.reward', { percent: reward }),
+        flavor: !open
+          ? t('curse.locked', { level: CURSE_UNLOCK_LEVEL })
+          : full && !on
+            ? t('curse.full')
+            : t(curse.descKey),
+      });
+      row.appendChild(chip);
+    }
+
+    block.appendChild(row);
+    block.appendChild(h('p', { class: 'omf-curses__hint', text: t('curse.hint') }));
+    return block;
+  }
+
   const side = track(
     new Panel({
       title: t('tower.currentFloor', {
@@ -214,7 +290,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
       variant: 'alt',
       width: '100%',
       height: '100%',
-      content: [h('div', { class: 'omf-tower__record' }, best.el), preview],
+      content: [h('div', { class: 'omf-tower__record' }, best.el), preview, buildCurses()],
       footer: [control, auto],
     }),
   );
@@ -322,7 +398,7 @@ function buildChapters(character: Character, floor: number, ceiling: number): Tr
 
   for (let current = top; current >= floor; current -= 1) {
     const band = bandForFloor(current);
-    const generated = generateFloor(character.tower.runSeed, current);
+    const generated = generateFloor(character.tower.runSeed, current, character.curses);
     const isCurrent = current === floor;
     const raidable = current > floor && current <= ceiling;
 
@@ -508,7 +584,7 @@ function buildPreview(
   const rows: HTMLElement[] = [
     matchup,
     buildCompare(hero, generated),
-    buildPays(generated, track),
+    buildPays(generated, character.curses ?? [], track),
     buildThreats(generated, track),
   ];
 
@@ -593,9 +669,10 @@ function buildCompare(hero: StatBlock, generated: GeneratedFloor): HTMLElement {
  */
 function buildPays(
   generated: GeneratedFloor,
+  curses: readonly string[],
   track: <T extends FuiComponent>(component: T) => T,
 ): HTMLElement {
-  const estimate = floorRewardEstimate(generated.floor, generated.isBoss);
+  const estimate = floorRewardEstimate(generated.floor, generated.isBoss, curses);
   const percent = Math.round(estimate.itemChance * 100);
 
   const chip = (label: string, value: string, glyph: string): HTMLElement =>

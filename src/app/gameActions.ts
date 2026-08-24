@@ -66,6 +66,7 @@ import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
 import { recordKills } from '@/domain/account/bestiary.ts';
+import { toggleCurse, type CurseRefusal } from '@/domain/tower/curses.ts';
 import { reforge, salvageFromInventory } from '@/domain/items/salvage.ts';
 import {
   canPull,
@@ -85,6 +86,7 @@ import { clock } from './time.ts';
 /** Everything that can stop an action, in one vocabulary the UI can translate. */
 export type Refusal =
   | LoadoutRefusal
+  | CurseRefusal
   | PresetApplyRefusal
   | PresetCaptureRefusal
   | 'notEnoughGold'
@@ -134,6 +136,8 @@ export interface GameActions {
   /** Bring both quest boards up to date for the current period (Q10). */
   visitQuests(): Promise<Character>;
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
+  /** Take a curse, or lift one (Q35). */
+  toggleCurse(id: string): Promise<Outcome>;
   /**
    * Aim what the rites hand over at one slot, or clear the wish (Q33).
    * Refuses a slot the hero has not unlocked, rather than wishing into a
@@ -547,6 +551,12 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         value: claimableCount(claimed),
         character: await commit(granted.character),
       };
+    },
+
+    async toggleCurse(id) {
+      const result = toggleCurse(active(), id);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: undefined, character: await commit(result) };
     },
 
     async setWishlist(slot) {

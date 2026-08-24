@@ -30,7 +30,8 @@ import { applyModifier, type EnemyModifier } from '@/content/enemies/modifiers.t
 import type { BossDef, EnemyDef } from '@/content/enemies/types.ts';
 import { bandForFloor, isBossFloor, type FloorBand } from '@/content/floors/index.ts';
 import type { Combatant, EffectDef, UnitId } from '../combat/types.ts';
-import type { StatBlock, StatId } from '../stats.ts';
+import { STAT_IDS, type StatBlock, type StatId } from '../stats.ts';
+import { curseStatMultiplier } from './curses.ts';
 
 export interface GeneratedFloor {
   floor: number;
@@ -100,7 +101,11 @@ function scaleEffect(effect: EffectDef, floor: number): EffectDef {
  * Generate a floor. Pure and seeded: the same run seed and floor always give
  * the same fight.
  */
-export function generateFloor(runSeed: string, floor: number): GeneratedFloor {
+export function generateFloor(
+  runSeed: string,
+  floor: number,
+  curses: readonly string[] = [],
+): GeneratedFloor {
   const rng = createRng(floorSeed(runSeed, floor));
   const boss = isBossFloor(floor);
   const band = bandForFloor(floor);
@@ -113,7 +118,10 @@ export function generateFloor(runSeed: string, floor: number): GeneratedFloor {
   const modifier = canModify && rng.chance(MODIFIER_CHANCE) ? rng.pick(ENEMY_MODIFIERS) : null;
 
   const profile = modifier ? applyModifier(enemy.profile, modifier) : enemy.profile;
-  const stats = statsFor(floor, profile, boss);
+  // Curses are applied to the *finished* stats rather than to the profile, so a
+  // cursed floor is the same floor with harder numbers — same enemy, same
+  // modifier, same seed — which is what keeps a run replayable (Q35).
+  const stats = curseStats(statsFor(floor, profile, boss), curses);
 
   const effects: Array<{ unit: UnitId; effect: EffectDef }> = [];
   if (enemy.playerDebuff) {
@@ -128,6 +136,18 @@ export function generateFloor(runSeed: string, floor: number): GeneratedFloor {
   }
 
   return { floor, isBoss: boss, band, enemy, modifier, stats, effects };
+}
+
+/** Raise every stat the player has chosen to make harder (fifth polish round). */
+function curseStats(stats: StatBlock, curses: readonly string[]): StatBlock {
+  if (curses.length === 0) return stats;
+
+  const cursed = { ...stats };
+  for (const stat of STAT_IDS) {
+    const multiplier = curseStatMultiplier(curses, stat);
+    if (multiplier !== 1) cursed[stat] = Math.max(1, Math.round(cursed[stat] * multiplier));
+  }
+  return cursed;
 }
 
 /**

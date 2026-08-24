@@ -24,6 +24,7 @@ import { setAssetBase } from './ui/fui/index.ts';
 import { createRouter, type Router } from './app/router.ts';
 import { createSession } from './app/session.ts';
 import type { Refusal } from './app/gameActions.ts';
+import { CURSE_UNLOCK_LEVEL } from './domain/tower/curses.ts';
 import { createAppStore, saveLoaded, type AppStore } from './app/state.ts';
 import { createClock, setClock } from './app/time.ts';
 import { acquireSessionLock } from './save/sessionLock.ts';
@@ -387,6 +388,15 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'backpackFull':
           refuse(t('loadout.refused.backpackFull'), t('loadout.refused.backpackFullBody'));
           return;
+        case 'notUnlocked':
+          refuse(
+            t('curse.refused.notUnlocked'),
+            t('curse.refused.notUnlockedBody', { level: CURSE_UNLOCK_LEVEL }),
+          );
+          return;
+        case 'tooMany':
+          refuse(t('curse.refused.tooMany'), t('curse.refused.tooManyBody'));
+          return;
         default:
           refuse(t('item.cannotEquip'));
       }
@@ -484,6 +494,14 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onFight: startFight,
               onRaid: startRaid,
               onAutoClimb: (mode) => void session.setAutoClimb(mode).then(refreshScreen),
+              onCurse: (id) => {
+                const held = requireCharacter().curses ?? [];
+                void session.toggleCurse(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else notify(held.includes(id) ? t('curse.off') : t('curse.on'));
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

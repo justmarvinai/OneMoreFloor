@@ -98,6 +98,14 @@ Two consequences were accepted deliberately:
 
 All §10 gates still pass unchanged: first wall floor 12–28, first-session depth, re-climb time, class parity within 15 points, signature uptime, gold shortage, gear cost shape.
 
+### Curses, salvage and reforge (fifth polish round)
+
+**Curses** (Q35) are the enemy affix system turned around: the procedural modifiers trade one stat for another so a deep floor is *varied*, a curse only ever raises so a chosen tower is *harder*. Six of them, three at once (`MAX_ACTIVE_CURSES`), opening at level `CURSE_UNLOCK_LEVEL` (100). A single-stat curse is +40% to that stat on every enemy and +28% to what every floor pays; the broad one (Dominion) is +18% to everything and +45% pay, which is what keeps it a real choice rather than a strictly-worse bundle. Two invariants are load-bearing and tested: a curse never widens the **bracket** a drop comes from, so §13 holds with a full set on — it buys gold, experience and materials, never loot the player has not earned — and it never touches the **seed**, so a cursed floor is the same enemy with harder numbers and the run stays replayable.
+
+**Salvage** is deliberately deterministic. It returns `SALVAGE_BASE_COUNT` plus a rarity bonus, a quarter of the gear levels put in, and two per star of the piece's own material plus one per star of the tier above — roughly the shape of what ascending it consumed, minus a change-of-mind cost. No dice, so the button can print exactly what it gives before it is pressed, which is what makes it comparable to the gold beside it.
+
+**Reforge** rerolls a piece's affixes for `REFORGE_GOLD_MULTIPLIER` (0.55) of its worth plus `REFORGE_MATERIAL_COUNT` of its own tier. The budget is redrawn inside the window the piece was born in, so a reroll can never overshoot the bracket that produced it (§13) while a player who keeps paying converges on the budget the luckiest possible drop would have had — investment reaching what luck could, which is what §10 asks for. Its affix count comes from the piece's stars, not from a fresh rarity roll: a five-star piece has five sockets whatever the dice think.
+
 ### Milestones and auto-climb (fifth polish round)
 
 **Milestones** sit on every 25th floor (`MILESTONE_EVERY`) and are claimed once ever, per character — `milestonesClaimed` is a list, not a counter, so a re-climb through floor 25 pays nothing a second time and a floor that is somehow reached out of order is still paid for. What a milestone hands over is the ordinary floor reward scaled up (`MILESTONE_GOLD_MULTIPLIER` 14, `MILESTONE_XP_MULTIPLIER` 6), a fistful of materials (6–12) and a Lucky Ticket on every fourth one. It deliberately pays **no gear**: the whole point of the retune above is that the tower funds the pieces you choose rather than replacing them, and a guaranteed drop every 25 floors would have walked most of that back.

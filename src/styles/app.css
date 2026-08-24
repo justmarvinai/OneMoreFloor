@@ -2956,3 +2956,79 @@ body > .fui-tooltip .fui-tooltip__price {
   opacity: 0.42;
   cursor: not-allowed;
 }
+
+/* --- Curses: the tower, made harder on purpose ---------------------------- */
+
+/**
+ * Under the preview rather than in the footer: the preview already says what the
+ * floor imposes and what it pays, and a curse changes both — so the control that
+ * changes them belongs beside those two lines, not beside the fight button.
+ */
+.omf-curses {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-curses__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.omf-curses__count {
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-curses__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.omf-curses__chip {
+  padding: 4px 9px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+}
+
+.omf-curses__chip:hover:not(:disabled) {
+  border-color: rgb(196 74 62 / 70%);
+  color: var(--fui-ink);
+}
+
+/* Taken: red rather than gold, because this one costs you something. */
+.omf-curses__chip.is-on {
+  border-color: #b8231a;
+  background: rgb(184 35 26 / 26%);
+  color: #f0b7ae;
+}
+
+.omf-curses__chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.omf-curses__hint {
+  margin: 8px 0 0;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-curses[data-unlocked='false'] .omf-curses__hint {
+  opacity: 0.7;
+}

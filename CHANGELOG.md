@@ -7,6 +7,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Curses: the enemy affix system, on the player's side.** From level 100 a hero
+  can take up to three, and each raises a stat on *every* enemy in the Spire
+  while raising what every floor pays. It is the mirror of the procedural
+  modifiers, which trade one stat for another so a deep floor is varied: a curse
+  only ever raises, because the point is to choose a harder tower and be paid for
+  it. Two things it never touches, and the tests hold it to both: the **bracket**
+  a drop comes from — so §13's anti-overshoot rule survives a full set of curses,
+  and what they buy is gold, experience and materials rather than loot nobody
+  earned — and the **seed**, so a cursed floor is the same enemy with harder
+  numbers and the run stays replayable.
 - **A wish list for the rites.** Aim the gear a summoning hands over at one
   socket. It is pity-free by construction — no counter, no escalating promise —
   and it moves *where* a prize lands, never *whether* one comes: not its rarity,

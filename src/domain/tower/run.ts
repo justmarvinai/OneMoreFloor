@@ -95,7 +95,7 @@ export function bracketForCharacter(character: Character) {
  * and a watched one produce identical loot (Q8) — the property test asserts it.
  */
 export function fightFloor(character: Character, floor: number, now: number): FloorResult {
-  const generated = generateFloor(character.tower.runSeed, floor);
+  const generated = generateFloor(character.tower.runSeed, floor, character.curses);
   const seed = `${character.tower.runSeed}/combat:${floor}`;
 
   const script = resolveCombat({
@@ -127,6 +127,7 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
     bracket: bracketForCharacter(character),
     classId: character.identity.classId,
     ascension: character.progression.ascension,
+    curses: character.curses,
     rng: createRng(`${seed}/reward`),
   });
 

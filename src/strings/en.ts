@@ -492,6 +492,36 @@ export const en = {
   'records.best': 'Best ever',
   'records.runsHint': 'The last {count} runs, newest first.',
 
+  // Curses: enemy affixes the player switches on (Q35).
+  'curse.title': 'Curses',
+  'curse.hint':
+    'Make every enemy in the Spire harder, and every floor pay more for it. Loot is still sized to you — a curse buys gold, experience and materials, never gear you have not earned.',
+  'curse.locked': 'Curses open at level {level}. Climb.',
+  'curse.lockedChip': 'Level {level}',
+  'curse.full': 'Three at once is the limit. Switch one off to take another.',
+  'curse.reward': '+{percent}% from every floor',
+  'curse.active': '{count} of {max} active',
+  'curse.on': 'Curse taken',
+  'curse.off': 'Curse lifted',
+  'curse.refused.notUnlocked': 'Not yet',
+  'curse.refused.notUnlockedBody': 'Curses open at level {level}.',
+  'curse.refused.tooMany': 'Three is the limit',
+  'curse.refused.tooManyBody': 'Switch one off before taking another.',
+
+  'curse.wrath': 'Wrath',
+  'curse.wrath.desc': 'Everything in the Spire hits harder.',
+  'curse.bulwark': 'Bulwark',
+  'curse.bulwark.desc': 'Everything in the Spire turns more of your blow aside.',
+  'curse.vigour': 'Vigour',
+  'curse.vigour.desc': 'Everything in the Spire takes longer to put down.',
+  'curse.swiftness': 'Swiftness',
+  'curse.swiftness.desc': 'Everything in the Spire moves first more often.',
+  'curse.cunning': 'Cunning',
+  'curse.cunning.desc': 'Everything in the Spire lands the lucky blow more often.',
+  'curse.dominion': 'Dominion',
+  'curse.dominion.desc':
+    'Everything in the Spire is greater in every way. The Spire pays most for this one.',
+
   // The summoning wish list.
   'gacha.wish.title': 'Wish list',
   'gacha.wish.hint':
