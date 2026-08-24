@@ -106,6 +106,7 @@ import {
   type TransmuteRefusal,
 } from '@/domain/items/workbench.ts';
 import { toggleCurse, type CurseRefusal } from '@/domain/tower/curses.ts';
+import { choosePath } from '@/domain/tower/paths.ts';
 import {
   learnTalent,
   pointsAvailable,
@@ -143,6 +144,9 @@ export type Refusal =
   | 'noSuchTalent'
   | 'noSuchPet'
   | 'notFound'
+  | 'noSuchPath'
+  | 'notOffered'
+  | 'alreadyChosen'
   | 'noSuchExpedition'
   | 'noSuchSlot'
   | 'slotBusy'
@@ -220,6 +224,8 @@ export interface GameActions {
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
   /** Take a curse, or lift one (Q35). */
   toggleCurse(id: string): Promise<Outcome>;
+  /** Take a road at the fork this leg opens with (Q41). */
+  choosePath(id: string): Promise<Outcome>;
 
   /** Send a party out on a route (Q37); the value is when they are due back. */
   sendExpedition(slot: number, id: string): Promise<Outcome<number>>;
@@ -845,6 +851,13 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       await save.saveAccount(result);
       accountLoaded(store, result);
       return { ok: true, value: undefined, character: active() };
+    },
+
+    async choosePath(id) {
+      const character = active();
+      const result = choosePath(character, character.tower.currentRunFloor, id);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: undefined, character: await commit(result) };
     },
 
     async toggleCurse(id) {

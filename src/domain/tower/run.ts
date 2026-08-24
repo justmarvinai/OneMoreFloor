@@ -28,6 +28,7 @@ import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
 import { grantReward } from '../rewards/grant.ts';
 import { talentBonuses } from '../talents/talents.ts';
+import { pathFor, pathSpoils } from './paths.ts';
 import type { StatBlock } from '../stats.ts';
 import { auraEffect, petStats, petTaunt, type OwnedPet } from '../pets/pets.ts';
 import { emptyReward, mergeRewards, rollFloorReward, type FloorReward } from './rewards.ts';
@@ -173,7 +174,10 @@ export function fightFloor(
   now: number,
   aids: FightAids = {},
 ): FloorResult {
-  const generated = generateFloor(character.tower.runSeed, floor, character.curses);
+  // The road chosen for this leg (Q41), read from the run rather than passed in:
+  // it is the run's own decision, so nothing outside can forget to apply it.
+  const road = pathFor(character, floor);
+  const generated = generateFloor(character.tower.runSeed, floor, character.curses, road);
   const seed = `${character.tower.runSeed}/combat:${floor}`;
   const echoes = aids.echoes ?? NO_ECHOES;
   const companion = aids.pet ?? null;
@@ -214,6 +218,7 @@ export function fightFloor(
     // Read from the hero here rather than passed in by the caller: the tree is
     // the character's own, so nothing outside can forget to apply it (Q38).
     talents: talentBonuses(character),
+    path: pathSpoils(road),
     rng: createRng(`${seed}/reward`),
   });
 
@@ -354,6 +359,9 @@ export function applyDeath(character: Character, context?: DeathContext): Charac
       ...character.tower,
       currentRunFloor: 1,
       runSeed: nextRunSeed(character.tower.runSeed),
+      // The roads walked belonged to the run, and the run is over. A new climb
+      // forks again from its own seed (Q41).
+      pathChoices: {},
       history,
       runGold: 0,
       runFights: 0,

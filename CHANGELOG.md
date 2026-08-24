@@ -7,6 +7,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Branching paths — a fork at every gate.** The tower's shape was a line, and
+  a line has no decisions in it. Every ten floors — the tower's own cadence, so
+  the fork sits where the player already stops to look up — the road splits three
+  ways, and the choice holds for the whole stretch. Every road is a *trade*, never
+  an upgrade: the Sheer Face pays for danger, the Vaults buy coin with
+  experience, the Reliquary pays in the one currency gold cannot, the Gauntlet
+  fills the stretch with champions, and the Quiet Way buys survival with
+  everything else — which is the road that gets a stalled climb past its wall.
+  One of the three is always the plain way, because a fork whose every branch is
+  a gamble is not a choice, it is a tax. What is offered comes from the run seed,
+  so a road not taken was really there and a replay of the run offers what the
+  run offered. Two rules inherited from the curses that came before them: a road
+  **never touches the bracket**, so anti-overshoot holds on every route, and it
+  **never touches the seed** — a floor on the Sheer Face is the same enemy with
+  harder numbers, not a different roll. The choice belongs to the *run*, so it
+  dies with the run. The fight controls stay shut until a road is taken, and the
+  auto-climb stops at a fork rather than deciding for you.
 - **The Boss Rush — ten gates, one health bar.** The tower hands the hero a full
   bar at every floor; the rush does not. It runs the ten authored bosses back to
   back on whatever is left of you, which makes a build's *depth* the thing being
@@ -172,6 +189,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- "One More Floor" now returns to the tower when the next floor opens a new leg,
+  because that is where the fork is. It walks straight into the next fight
+  otherwise, so a refusal alone would have left the player on the aftermath
+  screen with a toast and nowhere to go.
 - A fight now reports the companion's remaining health as well as the hero's, so
   fights that chain can hand the next one a number instead of guessing one.
 - The quest board's red dot now also lights when a party is standing in the hall

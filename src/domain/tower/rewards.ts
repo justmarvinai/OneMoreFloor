@@ -42,6 +42,7 @@ import type { Bracket } from '../power/brackets.ts';
 import { curseRewardMultiplier } from './curses.ts';
 import { NO_ECHOES, type EchoBonuses } from '../account/echoes.ts';
 import { NO_TALENTS, type TalentBonuses } from '../talents/talents.ts';
+import { NO_PATH_SPOILS, type PathSpoils } from './paths.ts';
 
 export interface FloorReward {
   gold: number;
@@ -76,6 +77,11 @@ export interface RollRewardInput {
    * measure.
    */
   talents?: TalentBonuses;
+  /**
+   * The road this leg is being walked on (Q41). Like curses, it multiplies gold,
+   * experience and materials — never the bracket, so §13 holds on every route.
+   */
+  path?: PathSpoils;
   /**
    * Curses the player has taken (Q35). They multiply gold, experience and
    * materials — never the bracket, so §13 holds with a full set of them on.
@@ -159,6 +165,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   const elite = input.isElite === true;
   const echoes = input.echoes ?? NO_ECHOES;
   const talents = input.talents ?? NO_TALENTS;
+  const path = input.path ?? NO_PATH_SPOILS;
   const multiplier =
     (isBoss ? BOSS_REWARD_MULTIPLIER : elite ? ELITE_REWARD_MULTIPLIER : 1) * curses;
 
@@ -169,6 +176,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
         multiplier *
         echoes.gold *
         talents.gold *
+        path.gold *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -179,6 +187,7 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
         multiplier *
         echoes.xp *
         talents.xp *
+        path.xp *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -192,7 +201,13 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     const id = materialIdForTier(bracket.materialTier);
     materials[id] = Math.max(
       1,
-      Math.round(rng.int(range.min, range.max) * curses * echoes.materials * talents.materials),
+      Math.round(
+        rng.int(range.min, range.max) *
+          curses *
+          echoes.materials *
+          talents.materials *
+          path.materials,
+      ),
     );
   }
 

@@ -44,6 +44,7 @@ import { createTalentsScreen } from './ui/screens/talents.ts';
 import { createBossRushScreen } from './ui/screens/bossRush.ts';
 import type { BossRushResult } from './domain/bossRush/bossRush.ts';
 import { ownedPets } from './domain/pets/pets.ts';
+import { needsChoice } from './domain/tower/paths.ts';
 import { getExpedition } from './content/expeditions/index.ts';
 import { shortDuration } from './ui/format.ts';
 import type { PetHarvest } from './app/gameActions.ts';
@@ -167,6 +168,20 @@ export async function boot(mount: HTMLElement): Promise<void> {
 
     const startFight = (floor: number): void => {
       const hero = requireCharacter();
+      /**
+       * The fork is the decision the leg is about, so a climb that began without
+       * one would quietly take it away (Q41).
+       *
+       * Refused *and* returned to the tower, because that is where the fork is.
+       * "One More Floor" walks straight into the next fight without passing the
+       * tower, so a refusal that left the player on the aftermath would be a
+       * dead end with a toast on it.
+       */
+      if (needsChoice(hero, floor)) {
+        refuse(t('path.refused.noChoice'), t('path.refused.noChoiceBody'));
+        router.go('tower');
+        return;
+      }
       void session.fight(floor).then((result) => {
         pendingFight = { hero, result };
         announcePets(result.pets);
@@ -202,6 +217,9 @@ export async function boot(mount: HTMLElement): Promise<void> {
     const climbInBackground = (): void => {
       const hero = store.get().activeCharacter;
       if (!hero) return;
+      // An auto-climb walks the tower; it does not make the player's decisions
+      // for them. At a fork it simply stops and waits (Q41).
+      if (needsChoice(hero, hero.tower.currentRunFloor)) return;
       autoBusy = true;
       void session
         .fight(hero.tower.currentRunFloor)
@@ -461,6 +479,15 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'nothingOut':
           refuse(t('expedition.refused.empty'), t('expedition.refused.emptyBody'));
           return;
+        case 'noSuchPath':
+          refuse(t('path.refused.unknown'), t('path.refused.unknownBody'));
+          return;
+        case 'notOffered':
+          refuse(t('path.refused.notOffered'), t('path.refused.notOfferedBody'));
+          return;
+        case 'alreadyChosen':
+          refuse(t('path.refused.alreadyChosen'), t('path.refused.alreadyChosenBody'));
+          return;
         case 'noSuchPet':
           refuse(t('pet.refused.noSuchPet'), t('pet.refused.noSuchPetBody'));
           return;
@@ -615,6 +642,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
                   }
                   pendingRush = outcome.value;
                   router.go('bossRush');
+                });
+              },
+              onChoosePath: (id) => {
+                void session.choosePath(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  refreshScreen();
                 });
               },
               onCurse: (id) => {

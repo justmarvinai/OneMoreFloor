@@ -553,6 +553,49 @@ export const en = {
   'echo.refused.notEnough': 'Not enough echoes',
   'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
 
+  // Branching paths (Q41).
+  'path.evenRoad': 'The Even Road',
+  'path.evenRoad.desc':
+    'The way the Spire was built. Nothing waits for you here that was not already coming.',
+  'path.sheerFace': 'The Sheer Face',
+  'path.sheerFace.desc':
+    'Up the outside. Everything on this stretch is bigger than it should be, and everything on it is carrying more.',
+  'path.vaults': 'The Vaults',
+  'path.vaults.desc':
+    'Through the counting-rooms. Whoever kept the ledgers left in a hurry, and the Spire has learned nothing new to teach you down here.',
+  'path.reliquary': 'The Reliquary',
+  'path.reliquary.desc':
+    'The shelves where the Spire keeps what it has broken. Little coin, and everything you need to mend what you are carrying.',
+  'path.gauntlet': 'The Gauntlet',
+  'path.gauntlet.desc':
+    'A landing the champions have claimed. Half of what you meet is one of theirs, and every one of them is carrying something.',
+  'path.quietWay': 'The Quiet Way',
+  'path.quietWay.desc':
+    'The service stair. Less waiting for you, and less left behind — but the ten floors go by, and you are still standing at the end of them.',
+  'path.forkTitle': 'The road forks',
+  'path.forkBody': 'Floors {from} to {to}. Choose once; it holds for the whole stretch.',
+  'path.take': 'Take this road',
+  'path.taken': 'Walking: {name}',
+  'path.until': 'Until floor {floor}',
+  'path.danger': 'Enemies {percent}',
+  'path.dangerEven': 'Enemies as the Spire built them',
+  'path.spoils': 'Gold {gold}, experience {xp}, materials {materials}',
+  'path.elites': 'Champions on {percent} more of it',
+  'path.stronger': '+{percent}% stronger',
+  'path.weaker': '{percent}% weaker',
+  'path.up': '+{percent}%',
+  'path.down': '−{percent}%',
+  'path.same': 'unchanged',
+  'path.mustChoose': 'Choose a road before you climb',
+  'path.refused.unknown': 'No such road',
+  'path.refused.unknownBody': 'Nothing by that name is on this fork.',
+  'path.refused.notOffered': 'That road is not on this fork',
+  'path.refused.notOfferedBody': 'The Spire offers three at a time. Choose one of them.',
+  'path.refused.alreadyChosen': 'You are already on a road',
+  'path.refused.alreadyChosenBody': 'The choice holds until the next gate. Climb.',
+  'path.refused.noChoice': 'The road forks first',
+  'path.refused.noChoiceBody': 'Choose which way the next ten floors go, then climb.',
+
   // The Boss Rush (Q39).
   'rush.title': 'Boss Rush',
   'rush.enter': 'Boss Rush',

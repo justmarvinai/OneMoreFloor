@@ -191,7 +191,22 @@ test('reports no console errors through the whole lifecycle', async ({ page }) =
 });
 
 /** Start the floor the hero is standing on, from the tower. */
+/**
+ * Take the plain road when the leg forks (Q41).
+ *
+ * Every ten floors the tower asks which way the next ten go, and the fight
+ * controls stay shut until it is answered. Tests that are not *about* the fork
+ * answer it the way a player in a hurry does.
+ */
+async function takeTheRoadIfForked(page: Page): Promise<void> {
+  const fork = page.locator('[data-testid="fork"][data-open="true"]');
+  if (!(await fork.isVisible().catch(() => false))) return;
+  await fork.locator('[data-testid="road-path.evenRoad"]').click();
+  await expect(page.locator('[data-testid="fork"][data-open="false"]')).toBeVisible();
+}
+
 async function startFight(page: Page): Promise<void> {
+  await takeTheRoadIfForked(page);
   // Anchored: once a Quick-Raid is available the control is a `SplitButton`, and
   // its caret is labelled "More fight floor 1 options" — which an unanchored
   // /Fight Floor/ matches just as well as the button that starts the fight.
@@ -261,9 +276,13 @@ test('a death keeps everything and offers the way back up (Brief §3.3/§3.4)', 
     }
 
     if (await death.isVisible().catch(() => false)) break;
-    // "One More Floor" walks straight into the next fight — no tower in between.
+    // "One More Floor" walks straight into the next fight — no tower in between,
+    // unless the next floor opens a leg, in which case it puts the player at the
+    // fork rather than choosing for them (Q41).
     await oneMore.click();
-    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+    const tower = page.locator('[data-testid="tower"]');
+    await expect(page.locator('[data-testid="combat-screen"]').or(tower).first()).toBeVisible();
+    if (await tower.isVisible().catch(() => false)) await startFight(page);
   }
 
   await expect(death).toBeVisible();
@@ -1826,8 +1845,12 @@ test('a finished run becomes a line in the records, and the record gets a ghost'
     }
 
     if (await death.isVisible().catch(() => false)) break;
+    // A leg's fork puts the player back at the tower rather than choosing for
+    // them, so the walk up may pass through it (Q41).
     await oneMore.click();
-    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+    const tower = page.locator('[data-testid="tower"]');
+    await expect(page.locator('[data-testid="combat-screen"]').or(tower).first()).toBeVisible();
+    if (await tower.isVisible().catch(() => false)) await startFight(page);
   }
   await expect(death).toBeVisible();
   // Walking back in rather than raiding: the Spire at Floor 1, below the record.
@@ -1999,4 +2022,35 @@ test('the boss rush runs the ten gates and says which one stopped it (Q39)', asy
 
   // The best is on the card now, and a second run pays nothing for the same depth.
   await expect(page.locator('[data-testid="rush-card"]')).toContainText(/Best: \d+ of 10/);
+});
+
+test('the road forks every ten floors, and the choice holds (Q41)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Floor 1 opens a leg, so the tower asks before it lets anyone climb.
+  const fork = page.locator('[data-testid="fork"]');
+  await expect(fork).toHaveAttribute('data-open', 'true');
+  await expect(fork).toContainText('The road forks');
+  await expect(fork).toContainText('Floors 1 to 10');
+  await expect(page.getByRole('button', { name: /^Fight Floor 1/ })).toBeDisabled();
+
+  // Three roads, and the plain way is always one of them.
+  await expect(fork.locator('.omf-fork__road')).toHaveCount(3);
+  const plain = page.locator('[data-testid="road-path.evenRoad"]');
+  await expect(plain).toBeVisible();
+
+  await plain.click();
+
+  // Chosen: the block says which road and until where, and the climb opens.
+  await expect(fork).toHaveAttribute('data-open', 'false');
+  await expect(fork).toContainText('Walking: The Even Road');
+  await expect(fork).toContainText('Until floor 10');
+  await expect(page.getByRole('button', { name: /^Fight Floor 1/ })).toBeEnabled();
+
+  // It holds for the whole leg — no second fork on floor 2.
+  await climb(page, 1);
+  await expect(fork).toHaveAttribute('data-open', 'false');
+  await expect(fork).toContainText('Walking: The Even Road');
 });

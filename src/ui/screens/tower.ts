@@ -33,6 +33,7 @@ import { generateFloor, type GeneratedFloor } from '@/domain/tower/floors.ts';
 import { floorRewardEstimate } from '@/domain/tower/rewards.ts';
 import { quickRaidCeiling } from '@/domain/tower/run.ts';
 import { BOSS_RUSH_GATES, BOSS_RUSH_MIN_FLOOR, canRush } from '@/domain/bossRush/bossRush.ts';
+import { forkFor, legOf, legRange, pathFor, type PathDef } from '@/domain/tower/paths.ts';
 import {
   AUTO_CLIMB_FLOOR_DELAY_MS,
   AUTO_CLIMB_MODES,
@@ -81,6 +82,8 @@ export interface TowerScreenOptions {
   onAutoClimb: (mode: AutoClimbMode) => void;
   /** Take a curse, or lift one (Q35). */
   onCurse: (id: string) => void;
+  /** Take a road at this leg's fork (Q41). */
+  onChoosePath: (id: string) => void;
   /** The account's best rush, so the card can say what there is to beat (Q39). */
   bestRush: number;
   /** Run the ten gates back to back. */
@@ -93,7 +96,17 @@ export interface TowerScreen {
 }
 
 export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
-  const { character, now, onFight, onRaid, onAutoClimb, onCurse, bestRush, onBossRush } = options;
+  const {
+    character,
+    now,
+    onFight,
+    onRaid,
+    onAutoClimb,
+    onCurse,
+    onChoosePath,
+    bestRush,
+    onBossRush,
+  } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -143,6 +156,17 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
     ? t('tower.fightBoss', { floor })
     : t('tower.fight', { floor });
 
+  /**
+   * The fork this leg opens with (Q41).
+   *
+   * A road is chosen once and holds for ten floors, so the fight controls are
+   * *disabled* until one is taken rather than quietly walking the plain way — a
+   * decision the game makes for you is not one you made. The fork card above
+   * carries the reason, and the auto-climb stops here too.
+   */
+  const road = pathFor(character, floor);
+  const atFork = road === null;
+
   let control: HTMLElement;
   if (actions.length > 0) {
     const split = track(
@@ -151,6 +175,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
         actions,
         block: true,
         up: true,
+        disabled: atFork,
       }),
     );
     split.on<SplitAction>('split:action', (action) => {
@@ -163,9 +188,10 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
       new Button({
         label: fightLabel,
         icon: 'icon-sword',
-        variant: 'primary',
+        variant: atFork ? 'ghost' : 'primary',
         size: 'lg',
         block: true,
+        disabled: atFork,
       }),
     );
     button.on('click', () => onFight(floor));
@@ -287,6 +313,106 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
   }
 
   /**
+   * The fork, or the road being walked (Q41).
+   *
+   * Both states live in one block because they answer the same question in the
+   * same place: *what is this stretch going to be like?* Before the choice it is
+   * three cards with their trades printed on them; after it, one line saying
+   * which road, and until where.
+   */
+  function buildFork(): HTMLElement {
+    const leg = legOf(floor);
+    const [from, to] = legRange(leg);
+    const block = h('div', {
+      class: 'omf-fork',
+      dataset: { testid: 'fork', open: String(atFork) },
+    });
+
+    if (!atFork && road) {
+      block.appendChild(
+        h(
+          'div',
+          { class: 'omf-fork__walking' },
+          h('span', {
+            class: 'omf-fork__mark',
+            style: { maskImage: `var(--fui-img-${road.glyph})` },
+          }),
+          h(
+            'div',
+            { class: 'omf-fork__walkingText' },
+            h('span', {
+              class: 'omf-fork__name fui-title',
+              text: t('path.taken', { name: t(road.nameKey) }),
+            }),
+            h('span', { class: 'omf-fork__until', text: t('path.until', { floor: to }) }),
+          ),
+        ),
+      );
+      setTip(block, {
+        title: t(road.nameKey),
+        subtitle: t('path.until', { floor: to }),
+        stats: pathRows(road),
+        flavor: t(road.descriptionKey),
+      });
+      return block;
+    }
+
+    block.appendChild(
+      h(
+        'div',
+        { class: 'omf-fork__head' },
+        h('span', { class: 'omf-fork__title fui-title', text: t('path.forkTitle') }),
+        h('span', { class: 'omf-fork__range', text: t('path.forkBody', { from, to }) }),
+      ),
+    );
+
+    /**
+     * One row per road, and the row *is* the button.
+     *
+     * The rail's panel is a column three hundred pixels wide; three cards side
+     * by side in it wrap "The Quiet Way" onto three lines and hang a button off
+     * either edge. Rows fit, and a whole row is an easier target than a button
+     * inside one.
+     */
+    const roads = h('div', { class: 'omf-fork__roads' });
+    for (const def of forkFor(character.tower.runSeed, leg)) {
+      const rows = pathRows(def);
+      const road = h('button', {
+        class: 'omf-fork__road',
+        attrs: { type: 'button' },
+        dataset: { testid: `road-${def.id}` },
+      });
+
+      road.appendChild(
+        h('span', {
+          class: 'omf-fork__mark',
+          style: { maskImage: `var(--fui-img-${def.glyph})` },
+        }),
+      );
+      road.appendChild(
+        h(
+          'span',
+          { class: 'omf-fork__text' },
+          h('span', { class: 'omf-fork__name fui-title', text: t(def.nameKey) }),
+          ...rows.map((row) => h('span', { class: 'omf-fork__line', text: row.value })),
+        ),
+      );
+
+      road.addEventListener('click', () => onChoosePath(def.id));
+      setTip(road, {
+        title: t(def.nameKey),
+        subtitle: t('path.take'),
+        stats: rows,
+        flavor: t(def.descriptionKey),
+      });
+      roads.appendChild(road);
+    }
+
+    block.appendChild(roads);
+    return block;
+  }
+
+  /**
    * The Boss Rush (Q39).
    *
    * On the tower rather than a destination of its own, because it is a way to
@@ -355,6 +481,7 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
       height: '100%',
       content: [
         h('div', { class: 'omf-tower__record' }, best.el),
+        buildFork(),
         preview,
         buildRush(),
         buildCurses(),
@@ -514,7 +641,58 @@ function buildChapters(character: Character, floor: number, ceiling: number): Tr
   return chapters;
 }
 
-/** "Floors 1–20", or "Floor 101 and above" for the band that never ends. */
+/**
+ * What a road does, as rows a card and a tooltip can both print.
+ *
+ * Percentages rather than multipliers, and "unchanged" spelled out rather than
+ * left blank: a fork is a comparison, and a blank cell in a comparison is a
+ * question the player has to answer for themselves.
+ */
+function pathRows(def: PathDef): Array<{ label: string; value: string; tone?: 'good' | 'bad' }> {
+  const shift = (factor: number): string => {
+    const percent = Math.round(Math.abs(factor - 1) * 100);
+    if (percent === 0) return t('path.same');
+    return factor > 1 ? t('path.up', { percent }) : t('path.down', { percent });
+  };
+
+  const rows: Array<{ label: string; value: string; tone?: 'good' | 'bad' }> = [
+    {
+      label: t('path.dangerEven'),
+      value:
+        def.danger === 1
+          ? t('path.dangerEven')
+          : def.danger > 1
+            ? t('path.stronger', { percent: Math.round((def.danger - 1) * 100) })
+            : t('path.weaker', { percent: Math.round((1 - def.danger) * 100) }),
+      tone: def.danger > 1 ? 'bad' : def.danger < 1 ? 'good' : undefined,
+    },
+  ];
+
+  // The plain way says "nothing changes" once, in the danger row. Spelling that
+  // out three more times is a sentence nobody reads twice.
+  if (def.gold !== 1 || def.xp !== 1 || def.materials !== 1) {
+    rows.push({
+      label: t('path.forkTitle'),
+      value: t('path.spoils', {
+        gold: shift(def.gold),
+        xp: shift(def.xp),
+        materials: shift(def.materials),
+      }),
+    });
+  }
+
+  if (def.elites > 0) {
+    rows.push({
+      label: t('path.gauntlet'),
+      value: t('path.elites', { percent: Math.round(def.elites * 100) }),
+      tone: 'good',
+    });
+  }
+
+  return rows.map((row) => (row.tone === undefined ? { label: row.label, value: row.value } : row));
+}
+
+/** "Floors 1\u201320", or "Floor 101 and above" for the band that never ends. */
 function bandCaption(band: FloorBand): string {
   const [from, to] = bandRange(band);
   return to === null ? t('tower.band.rangeOpen', { from }) : t('tower.band.range', { from, to });

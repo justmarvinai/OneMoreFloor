@@ -35,6 +35,7 @@ import { bandForFloor, isBossFloor, type FloorBand } from '@/content/floors/inde
 import type { Combatant, EffectDef, UnitId } from '../combat/types.ts';
 import { STAT_IDS, type StatBlock, type StatId } from '../stats.ts';
 import { curseStatMultiplier } from './curses.ts';
+import { pathElites, pathStats, type PathDef } from './paths.ts';
 
 export interface GeneratedFloor {
   floor: number;
@@ -114,6 +115,8 @@ export function generateFloor(
   runSeed: string,
   floor: number,
   curses: readonly string[] = [],
+  /** The road this leg is being walked on, if one has been chosen (Q41). */
+  path: PathDef | null = null,
 ): GeneratedFloor {
   const rng = createRng(floorSeed(runSeed, floor));
   const boss = isBossFloor(floor);
@@ -129,7 +132,10 @@ export function generateFloor(
    * a modifier even inside the authored range, which is what makes a Frenzied
    * Cutpurse a fight floor 12 can produce and never has before.
    */
-  const elite = !boss && floor >= ELITE_FROM_FLOOR && rng.chance(ELITE_CHANCE);
+  // The Gauntlet turns a leg into a run of champions. Rolled from the floor's
+  // own stream either way, so the preview, the trail mark and the fight agree.
+  const eliteChance = Math.min(1, ELITE_CHANCE + pathElites(path));
+  const elite = !boss && floor >= ELITE_FROM_FLOOR && rng.chance(eliteChance);
 
   // Past the authored floors an enemy may carry a modifier, which trades one
   // stat for another rather than simply inflating it (CONTENT_PIPELINE §2).
@@ -141,7 +147,12 @@ export function generateFloor(
   // Curses are applied to the *finished* stats rather than to the profile, so a
   // cursed floor is the same floor with harder numbers — same enemy, same
   // modifier, same seed — which is what keeps a run replayable (Q35).
-  const stats = curseStats(eliteStats(statsFor(floor, profile, boss), elite), curses);
+  // Route, then elite, then curses — all applied to the *finished* stats, so a
+  // hard leg is the same floor with harder numbers rather than a different roll.
+  const stats = curseStats(
+    pathStats(eliteStats(statsFor(floor, profile, boss), elite), path),
+    curses,
+  );
 
   const effects: Array<{ unit: UnitId; effect: EffectDef }> = [];
   if (enemy.playerDebuff) {

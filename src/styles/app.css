@@ -3982,3 +3982,121 @@ body > .fui-tooltip .fui-tooltip__price {
   /* One line each, so ten rows are ten equal rows rather than a ragged column. */
   white-space: nowrap;
 }
+
+/* --- Branching paths (Q41) ----------------------------------------------- */
+
+.omf-fork {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* Open: the decision. Chosen: one quiet line saying what is under way. */
+.omf-fork[data-open='true'] {
+  padding: 9px 10px 10px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 34%, transparent);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgb(58 42 16 / 26%), rgb(0 0 0 / 28%));
+}
+
+.omf-fork__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.omf-fork__title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-fork__range {
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-fork__roads {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* The whole row is the button: an easier target, and it fits a 300px rail. */
+.omf-fork__road {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 5px;
+  background: rgb(0 0 0 / 30%);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--fui-t-fast, 120ms) ease,
+    background var(--fui-t-fast, 120ms) ease;
+}
+
+.omf-fork__road:hover,
+.omf-fork__road:focus-visible {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 60%, transparent);
+  background: rgb(58 42 16 / 34%);
+}
+
+.omf-fork__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.omf-fork__mark {
+  width: 22px;
+  height: 22px;
+  background: var(--fui-gold-soft, #f0d9a0);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.omf-fork__name {
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-fork__line {
+  font-family: var(--fui-font-ui);
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: var(--fui-ink-dim);
+}
+
+/* The road under way: a single row, because the decision is already made. */
+.omf-fork__walking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 26%);
+}
+
+.omf-fork__walkingText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.omf-fork__until {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  color: var(--fui-ink-faint);
+}
