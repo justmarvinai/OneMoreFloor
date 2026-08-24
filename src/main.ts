@@ -41,6 +41,8 @@ import { sellValue } from './domain/items/upgrade.ts';
 import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
 import { createTalentsScreen } from './ui/screens/talents.ts';
+import { ownedPets } from './domain/pets/pets.ts';
+import type { PetHarvest } from './app/gameActions.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
@@ -143,10 +145,24 @@ export async function boot(mount: HTMLElement): Promise<void> {
      * Fight one floor. Resolution and its save happen before the screen swaps,
      * so the combat screen is handed a decided fight to perform (COMBAT.md §1).
      */
+    /**
+     * Say when the Spire sends something after you (Q42).
+     *
+     * Worth a toast where the echoes were not: a companion turns up six times in
+     * the life of an account, and each one is a thing the player now has to make
+     * a decision about. A level-up is quieter — one line, no body.
+     */
+    const announcePets = (pets: PetHarvest): void => {
+      for (const def of pets.found) {
+        notify(t('pet.found', { name: t(def.nameKey) }), t('pet.foundBody'));
+      }
+    };
+
     const startFight = (floor: number): void => {
       const hero = requireCharacter();
       void session.fight(floor).then((result) => {
         pendingFight = { hero, result };
+        announcePets(result.pets);
         // The chest is announced rather than folded into the aftermath's reward
         // strip: a milestone is for the *depth*, and burying it among the
         // floor's own spoils would make it look like part of the fight.
@@ -160,6 +176,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
     const startRaid = (throughFloor: number): void => {
       void session.raid(throughFloor).then((result) => {
         pendingRaid = result;
+        announcePets(result.pets);
         router.go('raid');
       });
     };
@@ -182,6 +199,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
       void session
         .fight(hero.tower.currentRunFloor)
         .then((result) => {
+          announcePets(result.pets);
           if (result.cleared) {
             notify(t('tower.auto.cleared', { floor: result.floor }));
             if (result.milestone) {
@@ -406,6 +424,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'atCeiling':
           refuse(t('bench.refused.atCeiling'), t('bench.refused.atCeilingBody'));
           return;
+        case 'noSuchPet':
+          refuse(t('pet.refused.noSuchPet'), t('pet.refused.noSuchPetBody'));
+          return;
+        case 'notFound':
+          refuse(t('pet.refused.notFound'), t('pet.refused.notFoundBody'));
+          return;
         case 'notEnoughPoints':
           refuse(t('talent.refused.points'), t('talent.refused.pointsBody'));
           return;
@@ -563,6 +587,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createCharacterScreen({
               character: requireCharacter(),
+              pets: ownedPets(store.get().account),
               capacity: bagSize(),
               now: clock().now(),
               onSelectItem: inspectItem,
@@ -587,6 +612,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
                 void session.saveLoadout(index, name).then((outcome) => {
                   if (outcome.ok) notify(t('loadout.saved'), t('loadout.savedBody'));
                   else sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
+              onSetPet: (id) => {
+                void session.setActivePet(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
                   refreshScreen();
                 });
               },

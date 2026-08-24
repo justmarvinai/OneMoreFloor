@@ -3605,3 +3605,136 @@ body > .fui-tooltip .fui-tooltip__price {
   justify-content: flex-end;
   gap: 10px;
 }
+
+/* --- Companions (Q42) ---------------------------------------------------- */
+
+.omf-pets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.omf-pets__empty {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-pets__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.omf-pets__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 9px 10px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+  text-align: center;
+}
+
+/* The one that is out wears the gold, so the sheet answers "which?" at a glance. */
+.omf-pets__card[data-out='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 52%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 32%), rgb(0 0 0 / 26%));
+}
+
+.omf-pets__art {
+  width: 54px;
+  height: 54px;
+  background: center / contain no-repeat;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 70%));
+}
+
+.omf-pets__name {
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-pets__level {
+  font-family: var(--fui-font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-pets__xp {
+  font-size: 0.66rem;
+  color: var(--fui-ink-dim);
+}
+
+/*
+ * The player's side of the battlefield: hero above, companion below, one column.
+ * Two cards facing the same enemy would read as two heroes rather than as a side.
+ */
+.omf-combat__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/*
+ * The companion reads as an attendant, not a second hero: a compact strip under
+ * the hero's card — portrait, name, health — and no stat block of its own. It is
+ * also what keeps the player's column inside a 720-tall window, where the hero's
+ * full card and stat table already take nearly all of it.
+ */
+.omf-combat__card[data-unit='pet'] .fui-unit,
+.omf-combat__card[data-unit='pet'] .fui-unit[data-kind='player'] {
+  flex-direction: row;
+  align-items: center;
+  width: 330px;
+  padding: 7px 11px;
+  text-align: left;
+}
+
+.omf-combat__card[data-unit='pet'] .fui-unit__stack {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.omf-combat__card[data-unit='pet'] .fui-unit__namerow,
+.omf-combat__card[data-unit='pet'] .fui-unit__name {
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 13px;
+}
+
+.omf-combat__card[data-unit='pet'] .omf-combat__stats {
+  display: none;
+}
+
+/*
+ * Laptop glass, with a companion on the field.
+ *
+ * The player's column is the hero's card, their stat table and the companion's
+ * strip, and at 720 tall that lands eight pixels over the frame. The frame gives
+ * up padding rather than the column giving up the strip: every row in it is
+ * something a losing player needs in order to see why (COMBAT.md §9).
+ */
+@media (max-height: 780px) {
+  .omf-combat__field {
+    gap: 6px 20px;
+    padding: 10px 24px 12px;
+  }
+
+  .omf-combat__side {
+    gap: 6px;
+  }
+}
+
+/* A downed companion stays on screen, dimmed: the fight went on without it. */
+.omf-combat__card[data-unit='pet'].is-defeated {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}

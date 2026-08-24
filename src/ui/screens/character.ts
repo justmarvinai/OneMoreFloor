@@ -47,6 +47,14 @@ import { EQUIP_SLOT_IDS, type Character, type EquipSlotId } from '@/domain/chara
 import { availableSlots, canEquip, type EquipCheck } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
 import { powerLevel } from '@/domain/power/power.ts';
+import {
+  auraMagnitude,
+  petScale,
+  petTaunt,
+  PET_MAX_LEVEL,
+  type OwnedPet,
+} from '@/domain/pets/pets.ts';
+import { PETS } from '@/content/pets/index.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
@@ -89,8 +97,10 @@ const SLOT_LAYOUT: Readonly<Record<EquipSlotId, 'left' | 'right' | 'bottom'>> = 
 export interface CharacterScreenOptions {
   /** Backpack size — an account upgrade, so the screen is told rather than assuming. */
   capacity: number;
-  character: Character;
   /** Wall-clock time, for potion timers (Q9). */
+  character: Character;
+  /** The companion roster the account owns, and which one is out (Q42). */
+  pets: readonly OwnedPet[];
   now: number;
   onSelectItem: (uid: string) => void;
   /** Put a backpack piece on — the drop end of a drag from the bag. */
@@ -103,6 +113,8 @@ export interface CharacterScreenOptions {
   onSaveLoadout: (index: number, name: string) => void;
   /** Wear preset `index`. */
   onWearLoadout: (index: number) => void;
+  /** Send a companion out, or call the current one back in (Q42). */
+  onSetPet: (id: string | null) => void;
 }
 
 export interface CharacterScreen {
@@ -113,6 +125,7 @@ export interface CharacterScreen {
 export function createCharacterScreen(options: CharacterScreenOptions): CharacterScreen {
   const {
     character,
+    pets,
     capacity,
     now,
     onSelectItem,
@@ -122,6 +135,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     onAscend,
     onSaveLoadout,
     onWearLoadout,
+    onSetPet,
   } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
@@ -130,6 +144,8 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
   };
 
   const definition = CLASSES[character.identity.classId];
+  /** The companion currently at the hero's side, which Power Level counts (Q42). */
+  const out = pets.find((pet) => pet.def.id === character.activePet) ?? null;
   /**
    * How many pieces of a piece's set the hero already wears (Q45).
    *
@@ -169,7 +185,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       // The sockets belong at the sheet's edges, as they are in the reference.
       // `Paperdoll` writes its width inline, so this is how it is overridden.
       style: { width: '100%' },
-      gearScore: Math.round(powerLevel(powerInputsFor(character))),
+      gearScore: Math.round(powerLevel(powerInputsFor(character, out))),
     }),
   );
   paperdoll.on<{ slotId: string; item: SlotItem | null }>('equip:click', ({ slotId, item }) => {
@@ -224,7 +240,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
 
   const power = track(
     new PowerRating({
-      value: Math.round(powerLevel(powerInputsFor(character))),
+      value: Math.round(powerLevel(powerInputsFor(character, out))),
       label: t('character.power'),
       size: 'md',
       compact: true,
@@ -642,6 +658,97 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     return block;
   }
 
+  /**
+   * Companions (Q42).
+   *
+   * On the character sheet rather than a destination of its own, because that is
+   * what a companion is: part of what this hero is fielding, beside the gear and
+   * the sets. The roster belongs to the account and the choice belongs to the
+   * hero, which is exactly how the block reads — every species the account has
+   * met, one of them out.
+   */
+  function buildPets(): HTMLElement {
+    const block = h('section', { class: 'omf-pets', dataset: { testid: 'pets' } });
+    block.appendChild(h('h3', { class: 'omf-character__section fui-title', text: t('pet.title') }));
+
+    if (pets.length === 0) {
+      // Never an empty box: a player who has met none should learn where the
+      // first one comes from rather than that a feature exists (§20.5).
+      block.appendChild(
+        h('p', {
+          class: 'omf-pets__empty',
+          text: t('pet.noneFoundBody', { floor: FIRST_PET_FLOOR }),
+        }),
+      );
+      return block;
+    }
+
+    const row = h('div', { class: 'omf-pets__row' });
+    for (const pet of pets) {
+      const isOut = pet.def.id === character.activePet;
+      const card = h('div', {
+        class: 'omf-pets__card',
+        dataset: { testid: `pet-${pet.def.id}`, out: String(isOut) },
+      });
+
+      card.appendChild(
+        h('span', {
+          class: 'omf-pets__art',
+          style: { backgroundImage: `var(--fui-img-${pet.def.avatar})` },
+        }),
+      );
+      card.appendChild(h('span', { class: 'omf-pets__name fui-title', text: t(pet.def.nameKey) }));
+      card.appendChild(
+        h('span', {
+          class: 'omf-pets__level',
+          text: t('pet.level', { level: pet.level, max: PET_MAX_LEVEL }),
+        }),
+      );
+      card.appendChild(
+        h('span', {
+          class: 'omf-pets__xp fui-num',
+          text:
+            pet.toNext === null ? t('pet.maxed') : t('pet.xp', { xp: pet.xp, next: pet.toNext }),
+        }),
+      );
+
+      const send = track(
+        new Button({
+          label: isOut ? t('pet.recall') : t('pet.send'),
+          size: 'sm',
+          variant: isOut ? 'ghost' : 'primary',
+          block: true,
+        }),
+      );
+      send.on('click', () => onSetPet(isOut ? null : pet.def.id));
+      card.appendChild(send.el);
+
+      setTip(card, {
+        title: t(pet.def.nameKey),
+        subtitle: t('pet.level', { level: pet.level, max: PET_MAX_LEVEL }),
+        stats: [
+          { label: t('pet.aura', { effect: '' }).replace(':', '').trim(), value: auraText(pet) },
+          {
+            label: t('combat.pet'),
+            value: t('pet.share', { percent: Math.round(petScale(pet.level) * 100) }),
+          },
+          {
+            label: t('pet.taunt', { percent: '' })
+              .replace(/\s*%.*/, '')
+              .trim(),
+            value: t('pet.taunt', { percent: Math.round(petTaunt(pet) * 100) }),
+          },
+        ],
+        flavor: t(pet.def.descriptionKey),
+      });
+
+      row.appendChild(card);
+    }
+
+    block.appendChild(row);
+    return block;
+  }
+
   const backpackPanel = track(
     new Panel({
       title: t('character.backpack', {
@@ -688,6 +795,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
           h('div', { class: 'omf-character__doll' }, paperdoll.el),
           heroStrip,
           ...(sets ? [sets] : []),
+          buildPets(),
           buildLoadouts(),
         ),
         statsBlock,
@@ -710,6 +818,20 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       el.remove();
     },
   };
+}
+
+/** Where the first companion turns up, so an empty roster can say so (§20.5). */
+const FIRST_PET_FLOOR = PETS.reduce(
+  (shallowest, def) => Math.min(shallowest, def.unlockFloor),
+  Number.POSITIVE_INFINITY,
+);
+
+/** What a companion's aura is worth right now, in words. */
+function auraText(pet: OwnedPet): string {
+  const percent = Math.round(auraMagnitude(pet) * 100);
+  return pet.def.aura.kind === 'damageReduction'
+    ? t('pet.auraReduction', { percent })
+    : t('pet.auraStat', { percent, stat: t(`stat.${pet.def.aura.stat}` as StringKey) });
 }
 
 /** The ascension tier that opens a slot, for the locked-slot explanation (§7). */

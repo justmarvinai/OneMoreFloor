@@ -368,8 +368,13 @@ export function wantedSink(character: Character): number {
   return total;
 }
 
+/**
+ * The simulator climbs without companions on purpose: the balance gates measure
+ * the tower against a hero alone, which is the floor every other configuration
+ * sits above (Q42).
+ */
 function powerOf(character: Character): number {
-  return powerLevel(powerInputsFor(character));
+  return powerLevel(powerInputsFor(character, null));
 }
 
 /** Everything a scripted player does between fights, in the order they'd do it. */

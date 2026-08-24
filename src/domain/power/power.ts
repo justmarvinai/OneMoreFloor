@@ -38,6 +38,16 @@ export interface PowerInputs {
    * Build these inputs with `powerInputsFor` and it cannot be forgotten.
    */
   talents: number;
+  /**
+   * What the companion at the hero's side is worth (Q42).
+   *
+   * Required for the same reason `talents` is: a companion has its own health
+   * bar and takes its own turn, so none of it is visible through the hero's
+   * stats — and the tower has to stay as hard relative to what a player can
+   * actually field. Build these inputs with `powerInputsFor`, which cannot
+   * produce one without an answer.
+   */
+  pet: number;
 }
 
 export interface PowerBreakdown {
@@ -56,6 +66,8 @@ export interface PowerBreakdown {
   uniques: number;
   /** What talents that grant no stat are worth (Q38). */
   talents: number;
+  /** What the companion at the hero's side is worth (Q42). */
+  pet: number;
   total: number;
 }
 
@@ -94,6 +106,7 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
     evaluate(POWER_TOWER_CURVE, Math.max(0, inputs.highestFloorEverCleared)) * POWER_WEIGHTS.tower;
   const uniques = wornPowers(inputs.equipped).length * UNIQUE_POWER_LEVEL;
   const talents = Math.max(0, inputs.talents);
+  const pet = Math.max(0, inputs.pet);
 
   return {
     gear,
@@ -102,7 +115,8 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
     tower,
     uniques,
     talents,
-    total: Math.round(gear + stats + ascension + tower + uniques + talents),
+    pet,
+    total: Math.round(gear + stats + ascension + tower + uniques + talents + pet),
   };
 }
 

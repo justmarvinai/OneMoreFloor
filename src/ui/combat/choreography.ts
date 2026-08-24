@@ -58,11 +58,20 @@ export const TIMING = {
 export const HEAVY_HIT_FRACTION = 0.15;
 
 export type Step =
-  | { kind: 'start'; hero: CombatantSnapshot; enemy: CombatantSnapshot; isBoss: boolean }
+  | {
+      kind: 'start';
+      hero: CombatantSnapshot;
+      enemy: CombatantSnapshot;
+      /** Absent when the hero climbs alone (Q42). */
+      pet?: CombatantSnapshot;
+      isBoss: boolean;
+    }
   | { kind: 'round'; round: number }
   | {
       kind: 'windUp';
       unit: UnitId;
+      /** Whom it is aimed at — three units on the field, so it has to be said. */
+      target: UnitId;
       action: 'strike' | 'doubleStrike' | 'signature';
       signature?: SignatureKind;
     }
@@ -113,7 +122,7 @@ export function floatLifeFor(crit: boolean, rate: number): number {
 export function choreograph(script: CombatScript): Beat[] {
   const beats: Beat[] = [];
   let at = 0;
-  const maxHp: Record<UnitId, number> = { hero: 1, enemy: 1 };
+  const maxHp: Record<UnitId, number> = { hero: 1, pet: 1, enemy: 1 };
 
   /** False until the first round begins — see `effectApplied` below. */
   let opened = false;
@@ -128,8 +137,15 @@ export function choreograph(script: CombatScript): Beat[] {
       case 'fightStart': {
         maxHp.hero = event.hero.maxHp;
         maxHp.enemy = event.enemy.maxHp;
+        if (event.pet) maxHp.pet = event.pet.maxHp;
         push(
-          { kind: 'start', hero: event.hero, enemy: event.enemy, isBoss: event.isBoss },
+          {
+            kind: 'start',
+            hero: event.hero,
+            enemy: event.enemy,
+            ...(event.pet ? { pet: event.pet } : {}),
+            isBoss: event.isBoss,
+          },
           TIMING.fightStart,
         );
         // `fightStart.floorEffects` states the opening board; the engine *also*
@@ -150,6 +166,7 @@ export function choreograph(script: CombatScript): Beat[] {
           {
             kind: 'windUp',
             unit: event.unit,
+            target: event.target,
             action: event.kind,
             ...(event.signature ? { signature: event.signature } : {}),
           },

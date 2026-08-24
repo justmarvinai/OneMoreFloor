@@ -51,7 +51,17 @@ import {
   stockOf,
   type MerchantId,
 } from '@/domain/merchants/merchants.ts';
-import { bracketForCharacter, fightFloor, quickRaid } from '@/domain/tower/run.ts';
+import { bracketForCharacter, fightFloor, quickRaid, type FightAids } from '@/domain/tower/run.ts';
+import {
+  activePetOf,
+  awardPetXp,
+  grantPets,
+  petXpForFloor,
+  petsFoundAt,
+  setActivePet,
+  type OwnedPet,
+} from '@/domain/pets/pets.ts';
+import type { PetDef } from '@/content/pets/index.ts';
 import { canAutoClimb } from '@/domain/tower/autoClimb.ts';
 import type { FloorResult, QuickRaidResult } from '@/domain/tower/run.ts';
 import {
@@ -116,6 +126,8 @@ export type Refusal =
   | 'nothingLearned'
   | 'wrongClass'
   | 'noSuchTalent'
+  | 'noSuchPet'
+  | 'notFound'
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -130,11 +142,21 @@ export type Refusal =
 export type Outcome<T = undefined> =
   { ok: true; value: T; character: Character } | { ok: false; reason: Refusal };
 
+/** What a climb did for the companions, for the caller to announce (Q42). */
+export interface PetHarvest {
+  /** Species the depth just freed for the whole account. */
+  found: readonly PetDef[];
+  /** Levels the companion that fought gained. */
+  levelsGained: number;
+}
+
 export interface GameActions {
-  fight(floor: number): Promise<FloorResult>;
+  fight(floor: number): Promise<FloorResult & { pets: PetHarvest }>;
   /** Turn auto-climb on, off, or on in the background (Q32). */
   setAutoClimb(mode: AutoClimbMode): Promise<Outcome>;
-  raid(throughFloor: number): Promise<QuickRaidResult>;
+  raid(throughFloor: number): Promise<QuickRaidResult & { pets: PetHarvest }>;
+  /** Send a companion out, or call it back in (Q42). */
+  setActivePet(id: string | null): Promise<Outcome>;
 
   equip(uid: string): Promise<Outcome<ItemInstance[]>>;
   /** Save what the hero is wearing into preset `index` (fifth polish round). */
@@ -302,6 +324,43 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     return earned;
   }
 
+  /** The companion this hero has out, if any (Q42). */
+  function companion(): OwnedPet | null {
+    return activePetOf(store.get().account, store.get().activeCharacter);
+  }
+
+  /** What the account brings to a fight that the character cannot know. */
+  function aids(): FightAids {
+    return { echoes: echoes(), pet: companion() };
+  }
+
+  /**
+   * Bank what a climb did for the companions: experience for the one that
+   * fought, and any species the depth has just freed for the whole account.
+   *
+   * One account write for a whole raid rather than one per floor, and the found
+   * species are returned rather than announced, because only the caller knows
+   * how to say so.
+   */
+  async function bankPets(floors: readonly FloorResult[]): Promise<PetHarvest> {
+    const account = store.get().account;
+    const cleared = floors.filter((floor) => floor.cleared);
+    if (!account || cleared.length === 0) return { found: [], levelsGained: 0 };
+
+    const active = store.get().activeCharacter?.activePet ?? null;
+    const xp = cleared.reduce((total, floor) => total + petXpForFloor(floor.floor), 0);
+    const grown = awardPetXp(account, active, xp);
+
+    const deepest = cleared.reduce((best, floor) => Math.max(best, floor.floor), 0);
+    const found = petsFoundAt(grown.account, deepest);
+    const updated = grantPets(grown.account, found);
+
+    if (updated === account) return { found: [], levelsGained: 0 };
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
+    return { found, levelsGained: grown.levelsGained };
+  }
+
   /** The bag's size right now — an account upgrade, so it is read, not assumed. */
   function capacity(): number {
     return backpackCapacity(store.get().account ?? { backpackSlots: 0 });
@@ -366,12 +425,13 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
   return {
     async fight(floor) {
       const before = active().tower.highestFloorEverCleared;
-      const result = fightFloor(active(), floor, clock().now(), echoes());
+      const result = fightFloor(active(), floor, clock().now(), aids());
       const character = withQuests(result.character, floorEvents(result));
       await commit(character);
       await recordSightings([result]);
       await bankEchoes(before, character.tower.highestFloorEverCleared);
-      return { ...result, character };
+      const pets = await bankPets([result]);
+      return { ...result, character, pets };
     },
 
     async setAutoClimb(mode) {
@@ -391,14 +451,15 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
     async raid(throughFloor) {
       const before = active().tower.highestFloorEverCleared;
-      const result = quickRaid(active(), throughFloor, clock().now(), echoes());
+      const result = quickRaid(active(), throughFloor, clock().now(), aids());
       const events = result.floors.flatMap(floorEvents);
       const character = withQuests(result.character, events);
       await commit(character);
       // One account write for the whole raid rather than one per floor.
       await recordSightings(result.floors);
       await bankEchoes(before, character.tower.highestFloorEverCleared);
-      return { ...result, character };
+      const pets = await bankPets(result.floors);
+      return { ...result, character, pets };
     },
 
     async equip(uid) {
@@ -711,6 +772,15 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       // like any other purchase, so a respec can advance a spending quest.
       const paid = withQuests(result, [{ kind: 'goldSpent', amount: cost }]);
       return { ok: true, value: cost, character: await commit(paid) };
+    },
+
+    async setActivePet(id) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const result = setActivePet(account, active(), id);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: undefined, character: await commit(result) };
     },
 
     async buyUpgrade(id) {

@@ -49,6 +49,7 @@ import { potionFor } from '@/content/items/potions.ts';
 import { backpackCapacity } from '@/domain/character/account.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { powerInputsFor } from '@/domain/character/character.ts';
+import { activePetOf } from '@/domain/pets/pets.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
 import { powerLevel } from '@/domain/power/power.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
@@ -432,7 +433,9 @@ export function createShell(options: ShellOptions): Shell {
   /** Every number in the climb plate, from one character. */
   const paintClimb = (current: Character | null, now: number): void => {
     if (!current) return;
-    powerChip.set(powerLevel(powerInputsFor(current)));
+    // The companion counts towards the number in the rail, because it counts
+    // towards the bracket the tower reads (Q42).
+    powerChip.set(powerLevel(powerInputsFor(current, activePetOf(store.get().account, current))));
 
     const used = current.inventory.length;
     const capacity = backpackCapacity(store.get().account ?? { backpackSlots: 0 });

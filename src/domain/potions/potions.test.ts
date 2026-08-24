@@ -93,6 +93,7 @@ describe('what a potion actually does', () => {
         stats: totalStatsOf(subject),
         ascension: subject.progression.ascension,
         talents: 0,
+        pet: 0,
         highestFloorEverCleared: subject.tower.highestFloorEverCleared,
       });
 

@@ -240,6 +240,7 @@ describe('anti-overshoot: no source may exceed the requester’s bracket', () =>
         stats: totalStatsOf(midGame),
         ascension: midGame.progression.ascension,
         talents: 0,
+        pet: 0,
         highestFloorEverCleared: midGame.tower.highestFloorEverCleared,
       }),
     );
@@ -336,6 +337,7 @@ describe('brackets', () => {
       stats: totalStatsOf(hero),
       ascension: 0,
       talents: 0,
+      pet: 0,
       highestFloorEverCleared: 0,
     });
     expect(bracketFor(power).index).toBeLessThanOrEqual(1);

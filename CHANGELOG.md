@@ -7,6 +7,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Companions that actually fight.** Six species, each freed by a floor deep
+  enough that finding one is an event — the roster spans floor 5 to floor 260.
+  A companion is a **third combatant**, not a stat: its own health bar, its own
+  turn between the hero's and the enemy's, its own card on the battlefield, and
+  it can be struck down without the fight ending. Everything it is comes off the
+  hero it walks beside — a share of their stats per species — so a companion
+  never needs gear, never needs a bracket of its own, and never goes obsolete
+  twenty floors after it is found. Each one draws a share of the enemy's
+  attention onto itself, which is the whole reason to field a Stone Whelp over a
+  Spire Owl, and gives the hero an aura at the bell, which is the reason to
+  switch rather than simply to field the strongest. The roster and its levels
+  belong to the **account**, so a hero's death costs none of it (§3.3); which one
+  is out belongs to the **character**, so two heroes on one account can field
+  different companions. Only the one that fought earns experience: a roster that
+  all levelled at once would be a roster with no choice in it. What a companion
+  is worth is counted into Power Level, so the tower stays as hard relative to
+  what a player can actually field (§13).
 - **Class talents — the level-up becomes a question.** A tree per class, eleven
   talents in four rows, five ranks each, and one point every level to spend on
   them. Deeper rows cost more per rank and open on points already committed
@@ -121,6 +138,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- The combat engine understands three units rather than two, and every action it
+  records now names its target. With a companion on the field, "the other one"
+  is two of them and the enemy picks which, so a log line that inferred the
+  target would be wrong every time the companion was the one being hit.
 - Power Level's inputs are built by one constructor rather than assembled by
   hand at each call site. The number has grown a term a hand-written object can
   silently omit, and an omission there is an anti-overshoot hole with no symptom

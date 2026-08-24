@@ -11,7 +11,17 @@ import type { ClassId, ResourceKind } from '../character/types.ts';
 import type { UniquePowerId } from '@/content/items/uniques.ts';
 import type { StatBlock, StatId } from '../stats.ts';
 
-export type UnitId = 'hero' | 'enemy';
+/**
+ * Who can be in a fight.
+ *
+ * Three, since companions (Q42). The pet is a full unit rather than a stat the
+ * hero carries: it has its own health bar, takes its own turn and can be struck
+ * down without the fight ending — none of which a bonus can express.
+ */
+export type UnitId = 'hero' | 'pet' | 'enemy';
+
+/** Everyone on the player's side, for the rules that treat them as one. */
+export const ALLY_IDS: readonly UnitId[] = ['hero', 'pet'];
 
 /** Which signature move a unit performs when its bar fills (Q26). */
 export type SignatureKind =
@@ -131,6 +141,8 @@ export type CombatEvent =
       isBoss: boolean;
       hero: CombatantSnapshot;
       enemy: CombatantSnapshot;
+      /** Present only when a companion came along (Q42). */
+      pet?: CombatantSnapshot;
       /** Floor modifiers applied before the first blow (Brief §3.2). */
       floorEffects: Array<{ unit: UnitId; effect: EffectDef }>;
     }
@@ -138,6 +150,14 @@ export type CombatEvent =
   | {
       type: 'action';
       unit: UnitId;
+      /**
+       * Whom the action is aimed at.
+       *
+       * With three units on the field, "Grimhild attacks" no longer names a
+       * target by elimination, and a log line that guessed would be wrong every
+       * time the enemy went for the companion instead.
+       */
+      target: UnitId;
       kind: 'strike' | 'doubleStrike' | 'signature';
       signature?: SignatureKind;
     }
@@ -188,6 +208,15 @@ export interface CombatScript {
 export interface CombatOutcome {
   winner: UnitId;
   heroSurvived: boolean;
+  /**
+   * Whether the companion was still standing at the end (Q42).
+   *
+   * Absent when none came along. It never decides the fight — a hero standing
+   * over a fallen pet has cleared the floor — but the aftermath says so, and a
+   * player who never learns their companion went down learns nothing from
+   * choosing a sturdier one.
+   */
+  petSurvived?: boolean;
   rounds: number;
   heroHpRemaining: number;
   byRoundCap: boolean;

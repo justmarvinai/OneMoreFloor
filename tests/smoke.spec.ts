@@ -1207,7 +1207,10 @@ test('refuses a drop the socket cannot take, and says why (§20.5)', async ({ pa
     .first();
   await bagCellFor(page, slot).dragTo(wrong);
 
-  const toast = page.locator('.fui-toast');
+  // The *refusal*, addressed by its tone rather than by being the only card on
+  // screen: two dozen floors of climbing also turns up companions, and each of
+  // those is a toast of its own (Q42).
+  const toast = page.locator('.fui-toast[data-tone="warn"]').last();
   await expect(toast).toBeVisible();
   // A refusal that only says "no" is the bug; the card has to carry a reason.
   expect((await toast.innerText()).split('\n').length).toBeGreaterThan(1);
@@ -1568,7 +1571,7 @@ test('the workbench rescues material the hero has climbed past (Q43)', async ({ 
   );
 
   await dust.getByRole('button', { name: 'Make' }).click();
-  await expect(page.locator('.fui-toast').last()).toContainText(/Made/i);
+  await expect(page.locator('.fui-toast', { hasText: /Made/i })).toBeVisible();
   await expect(page.locator('[data-testid="transmute-mat.iron-sigil"]')).toContainText(/[1-9]/);
 });
 
@@ -1738,7 +1741,7 @@ test('a piece can be broken down or reforged, not only sold', async ({ page }) =
 
   await salvage.click();
   await expect(dialog).toBeHidden();
-  await expect(page.locator('.fui-toast').last()).toContainText(/Broken down/i);
+  await expect(page.locator('.fui-toast', { hasText: /Broken down/i })).toBeVisible();
 });
 
 test('a gear set can be kept and put back on (fifth polish round)', async ({ page }) => {
@@ -1765,7 +1768,7 @@ test('a gear set can be kept and put back on (fifth polish round)', async ({ pag
 
   // Wearing what is already worn is refused in words (§20.5).
   await first.getByRole('button', { name: 'Wear' }).click();
-  await expect(page.locator('.fui-toast').last()).toContainText(/Already wearing it/i);
+  await expect(page.locator('.fui-toast', { hasText: /Already wearing it/i })).toBeVisible();
 });
 
 test('the bestiary fills in as the tower is met, and keeps its gaps', async ({ page }) => {
@@ -1874,4 +1877,49 @@ test('a level buys a talent, and the tree says why it will not (Q38)', async ({ 
   await page.getByRole('button', { name: /^Unlearn ·/ }).click();
   await expect(brawn).toContainText('Rank 0 of 5');
   await expect(page.locator('[data-testid="talent-respec"]')).toContainText('Nothing learned yet');
+});
+
+test('the Spire sends a companion, and it fights beside you (Q42)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Nothing has followed the hero yet, and the sheet says where the first one
+  // comes from rather than showing an empty box (§20.5).
+  await goToSection(page, 'Character');
+  const roster = page.locator('[data-testid="pets"]');
+  await expect(roster).toBeVisible();
+  await expect(roster).toContainText(/first companion turns up on floor/i);
+
+  // Floor 5 frees the Emberling.
+  await goToSection(page, 'Tower');
+  await climb(page, 5);
+
+  await goToSection(page, 'Character');
+  const emberling = page.locator('[data-testid="pet-pet.emberling"]');
+  await expect(emberling).toBeVisible();
+  await expect(emberling).toContainText('Emberling');
+  await expect(emberling).toContainText(/Level \d+ of 50/);
+
+  // Send it out; the card says which one is with you.
+  await emberling.getByRole('button', { name: 'Send out' }).click();
+  await expect(emberling).toHaveAttribute('data-out', 'true');
+  await expect(emberling.getByRole('button', { name: 'Call back' })).toBeVisible();
+
+  // It takes the field: its own card, and its own blows in the log.
+  await goToSection(page, 'Tower');
+  await startFight(page);
+  await expect(page.locator('[data-testid="combat-card-pet"]')).toBeVisible();
+  // The log names it while the fight is still on the field — the aftermath
+  // replaces the stage, log and all.
+  await expect(page.locator('.fui-log')).toContainText('Emberling');
+  await skipToVerdict(page);
+  await expect(page.locator('.omf-combat__aftermath > *')).toBeVisible();
+
+  // And it grew for the floor it fought on: the roster is the account's, so the
+  // experience is there when the hero next looks.
+  const back = page.getByRole('button', { name: /Back to the Spire/i });
+  if (await back.isVisible().catch(() => false)) await back.click();
+  await goToSection(page, 'Character');
+  await expect(page.locator('[data-testid="pet-pet.emberling"]')).not.toContainText(/\b0 \//);
 });

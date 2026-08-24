@@ -45,9 +45,20 @@ import type {
   UnitId,
 } from './types.ts';
 
+/** The companion at the hero's side, and everything the engine needs of it (Q42). */
+export interface ResolvePet {
+  unit: Combatant;
+  /** Applied to the hero at the bell, for the whole fight. */
+  aura: EffectDef;
+  /** Share of the enemy's attacks it pulls onto itself. */
+  taunt: number;
+}
+
 export interface ResolveInput {
   hero: Combatant;
   enemy: Combatant;
+  /** Absent when the hero climbs alone, which is most of the early game. */
+  pet?: ResolvePet;
   floor: number;
   isBoss: boolean;
   /** Modifiers the floor imposes before the first blow (Brief §3.2). */
@@ -94,6 +105,8 @@ export function resolveCombat(input: ResolveInput): CombatScript {
   // Work on copies: the engine must never mutate the character it was handed.
   const hero: Combatant = cloneCombatant(input.hero);
   const enemy: Combatant = cloneCombatant(input.enemy);
+  const pet: Combatant | null = input.pet ? cloneCombatant(input.pet.unit) : null;
+  const taunt = input.pet ? Math.max(0, Math.min(1, input.pet.taunt)) : 0;
 
   const events: CombatEvent[] = [];
   const floorEffects = input.floorEffects ?? [];
@@ -104,14 +117,24 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     isBoss,
     hero: snapshot(hero),
     enemy: snapshot(enemy),
+    ...(pet ? { pet: snapshot(pet) } : {}),
     floorEffects,
   });
 
   // Boss floors debuff the player and buff the enemy before anyone swings
   // (Brief §3.2); normal floors may carry weaker versions of the same thing.
   for (const { unit, effect } of floorEffects) {
-    applyEffect(unit === 'hero' ? hero : enemy, effect);
+    applyEffect(unitById(unit), effect);
     events.push({ type: 'effectApplied', unit, effect });
+  }
+
+  // The companion's aura lands after the floor's own modifiers, and on the hero
+  // rather than on the companion: what a pet gives is given to whoever it walks
+  // beside (Q42). Kept out of `floorEffects` deliberately — the preview and the
+  // banner read that list as *the floor's* doing, and it is not.
+  if (pet && input.pet) {
+    applyEffect(hero, input.pet.aura);
+    events.push({ type: 'effectApplied', unit: 'hero', effect: input.pet.aura });
   }
 
   let round = 0;
@@ -128,11 +151,14 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     events.push({ type: 'roundStart', round });
 
     // The hero acts first; Speed can buy them a second strike before the enemy
-    // moves at all (Brief §4.2/§6).
+    // moves at all (Brief §4.2/§6). The companion follows, then the enemy —
+    // so a fight with a pet in it is the same fight with one extra blow, rather
+    // than a different order of the same ones.
     takeTurn(hero, enemy);
-    if (enemy.hp > 0) takeTurn(enemy, hero);
+    if (pet && pet.hp > 0 && enemy.hp > 0) takeTurn(pet, enemy);
+    if (enemy.hp > 0) takeTurn(enemy, enemyTarget());
 
-    for (const unit of [hero, enemy]) {
+    for (const unit of pet ? [hero, pet, enemy] : [hero, enemy]) {
       gainResource(unit, 'roundEnd');
       // Regeneration closes wounds between exchanges rather than during one, so
       // it can never save a unit from the blow that killed it (Q38).
@@ -144,6 +170,9 @@ export function resolveCombat(input: ResolveInput): CombatScript {
   }
 
   const outcome = decideOutcome(hero, enemy, round, byRoundCap, isBoss);
+  // The companion's fate is never the fight's: a hero standing over a fallen pet
+  // has cleared the floor, and the pet is back on its feet for the next one.
+  if (pet) outcome.petSurvived = pet.hp > 0;
   if (!byRoundCap) {
     events.push({ type: 'defeated', unit: outcome.winner === 'hero' ? 'enemy' : 'hero' });
   }
@@ -160,6 +189,25 @@ export function resolveCombat(input: ResolveInput): CombatScript {
    * One lookup for all five rules, so adding a sixth is a case in `UNIQUE_MAGNITUDE`
    * and one call site rather than a new branch threaded through the whole engine.
    */
+  /** Look a unit up by the id an event carries. */
+  function unitById(id: UnitId): Combatant {
+    if (id === 'enemy') return enemy;
+    if (id === 'pet' && pet) return pet;
+    return hero;
+  }
+
+  /**
+   * Whom the enemy swings at.
+   *
+   * A companion draws a share of what comes in, which is the whole reason to
+   * field a guardian over a striker. A downed one draws nothing — the enemy has
+   * no reason to keep hitting something already on the floor.
+   */
+  function enemyTarget(): Combatant {
+    if (pet && pet.hp > 0 && rng.chance(taunt)) return pet;
+    return hero;
+  }
+
   function power(unit: Combatant, id: UniquePowerId): number {
     return unit.powers?.includes(id) === true ? UNIQUE_MAGNITUDE[id] : 0;
   }
@@ -210,14 +258,14 @@ export function resolveCombat(input: ResolveInput): CombatScript {
       return;
     }
 
-    events.push({ type: 'action', unit: actor.id, kind: 'strike' });
+    events.push({ type: 'action', unit: actor.id, target: target.id, kind: 'strike' });
     strike(actor, target, { multiplier: 1, defensePierce: 0 });
     if (target.hp <= 0) return;
 
     const stats = effectiveStats(actor);
     if (rng.chance(bandRelative(stats.speed, band.speedReference, SPEED.cap))) {
       // The double attack lands before the defender has acted at all (§4.2).
-      events.push({ type: 'action', unit: actor.id, kind: 'doubleStrike' });
+      events.push({ type: 'action', unit: actor.id, target: target.id, kind: 'doubleStrike' });
       gainResource(actor, 'doubleAttack');
       strike(actor, target, { multiplier: 1, defensePierce: 0 });
     }
@@ -232,7 +280,13 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     const plan = { ...base, perHit: base.perHit * (1 + talent(actor, 'signature')) };
     if (kind === 'crescendo') songIndex += 1;
 
-    events.push({ type: 'action', unit: actor.id, kind: 'signature', signature: kind });
+    events.push({
+      type: 'action',
+      unit: actor.id,
+      target: target.id,
+      kind: 'signature',
+      signature: kind,
+    });
 
     const from = actor.resource.current;
     actor.resource.current = 0;
@@ -297,6 +351,10 @@ export function resolveCombat(input: ResolveInput): CombatScript {
       crit,
       targetHp: target.hp,
     });
+
+    if (target.hp <= 0 && target.id === 'pet') {
+      events.push({ type: 'defeated', unit: 'pet' });
+    }
 
     gainResource(actor, 'dealtHit');
     if (crit) gainResource(actor, 'crit');

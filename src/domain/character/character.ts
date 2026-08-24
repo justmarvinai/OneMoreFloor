@@ -16,6 +16,7 @@ import { createMerchants } from '../merchants/merchants.ts';
 import { potionBonus } from '../potions/potions.ts';
 import type { PowerInputs } from '../power/power.ts';
 import { talentBonuses, talentPower, talentStats } from '../talents/talents.ts';
+import { petPower, type OwnedPet } from '../pets/pets.ts';
 import { emptyQuests } from '../quests/quests.ts';
 import { addStats, toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
 import { normalizeName } from './naming.ts';
@@ -164,13 +165,17 @@ export function totalStatsOf(character: Character): StatBlock {
  * little too generous for a build nobody measured. One constructor, one place to
  * add the next term.
  */
-export function powerInputsFor(character: Character): PowerInputs {
+export function powerInputsFor(character: Character, pet: OwnedPet | null): PowerInputs {
   return {
     equipped: equippedItems(character),
     stats: totalStatsOf(character),
     ascension: character.progression.ascension,
     highestFloorEverCleared: character.tower.highestFloorEverCleared,
     talents: talentPower(character),
+    // Passed rather than read, and required rather than optional: the companion
+    // lives on the *account*, so a character alone genuinely cannot answer this
+    // — and a caller that could leave it out would quietly answer "none" (Q42).
+    pet: petPower(pet),
   };
 }
 

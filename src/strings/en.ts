@@ -553,6 +553,58 @@ export const en = {
   'echo.refused.notEnough': 'Not enough echoes',
   'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
 
+  // Companions (Q42).
+  'pet.emberling': 'Emberling',
+  'pet.emberling.desc':
+    'A knot of live coal that decided to follow you. It has no plan beyond setting things on fire, and it is very good at it.',
+  'pet.emberling.aura': 'Emberling’s Heat',
+  'pet.stoneWhelp': 'Stone Whelp',
+  'pet.stoneWhelp.desc':
+    'Hatched from something that was not an egg. It puts itself between you and whatever is coming, every single time, and it is heavy enough to matter.',
+  'pet.stoneWhelp.aura': 'Whelp’s Bulwark',
+  'pet.spireOwl': 'Spire Owl',
+  'pet.spireOwl.desc':
+    'It has been watching the Spire longer than you have. Nothing catches it, and it sees the opening a half-second before you do.',
+  'pet.spireOwl.aura': 'Owl’s Sight',
+  'pet.graveMoth': 'Grave Moth',
+  'pet.graveMoth.desc':
+    'Drawn to the lanterns on the deep landings. Wherever it settles, blows land a little softer — nobody has worked out why.',
+  'pet.graveMoth.aura': 'Moth’s Hush',
+  'pet.cinderHound': 'Cinder Hound',
+  'pet.cinderHound.desc':
+    'What the Emberling grows into if it survives long enough. It hunts ahead of you, and the room is warmer for it.',
+  'pet.cinderHound.aura': 'Hound’s Fury',
+  'pet.lanternWisp': 'Lantern Wisp',
+  'pet.lanternWisp.desc':
+    'A light that stayed after whoever carried it did not. It barely fights. It makes the moment you have been charging towards arrive sooner.',
+  'pet.lanternWisp.aura': 'Wisp’s Gift',
+  'pet.title': 'Companions',
+  'pet.none': 'No companion',
+  'pet.noneDesc': 'Climb, and the Spire will send something after you.',
+  'pet.noneFound': 'Nothing has followed you yet',
+  'pet.noneFoundBody': 'The first companion turns up on floor {floor}.',
+  'pet.level': 'Level {level} of {max}',
+  'pet.xp': '{xp} / {next} xp',
+  'pet.maxed': 'Fully grown',
+  'pet.send': 'Send out',
+  'pet.recall': 'Call back',
+  'pet.out': 'Out with you',
+  'pet.aura': 'Aura: {effect}',
+  'pet.auraStat': '+{percent}% {stat}',
+  'pet.auraReduction': '{percent}% of every blow turned aside',
+  'pet.taunt': 'Draws {percent}% of what comes at you',
+  'pet.share': 'Fights at {percent}% of your own numbers',
+  'pet.found': '{name} is following you',
+  'pet.foundBody': 'It waits on the character sheet. Only one goes out at a time.',
+  'pet.grew': '{name} reached level {level}',
+  'pet.refused.noSuchPet': 'No such companion',
+  'pet.refused.noSuchPetBody': 'Nothing by that name has ever followed anyone.',
+  'pet.refused.notFound': 'You have not met that one',
+  'pet.refused.notFoundBody': 'Companions turn up as the Spire is climbed. Keep going.',
+  'combat.log.petJoins': '{unit} steps in beside you.',
+  'combat.log.petDown': '{unit} goes down.',
+  'combat.pet': 'Companion',
+
   // The talents screen (Q38).
   'talent.title': 'The {class}\u2019s Talents',
   'talent.subtitle': 'One point a level, and a long way down.',
