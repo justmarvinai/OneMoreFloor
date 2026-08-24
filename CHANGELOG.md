@@ -7,6 +7,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **The Boss Rush — ten gates, one health bar.** The tower hands the hero a full
+  bar at every floor; the rush does not. It runs the ten authored bosses back to
+  back on whatever is left of you, which makes a build's *depth* the thing being
+  measured rather than its ceiling. Gate *i* is fought at a tenth of the hero's
+  own record, floored at that boss's canonical floor — so at a record of a
+  hundred it is exactly the ladder they climbed through (10, 20, … 100), and past
+  that the ten gates spread across whatever depth they have actually earned. It
+  is a real test at floor 90 and at floor 9000 alike. Wounds carry between gates,
+  and so does a fallen companion — the cost of fielding a striker where a
+  guardian would have held. Two rules keep it honest: it **pays only for gates
+  past the account's best**, the same "new ground only" rule the echoes run on,
+  so a rush cannot be farmed; and it **costs nothing to lose** — a rush never
+  touches the run floor, the record or the seed, because a side mode that could
+  undo an hour of climbing is one nobody with an hour of climbing behind them
+  would ever open. The summary names all ten gates and marks the one that stopped
+  you, which is the only thing on the screen that tells a player what to go and
+  fix.
 - **Expeditions — the board that works while you do not.** Six routes out of the
   Spire, from a two-hour errand to a full day's descent, each gated behind a
   record deep enough to make the board read as a ladder. Send a party, come back
@@ -155,6 +172,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- A fight now reports the companion's remaining health as well as the hero's, so
+  fights that chain can hand the next one a number instead of guessing one.
 - The quest board's red dot now also lights when a party is standing in the hall
   with its spoils. One destination, one question — "is there something to
   collect?" — and one honest answer.

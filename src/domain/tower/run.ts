@@ -28,6 +28,7 @@ import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
 import { grantReward } from '../rewards/grant.ts';
 import { talentBonuses } from '../talents/talents.ts';
+import type { StatBlock } from '../stats.ts';
 import { auraEffect, petStats, petTaunt, type OwnedPet } from '../pets/pets.ts';
 import { emptyReward, mergeRewards, rollFloorReward, type FloorReward } from './rewards.ts';
 import { milestoneUnclaimed, rollMilestoneReward } from './milestones.ts';
@@ -106,8 +107,14 @@ export function heroCombatant(character: Character, now: number): Combatant {
  * tempo dial (Q26), and a second bar ticking beside it would make the fight
  * harder to read without adding a decision.
  */
-function petCombatant(character: Character, pet: OwnedPet, now: number): ResolvePet {
-  const stats = petStats(combatStatsOf(character, now), pet);
+export function petCombatant(
+  character: Character,
+  pet: OwnedPet,
+  now: number,
+  /** The hero's combat stats, when the caller has already computed them. */
+  heroStats?: StatBlock,
+): ResolvePet {
+  const stats = petStats(heroStats ?? combatStatsOf(character, now), pet);
 
   return {
     unit: {

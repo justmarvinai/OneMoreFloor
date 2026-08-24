@@ -158,6 +158,43 @@ export function generateFloor(
   return { floor, isBoss: boss, isElite: elite, band, enemy, modifier, stats, effects };
 }
 
+/**
+ * One gate of the boss rush: a named boss, fought at a chosen depth (Q39).
+ *
+ * The rush does not walk the tower, so it cannot ask a *floor* which boss lives
+ * there — it names the boss and picks the depth. Everything else is the ordinary
+ * boss floor: the same stat curve, the same scaled debuff and self-buff, the
+ * same curse arithmetic. A gate that were built any other way would drift away
+ * from the boss the player fights on the way up, which is the one thing the rush
+ * is measuring them against.
+ */
+export function generateGate(
+  boss: BossDef,
+  floor: number,
+  curses: readonly string[] = [],
+): GeneratedFloor {
+  return {
+    floor,
+    isBoss: true,
+    isElite: false,
+    band: bandForFloor(floor),
+    enemy: boss,
+    modifier: null,
+    stats: curseStats(statsFor(floor, boss.profile, true), curses),
+    effects: bossEffects(boss, floor),
+  };
+}
+
+/** The debuff a boss lands and the buff it gives itself, both scaled to depth. */
+function bossEffects(boss: BossDef, floor: number): Array<{ unit: UnitId; effect: EffectDef }> {
+  const effects: Array<{ unit: UnitId; effect: EffectDef }> = [];
+  if (boss.playerDebuff) {
+    effects.push({ unit: 'hero', effect: scaleEffect(boss.playerDebuff, floor) });
+  }
+  if (boss.selfBuff) effects.push({ unit: 'enemy', effect: scaleEffect(boss.selfBuff, floor) });
+  return effects;
+}
+
 /** An elite is the same enemy, larger. Applied per stat so the shape survives. */
 function eliteStats(stats: StatBlock, elite: boolean): StatBlock {
   if (!elite) return stats;

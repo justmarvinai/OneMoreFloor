@@ -63,6 +63,12 @@ import {
 } from '@/domain/pets/pets.ts';
 import type { PetDef } from '@/content/pets/index.ts';
 import {
+  canRush,
+  recordBest,
+  runBossRush,
+  type BossRushResult,
+} from '@/domain/bossRush/bossRush.ts';
+import {
   claimExpedition,
   recallExpedition,
   sendExpedition,
@@ -178,6 +184,8 @@ export interface GameActions {
   raid(throughFloor: number): Promise<QuickRaidResult & { pets: PetHarvest }>;
   /** Send a companion out, or call it back in (Q42). */
   setActivePet(id: string | null): Promise<Outcome>;
+  /** Run the ten gates back to back (Q39). Refuses before the first is met. */
+  bossRush(): Promise<Outcome<BossRushResult>>;
 
   equip(uid: string): Promise<Outcome<ItemInstance[]>>;
   /** Save what the hero is wearing into preset `index` (fifth polish round). */
@@ -892,6 +900,41 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       // like any other purchase, so a respec can advance a spending quest.
       const paid = withQuests(result, [{ kind: 'goldSpent', amount: cost }]);
       return { ok: true, value: cost, character: await commit(paid) };
+    },
+
+    async bossRush() {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      // Refused rather than hidden: the tower's own card says what opens it, and
+      // the action has to agree or a stale screen could start one anyway (§20.5).
+      if (!canRush(character)) return { ok: false, reason: 'tooDeep' };
+
+      const result = runBossRush({
+        character,
+        best: account.bossRushBest,
+        now: clock().now(),
+        aids: aids(),
+      });
+
+      // The best is banked before the chest: a tab that dies between the two
+      // loses the spoils and keeps the record, which is the right way round —
+      // the record is the thing the run was for.
+      const updated = recordBest(account, result.cleared);
+      if (updated !== account) {
+        await save.saveAccount(updated);
+        accountLoaded(store, updated);
+      }
+
+      // Only the gold, and deliberately: the quest board is about the *climb*,
+      // and a rush that ticked "clear 12 floors" or "defeat 8 bosses" would let
+      // a player finish a climbing quest without climbing — repeatably, since a
+      // rush can be run again for nothing.
+      const paid = withQuests(result.character, [
+        { kind: 'goldEarned', amount: result.reward.gold },
+      ]);
+      return { ok: true, value: result, character: await commit(paid) };
     },
 
     async setActivePet(id) {

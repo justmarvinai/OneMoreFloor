@@ -172,7 +172,10 @@ export function resolveCombat(input: ResolveInput): CombatScript {
   const outcome = decideOutcome(hero, enemy, round, byRoundCap, isBoss);
   // The companion's fate is never the fight's: a hero standing over a fallen pet
   // has cleared the floor, and the pet is back on its feet for the next one.
-  if (pet) outcome.petSurvived = pet.hp > 0;
+  if (pet) {
+    outcome.petSurvived = pet.hp > 0;
+    outcome.petHpRemaining = pet.hp;
+  }
   if (!byRoundCap) {
     events.push({ type: 'defeated', unit: outcome.winner === 'hero' ? 'enemy' : 'hero' });
   }
@@ -182,13 +185,6 @@ export function resolveCombat(input: ResolveInput): CombatScript {
 
   // --- helpers, closed over the fight's state -------------------------------
 
-  /**
-   * What a unique power is worth to this unit, or zero when they do not have it
-   * (Q45).
-   *
-   * One lookup for all five rules, so adding a sixth is a case in `UNIQUE_MAGNITUDE`
-   * and one call site rather than a new branch threaded through the whole engine.
-   */
   /** Look a unit up by the id an event carries. */
   function unitById(id: UnitId): Combatant {
     if (id === 'enemy') return enemy;
@@ -208,6 +204,13 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     return hero;
   }
 
+  /**
+   * What a unique power is worth to this unit, or zero when they do not have it
+   * (Q45).
+   *
+   * One lookup for all five rules, so adding a sixth is a case in `UNIQUE_MAGNITUDE`
+   * and one call site rather than a new branch threaded through the whole engine.
+   */
   function power(unit: Combatant, id: UniquePowerId): number {
     return unit.powers?.includes(id) === true ? UNIQUE_MAGNITUDE[id] : 0;
   }

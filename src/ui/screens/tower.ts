@@ -32,6 +32,7 @@ import type { AutoClimbMode, Character } from '@/domain/character/types.ts';
 import { generateFloor, type GeneratedFloor } from '@/domain/tower/floors.ts';
 import { floorRewardEstimate } from '@/domain/tower/rewards.ts';
 import { quickRaidCeiling } from '@/domain/tower/run.ts';
+import { BOSS_RUSH_GATES, BOSS_RUSH_MIN_FLOOR, canRush } from '@/domain/bossRush/bossRush.ts';
 import {
   AUTO_CLIMB_FLOOR_DELAY_MS,
   AUTO_CLIMB_MODES,
@@ -80,6 +81,10 @@ export interface TowerScreenOptions {
   onAutoClimb: (mode: AutoClimbMode) => void;
   /** Take a curse, or lift one (Q35). */
   onCurse: (id: string) => void;
+  /** The account's best rush, so the card can say what there is to beat (Q39). */
+  bestRush: number;
+  /** Run the ten gates back to back. */
+  onBossRush: () => void;
 }
 
 export interface TowerScreen {
@@ -88,7 +93,7 @@ export interface TowerScreen {
 }
 
 export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
-  const { character, now, onFight, onRaid, onAutoClimb, onCurse } = options;
+  const { character, now, onFight, onRaid, onAutoClimb, onCurse, bestRush, onBossRush } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -281,6 +286,64 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
     return block;
   }
 
+  /**
+   * The Boss Rush (Q39).
+   *
+   * On the tower rather than a destination of its own, because it is a way to
+   * fight the tower — the same place the player already decides between one
+   * floor and a raid. Shut until the first gate has fallen, and it says so:
+   * there is nothing to rush before you have met one.
+   */
+  function buildRush(): HTMLElement {
+    const open = canRush(character);
+    const block = h('div', { class: 'omf-rushCard', dataset: { testid: 'rush-card' } });
+
+    block.appendChild(
+      h(
+        'div',
+        { class: 'omf-rushCard__head' },
+        h('span', { class: 'omf-rushCard__title fui-title', text: t('rush.title') }),
+        h('span', {
+          class: 'omf-rushCard__best',
+          text:
+            bestRush > 0
+              ? t('rush.best', { count: bestRush, max: BOSS_RUSH_GATES })
+              : t('rush.bestNone'),
+        }),
+      ),
+    );
+
+    const enter = track(
+      new Button({
+        label: t('rush.enter'),
+        size: 'sm',
+        variant: open ? 'primary' : 'ghost',
+        block: true,
+        disabled: !open,
+      }),
+    );
+    enter.el.dataset.testid = 'rush-enter';
+    enter.on('click', () => onBossRush());
+    setTip(enter.el, {
+      title: t('rush.title'),
+      subtitle: t('rush.subtitle'),
+      flavor: open ? t('rush.card') : t('rush.locked', { floor: BOSS_RUSH_MIN_FLOOR }),
+    });
+    block.appendChild(enter.el);
+
+    // Why it is shut, on the card rather than a hover away (§20.5).
+    if (!open) {
+      block.appendChild(
+        h('p', {
+          class: 'omf-rushCard__locked',
+          text: t('rush.locked', { floor: BOSS_RUSH_MIN_FLOOR }),
+        }),
+      );
+    }
+
+    return block;
+  }
+
   const side = track(
     new Panel({
       title: t('tower.currentFloor', {
@@ -290,7 +353,12 @@ export function createTowerScreen(options: TowerScreenOptions): TowerScreen {
       variant: 'alt',
       width: '100%',
       height: '100%',
-      content: [h('div', { class: 'omf-tower__record' }, best.el), preview, buildCurses()],
+      content: [
+        h('div', { class: 'omf-tower__record' }, best.el),
+        preview,
+        buildRush(),
+        buildCurses(),
+      ],
       footer: [control, auto],
     }),
   );

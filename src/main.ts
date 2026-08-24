@@ -41,6 +41,8 @@ import { sellValue } from './domain/items/upgrade.ts';
 import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
 import { createTalentsScreen } from './ui/screens/talents.ts';
+import { createBossRushScreen } from './ui/screens/bossRush.ts';
+import type { BossRushResult } from './domain/bossRush/bossRush.ts';
 import { ownedPets } from './domain/pets/pets.ts';
 import { getExpedition } from './content/expeditions/index.ts';
 import { shortDuration } from './ui/format.ts';
@@ -83,6 +85,7 @@ type ScreenId =
   | 'raid'
   | 'character'
   | 'talents'
+  | 'bossRush'
   | 'equipmentMerchant'
   | 'magicMerchant'
   | 'gacha'
@@ -133,6 +136,8 @@ export async function boot(mount: HTMLElement): Promise<void> {
     let pendingFight: { hero: Character; result: FloorResult } | null = null;
     /** The raid the summary screen reports. */
     let pendingRaid: QuickRaidResult | null = null;
+    /** The rush the summary screen is about to perform (Q39). */
+    let pendingRush: BossRushResult | null = null;
 
     /** The bag's size, which the rites and the shell both have to agree on. */
     const bagSize = (): number => backpackCapacity(store.get().account ?? { backpackSlots: 0 });
@@ -232,7 +237,13 @@ export async function boot(mount: HTMLElement): Promise<void> {
     const autoClimb = createAutoClimbService({
       store,
       onTower: () => router.current() === 'tower',
-      busy: () => autoBusy || router.current() === 'combat' || router.current() === 'raid',
+      busy: () =>
+        autoBusy ||
+        router.current() === 'combat' ||
+        router.current() === 'raid' ||
+        // A rush summary is a screen the player is reading; a floor resolving
+        // behind it would rewrite the hero it is describing (Q39).
+        router.current() === 'bossRush',
       climbWatched: () => {
         const hero = store.get().activeCharacter;
         if (hero) startFight(hero.tower.currentRunFloor);
@@ -436,7 +447,13 @@ export async function boot(mount: HTMLElement): Promise<void> {
           refuse(t('expedition.refused.slotBusy'), t('expedition.refused.slotBusyBody'));
           return;
         case 'tooDeep':
-          refuse(t('expedition.refused.tooDeep'), t('expedition.refused.tooDeepBody'));
+          // Shared between the expedition board and the rush, and they mean the
+          // same thing: the Spire has not been climbed far enough yet.
+          if (router.current() === 'tower') {
+            refuse(t('rush.refused.tooDeep'), t('rush.refused.tooDeepBody'));
+          } else {
+            refuse(t('expedition.refused.tooDeep'), t('expedition.refused.tooDeepBody'));
+          }
           return;
         case 'notBack':
           refuse(t('expedition.refused.notReady'), t('expedition.refused.notReadyBody'));
@@ -588,6 +605,18 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onFight: startFight,
               onRaid: startRaid,
               onAutoClimb: (mode) => void session.setAutoClimb(mode).then(refreshScreen),
+              bestRush: store.get().account?.bossRushBest ?? 0,
+              onBossRush: () => {
+                void session.bossRush().then((outcome) => {
+                  if (!outcome.ok) {
+                    sayNo(outcome.reason);
+                    refreshScreen();
+                    return;
+                  }
+                  pendingRush = outcome.value;
+                  router.go('bossRush');
+                });
+              },
               onCurse: (id) => {
                 const held = requireCharacter().curses ?? [];
                 void session.toggleCurse(id).then((outcome) => {
@@ -730,6 +759,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
               account: store.get().account!,
             }),
           }),
+
+        bossRush: () => {
+          const rush = pendingRush;
+          if (!rush) throw new Error('[boot] the rush screen needs a resolved run');
+          return createBossRushScreen({ result: rush, onContinue: () => router.go('tower') });
+        },
 
         talents: () =>
           createShell({

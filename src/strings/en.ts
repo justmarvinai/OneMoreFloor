@@ -553,6 +553,36 @@ export const en = {
   'echo.refused.notEnough': 'Not enough echoes',
   'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
 
+  // The Boss Rush (Q39).
+  'rush.title': 'Boss Rush',
+  'rush.enter': 'Boss Rush',
+  'rush.subtitle': 'Ten gates. One health bar. No second chances.',
+  'rush.card':
+    'The ten gates, back to back, on whatever is left of you. Nothing here touches your climb — you cannot lose the run, and you cannot lose a floor.',
+  'rush.best': 'Best: {count} of {max}',
+  'rush.bestNone': 'Never attempted',
+  'rush.locked': 'Opens once you have beaten the gate on floor {floor}',
+  'rush.gate': 'Gate {index}',
+  'rush.gateFloor': 'Floor {floor}',
+  'rush.held': 'Held',
+  'rush.fell': 'Fell here',
+  'rush.untouched': 'Never reached',
+  'rush.resultTitle': '{count} of {max} gates',
+  'rush.resultRecord': 'A new best — {count} of {max}',
+  'rush.resultNone': 'The first gate held',
+  'rush.resultAll': 'Every gate, in one breath',
+  'rush.subtitleRecord':
+    'Further than anyone on this account has gone. The chest is for the new ground alone.',
+  'rush.subtitleTied':
+    'The same depth as your best. The Spire pays for getting further, and nothing else.',
+  'rush.subtitleShort': 'Short of your best of {best}. Nothing owed, and nothing lost.',
+  'rush.close': 'Back to the Spire',
+  'rush.cleared': 'Gates cleared',
+  'rush.healthLeft': 'Health left',
+  'rush.refused.tooDeep': 'No gates to rush yet',
+  'rush.refused.tooDeepBody':
+    'Beat the gate on floor 10 first. There is nothing to run until then.',
+
   // Expeditions (Q37).
   'expedition.scavenge': 'Scavenging Run',
   'expedition.scavenge.desc':

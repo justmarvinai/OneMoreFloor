@@ -217,6 +217,14 @@ export interface CombatOutcome {
    * choosing a sturdier one.
    */
   petSurvived?: boolean;
+  /**
+   * The companion's health at the bell, for fights that chain (Q39).
+   *
+   * A boss rush carries wounds from one gate to the next — for the hero and for
+   * whatever is standing beside them — so the next fight has to be handed a
+   * number rather than guessing one.
+   */
+  petHpRemaining?: number;
   rounds: number;
   heroHpRemaining: number;
   byRoundCap: boolean;

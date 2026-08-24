@@ -321,7 +321,9 @@ async function climb(page: Page, floors: number): Promise<void> {
 
     const raid = page.locator('[data-testid="raid"]');
     const tower = page.locator('[data-testid="tower"]');
-    await expect(raid.or(tower).first()).toBeVisible();
+    // Generous, and for a real reason: this click can kick off a Quick-Raid that
+    // resolves dozens of floors, and the suite runs four of these at once.
+    await expect(raid.or(tower).first()).toBeVisible({ timeout: 30_000 });
     if (await raid.isVisible().catch(() => false)) {
       await page.getByRole('button', { name: /^Continue$/ }).click();
     }
@@ -1957,4 +1959,44 @@ test('a party goes out on a route, and can be called back (Q37)', async ({ page 
   await page.getByRole('button', { name: 'Call them back' }).click();
   await expect(party).toHaveAttribute('data-state', 'idle');
   await expect(page.locator('[data-testid="route-expedition.scavenge"]')).toBeEnabled();
+});
+
+test('the boss rush runs the ten gates and says which one stopped it (Q39)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Shut before the first gate has been met, and it says what opens it (§20.5).
+  const card = page.locator('[data-testid="rush-card"]');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Never attempted');
+  await expect(page.locator('[data-testid="rush-enter"]')).toBeDisabled();
+  await expect(card).toContainText(/Opens once you have beaten the gate on floor 10/);
+
+  // Clear the gate on floor 10, and the rush opens. Climbed in bouts because the
+  // first gate can win — the hero comes back stronger and tries again, which is
+  // what a player does too.
+  const enter = page.locator('[data-testid="rush-enter"]');
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (await enter.isEnabled()) break;
+    await climb(page, 12);
+  }
+  await expect(enter, 'the hero never got past the gate on floor 10').toBeEnabled();
+
+  await page.locator('[data-testid="rush-enter"]').click();
+  const summary = page.locator('[data-testid="boss-rush"]');
+  await expect(summary).toBeVisible();
+
+  // The ladder names all ten gates, whether or not the run reached them.
+  const ladder = page.locator('[data-testid="rush-ladder"]');
+  await expect(ladder.locator('.omf-rush__gate')).toHaveCount(10);
+  // Exactly one gate stopped the run, or every one of them held.
+  const fell = ladder.locator('.omf-rush__gate[data-state="fell"]');
+  expect(await fell.count()).toBeLessThanOrEqual(1);
+
+  await page.getByRole('button', { name: /Back to the Spire/i }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  // The best is on the card now, and a second run pays nothing for the same depth.
+  await expect(page.locator('[data-testid="rush-card"]')).toContainText(/Best: \d+ of 10/);
 });

@@ -267,6 +267,31 @@ export function mergeRewards(a: FloorReward, b: FloorReward): FloorReward {
   };
 }
 
+/**
+ * A reward, scaled.
+ *
+ * Used where a payout is a *share* of what a floor is worth rather than a floor
+ * of its own — a boss-rush chest (Q39) is the first, and the arithmetic belongs
+ * beside the shape it operates on rather than at the one call site that needed
+ * it first. Items are never scaled: half a piece of gear is nothing.
+ */
+export function scaleReward(reward: FloorReward, factor: number): FloorReward {
+  const materials: Record<string, number> = {};
+  for (const [id, count] of Object.entries(reward.materials)) {
+    const scaled = Math.round(count * factor);
+    if (scaled > 0) materials[id] = scaled;
+  }
+
+  return {
+    gold: Math.max(0, Math.round(reward.gold * factor)),
+    xp: Math.max(0, Math.round(reward.xp * factor)),
+    materials,
+    tickets: reward.tickets,
+    luckyTickets: reward.luckyTickets,
+    items: reward.items,
+  };
+}
+
 export function emptyReward(): FloorReward {
   return { gold: 0, xp: 0, materials: {}, items: [], tickets: 0, luckyTickets: 0 };
 }
