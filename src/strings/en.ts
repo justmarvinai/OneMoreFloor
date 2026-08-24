@@ -439,6 +439,7 @@ export const en = {
   'tower.floor': 'Floor {floor}',
   'tower.currentFloor': 'Floor {floor} — {band}',
   'tower.bossFloor': 'Boss Floor',
+  'tower.eliteFloor': 'Elite',
   'tower.best': 'Best floor',
   'tower.highestNone': 'None yet',
   'tower.fight': 'Fight Floor {floor}',
@@ -469,6 +470,9 @@ export const en = {
   'tower.here': 'Here',
   'tower.hereTip': 'Your hero is standing on floor {floor}. This is the fight.',
   'tower.bossTip': 'A boss floor. Harder than the floors around it, and it pays like it.',
+  'tower.eliteTip':
+    'An elite stands here — the same creature, a head taller and carrying something extra. It always leaves gear behind.',
+  'tower.preview.elite': 'Elite',
   'tower.preview.noEffects': 'No floor modifiers here',
   'tower.stat.strength': 'STR',
   'tower.stat.defense': 'DEF',

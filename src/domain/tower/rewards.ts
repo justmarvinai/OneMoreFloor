@@ -29,6 +29,8 @@ import {
   RARITY_WEIGHTS,
   REWARD_VARIANCE,
   TICKET_DROP_CHANCE,
+  ELITE_MATERIAL_COUNT,
+  ELITE_REWARD_MULTIPLIER,
 } from '@/content/balance/rewards.ts';
 import { affixPool } from '@/content/items/affixPools.ts';
 import { ITEM_BASES, materialIdForTier } from '@/content/items/index.ts';
@@ -57,6 +59,8 @@ export interface RollRewardInput {
   classId: string;
   /** Ascension tier, which gates relic and artifact drops (Q22). */
   ascension: AscensionTier;
+  /** An elite floor pays more, and always pays gear (Q44). */
+  isElite?: boolean;
   /**
    * Curses the player has taken (Q35). They multiply gold, experience and
    * materials — never the bracket, so §13 holds with a full set of them on.
@@ -117,15 +121,18 @@ export function floorRewardEstimate(
   floor: number,
   isBoss: boolean,
   curses: readonly string[] = [],
+  isElite = false,
 ): FloorRewardEstimate {
-  const multiplier = (isBoss ? BOSS_REWARD_MULTIPLIER : 1) * curseRewardMultiplier(curses);
+  const multiplier =
+    (isBoss ? BOSS_REWARD_MULTIPLIER : isElite ? ELITE_REWARD_MULTIPLIER : 1) *
+    curseRewardMultiplier(curses);
   return {
     gold: Math.max(
       1,
       Math.round(evaluate({ kind: 'exponential', ...FLOOR_GOLD }, floor) * multiplier),
     ),
     xp: Math.max(1, Math.round(evaluate({ kind: 'exponential', ...FLOOR_XP }, floor) * multiplier)),
-    itemChance: isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : EQUIPMENT_DROP_CHANCE,
+    itemChance: isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : isElite ? 1 : EQUIPMENT_DROP_CHANCE,
   };
 }
 
@@ -134,7 +141,9 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   // A cursed tower pays more for the same floor. Applied to the payout rather
   // than to the curve so the curve keeps meaning "what floor N is worth".
   const curses = curseRewardMultiplier(input.curses ?? []);
-  const multiplier = (isBoss ? BOSS_REWARD_MULTIPLIER : 1) * curses;
+  const elite = input.isElite === true;
+  const multiplier =
+    (isBoss ? BOSS_REWARD_MULTIPLIER : elite ? ELITE_REWARD_MULTIPLIER : 1) * curses;
 
   const gold = Math.max(
     1,
@@ -154,15 +163,19 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   );
 
   const materials: Record<string, number> = {};
-  const materialChance = isBoss ? BOSS_MATERIAL_DROP_CHANCE : MATERIAL_DROP_CHANCE;
+  // An elite always pays materials, like a boss: the point of one is that it is
+  // worth stopping for, and a maybe is not.
+  const materialChance = isBoss || elite ? BOSS_MATERIAL_DROP_CHANCE : MATERIAL_DROP_CHANCE;
   if (rng.chance(materialChance)) {
-    const range = isBoss ? BOSS_MATERIAL_COUNT : MATERIAL_COUNT;
+    const range = isBoss ? BOSS_MATERIAL_COUNT : elite ? ELITE_MATERIAL_COUNT : MATERIAL_COUNT;
     const id = materialIdForTier(bracket.materialTier);
     materials[id] = Math.max(1, Math.round(rng.int(range.min, range.max) * curses));
   }
 
   const items: ItemInstance[] = [];
-  const dropChance = isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : EQUIPMENT_DROP_CHANCE;
+  // Gear is the whole reason to want an elite, so it is a certainty rather than
+  // a good chance — the surprise is meeting one, not what it leaves behind.
+  const dropChance = isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : elite ? 1 : EQUIPMENT_DROP_CHANCE;
   if (rng.chance(dropChance)) {
     const item = rollItem(input);
     if (item) items.push(item);

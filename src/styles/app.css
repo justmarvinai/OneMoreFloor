@@ -3169,3 +3169,59 @@ body > .fui-tooltip .fui-tooltip__price {
   opacity: 0.42;
   cursor: not-allowed;
 }
+
+/* --- Elites --------------------------------------------------------------- */
+
+/**
+ * An elite is worth seeing from the bottom of the screen (Q44).
+ *
+ * Crimson rather than the boss's gold: they are different kinds of danger, and a
+ * player scanning the path should never have to read a word to tell which is
+ * which. The ring pulses, because the one thing an elite must not be is easy to
+ * walk into by accident.
+ */
+.omf-tower__trail .omf-tower__elite .fui-trail__disc {
+  border-color: #c4453a;
+  box-shadow:
+    0 0 0 2px rgb(196 69 58 / 45%),
+    0 0 18px rgb(196 69 58 / 55%);
+  animation: omf-elite-pulse 2.4s ease-in-out infinite;
+}
+
+.omf-tower__trail .omf-tower__elite .fui-trail__note {
+  color: #f0b7ae;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@keyframes omf-elite-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(196 69 58 / 45%),
+      0 0 18px rgb(196 69 58 / 55%);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 3px rgb(196 69 58 / 70%),
+      0 0 26px rgb(196 69 58 / 80%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omf-tower__trail .omf-tower__elite .fui-trail__disc {
+    animation: none;
+  }
+}
+
+/* The preview says it too, in the one place a player is already looking. */
+.omf-tower__matchup[data-elite='true'] .omf-tower__face:last-child .omf-tower__face-note {
+  color: #f0b7ae;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.omf-tower__matchup[data-elite='true'] .omf-tower__face:last-child .fui-portrait {
+  box-shadow: 0 0 0 2px rgb(196 69 58 / 55%);
+}

@@ -1521,6 +1521,28 @@ test('the workbench rescues material the hero has climbed past (Q43)', async ({ 
   await expect(page.locator('[data-testid="transmute-mat.iron-sigil"]')).toContainText(/[1-9]/);
 });
 
+test('an elite is visible from the bottom of the path, and always pays gear (Q44)', async ({
+  page,
+}) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Roughly one eligible floor in eleven carries one, and the trail draws
+  // eighteen ahead — so a few climbs is plenty to meet one.
+  const elite = page.locator('.omf-tower__elite').first();
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await elite.isVisible().catch(() => false)) break;
+    await climb(page, 4);
+  }
+  await expect(elite, 'no elite appeared in twenty-four floors').toBeVisible();
+
+  // It says what it is on the path rather than only in a tooltip.
+  await expect(elite).toContainText(/Elite/i);
+  await elite.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/always leaves gear/i);
+});
+
 test('curses are offered long before they can be taken (§20.5)', async ({ page }) => {
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');

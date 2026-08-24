@@ -128,6 +128,7 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
     classId: character.identity.classId,
     ascension: character.progression.ascension,
     curses: character.curses,
+    isElite: generated.isElite,
     rng: createRng(`${seed}/reward`),
   });
 

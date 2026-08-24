@@ -407,21 +407,26 @@ function buildChapters(character: Character, floor: number, ceiling: number): Tr
     // "new ground" would repeat the same words twenty times down the path.
     const milestone = isMilestone(current);
     // Only the floors that carry information are labelled. A milestone outranks
-    // "cleared" because it is the one thing on the path that pays for arriving.
-    const note = milestone
-      ? t('tower.milestone.node')
-      : raidable
-        ? t('tower.cleared')
-        : generated.isBoss
-          ? t('tower.bossFloor')
-          : undefined;
+    // "cleared" because it is the one thing on the path that pays for arriving;
+    // an elite outranks both, because it is the one thing that can kill you.
+    const note = generated.isElite
+      ? t('tower.eliteFloor')
+      : milestone
+        ? t('tower.milestone.node')
+        : raidable
+          ? t('tower.cleared')
+          : generated.isBoss
+            ? t('tower.bossFloor')
+            : undefined;
 
     const node: TrailNode = {
       id: `floor:${current}`,
       label: String(current),
       kind: generated.isBoss ? 'boss' : 'battle',
       state: isCurrent ? 'current' : raidable ? 'open' : 'locked',
-      ...(isCurrent || generated.isBoss ? { name: t(generated.enemy.nameKey) } : {}),
+      ...(isCurrent || generated.isBoss || generated.isElite
+        ? { name: t(generated.enemy.nameKey) }
+        : {}),
       ...(note ? { note } : {}),
     };
 
@@ -475,6 +480,13 @@ function markTrail(root: HTMLElement, character: Character, floor: number): void
     const label = node.querySelector('.fui-trail__num')?.textContent;
     const at = Number(label);
     if (!Number.isFinite(at)) continue;
+
+    // An elite is worth seeing from the bottom of the screen (Q44). Its own
+    // stream decides it, so asking the generator again is free and exact.
+    if (generateFloor(character.tower.runSeed, at, character.curses).isElite) {
+      node.classList.add('omf-tower__elite');
+      setTip(node, t('tower.eliteTip'));
+    }
 
     if (isMilestone(at)) {
       node.classList.add('omf-tower__milestone');
@@ -577,9 +589,14 @@ function buildPreview(
     face(
       enemyPortrait,
       t(generated.enemy.nameKey),
-      generated.isBoss ? t('tower.bossFloor') : t('tower.floor', { floor: generated.floor }),
+      generated.isBoss
+        ? t('tower.bossFloor')
+        : generated.isElite
+          ? t('tower.preview.elite')
+          : t('tower.floor', { floor: generated.floor }),
     ),
   );
+  if (generated.isElite) matchup.dataset['elite'] = 'true';
 
   const rows: HTMLElement[] = [
     matchup,
@@ -672,7 +689,12 @@ function buildPays(
   curses: readonly string[],
   track: <T extends FuiComponent>(component: T) => T,
 ): HTMLElement {
-  const estimate = floorRewardEstimate(generated.floor, generated.isBoss, curses);
+  const estimate = floorRewardEstimate(
+    generated.floor,
+    generated.isBoss,
+    curses,
+    generated.isElite,
+  );
   const percent = Math.round(estimate.itemChance * 100);
 
   const chip = (label: string, value: string, glyph: string): HTMLElement =>

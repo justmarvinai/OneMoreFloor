@@ -118,3 +118,13 @@ export const AUTO_CLIMB_FLOOR_DELAY_MS = 20_000;
 
 /** Hero level at which auto-climb keeps running while the player is elsewhere. */
 export const BACKGROUND_AUTO_CLIMB_LEVEL = 500;
+
+/**
+ * What an elite pays (Q44).
+ *
+ * Gear is guaranteed — that is the whole reason to want one — and the rest is a
+ * multiplier over the floor it stands on rather than a table of its own, so an
+ * elite is worth the same *relative* amount at floor 12 and floor 1,200.
+ */
+export const ELITE_REWARD_MULTIPLIER = 2.6;
+export const ELITE_MATERIAL_COUNT = { min: 3, max: 6 } as const;
