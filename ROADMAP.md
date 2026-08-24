@@ -129,6 +129,34 @@ Simulator-driven tuning across archetypes to BALANCE.md §10's gates: death-wall
 
 ---
 
+## Polish rounds — after 0.1 (owner-directed)
+
+Six rounds of reworks, fixes and features on the shipped game. They do not
+have exit criteria the way milestones do: each is a list the owner asked for,
+delivered, verified against the full list (`typecheck · lint · format:check ·
+test · content:validate · sim · build · smoke`) and pushed.
+
+**Rounds one to four** were presentation and readability: tooltips that fire
+everywhere and never natively (§20.4), framed panels, a draggable trail, a
+readable backpack, split merchants, a redesigned title and character-select, and
+a tower preview that puts both sides of the fight side by side.
+
+**Round five (Q30–Q35)** added the backpack upgrade, retuned the drop economy so
+that upgrading and ascending are how a piece gets better, and shipped ten
+features: the best-floor ghost, loadout presets, the bestiary, run history,
+milestone rewards, reforge, salvage, a pity-free gacha wish list, player-side
+curses at level 100, and auto-climb with a background mode at level 500.
+
+**Round six (Q36–Q45)** added ten more: Echoes of the Spire, item sets and named
+uniques, class talents, expeditions, the Workbench, elites, branching paths,
+deeds, the Boss Rush and companions that fight. Every one of them was built
+against the same two rules, and `docs/BALANCE.md` has the table that says how
+each was stopped from bending either: **no source may emit outside the
+character's Power-Level bracket** (§13), and **death destroys nothing owned**
+(§3.3).
+
+---
+
 ## Standing tracks (every milestone)
 
 CHANGELOG.md updated with every merge (§22); balance values only ever in config (§3.7); new content only through the pipeline (§2.3); docs updated the moment decisions land (done for Q1–Q27; any future open point gets a `⧗Qn` marker until resolved); USER_QUESTIONS.md gains a new entry the moment any new ambiguity appears (§0.3) — it never blocks silently.

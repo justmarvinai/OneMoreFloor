@@ -142,6 +142,32 @@ The rite is `src/ui/gacha/` — a **pure choreographer** (`riteChoreography.ts`)
 
 **The wish list (fifth polish round)** sits under both rate tables on the Summoning screen rather than inside either — it applies to every rite, and a copy on each card would read as two different settings. Its own hint states outright that it moves nothing on the tables above it, because a control next to printed odds has to say which of them it does not touch.
 
+## 8b. Where the sixth round's features live (Q36–Q45)
+
+Ten features, and the rail grew exactly one destination. That was the budget, and
+the rule that set it: **a feature goes where its question is already asked.** A
+destination of its own is for a question the player arrives with, not for a
+feature that needs somewhere to be.
+
+| Feature | Where it lives | Why there |
+|---|---|---|
+| **Talents** (Q38) | its own rail destination | A major system visited on every level-up, and the only one in the round that a player goes looking for. It paid for the row it added: the rail's rows tighten on laptop glass, so a 720-tall window reaches further down the nav than before it existed. |
+| **Echoes** (Q36) | Account screen, above the upgrades | The account's own currency, on the account's own screen. Its balance rides in the rail beside gold; nothing toasts, because on a fresh climb *every* floor is new ground and a toast per floor is a toast per fight. |
+| **Sets & uniques** (Q45) | Character sheet, under the paperdoll | The question is "what am I wearing?", asked where the gear is. |
+| **Companions** (Q42) | Character sheet | Part of what this hero is fielding, beside the gear and the sets. In a fight, a compact strip under the hero's card — an attendant, not a second hero. |
+| **Expeditions** (Q37) | Quest screen, under the two boards | The same thing asked in a different tense: a quest board is work you are doing, an expedition board is work being done for you. Its red dot *is* the quest dot, because the question at that destination is still "is there something to collect?". |
+| **Deeds** (Q40) | Records screen, between runs and bestiary | The account's history, made of the runs on its left and counting the bestiary on its right. It gave the Records dot its first honest meaning: a tier earned and unpaid. |
+| **The Workbench** (Q43) | Alchemist's counter | Conversions between things you are already carrying, at the counter you already visit to spend them. |
+| **Branching paths** (Q41) | Tower side panel, above the preview | The fork is a decision about the next ten floors, made where the player decides between one floor and a raid. Three clickable rows rather than three cards: the panel is 300px wide, and side by side the names wrapped onto three lines with a button hanging off either edge. |
+| **Boss Rush** (Q39) | Tower side panel | A way to fight the tower, offered where the tower is. Its summary is a screen of its own, in the Quick-Raid's shape, because ten boss fights is not something anyone watches. |
+| **Elites** (Q44) | Tower trail and the fight itself | Not a screen — a mark on a node and a bigger enemy behind it. |
+
+Three refusals in this round are on the *card* rather than in a tooltip, and the
+reason is the same each time: a greyed control whose explanation is a hover away
+is an explanation most players never read (§20.5). The locked Boss Rush says what
+opens it, a locked expedition route says what floor it needs, and a shut talent
+row says how many more points it wants.
+
 ## 9. Item rendering standard (game-wide)
 
 Every item everywhere = `TintFrame` (rarity tint per FantasyUI's six-tier rarity) + item icon (Q27: curated FantasyUI icons in 0.1, id-bound for real art later — CONTENT_PIPELINE.md §2–3) + `Badge` (gear level) + `StarRating` (gear ascension) + `Tooltip` (full stat block, affix list, compare). One `custom/ItemView` wrapper standardizes this so an item looks identical in inventory, paperdoll, shop, loot, and gacha contexts.
