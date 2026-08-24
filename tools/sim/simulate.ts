@@ -16,7 +16,7 @@
  *   npx vitest run tools/sim            # the same, verbosely
  */
 import { createRng } from '@/app/rng.ts';
-import { createCharacter, totalStatsOf, equippedItems } from '@/domain/character/character.ts';
+import { createCharacter, equippedItems, powerInputsFor } from '@/domain/character/character.ts';
 import type { Character, ClassId } from '@/domain/character/types.ts';
 import { CLASS_IDS } from '@/domain/character/types.ts';
 import { canEquip } from '@/domain/items/equip.ts';
@@ -368,13 +368,13 @@ export function wantedSink(character: Character): number {
   return total;
 }
 
+/**
+ * The simulator climbs without companions on purpose: the balance gates measure
+ * the tower against a hero alone, which is the floor every other configuration
+ * sits above (Q42).
+ */
 function powerOf(character: Character): number {
-  return powerLevel({
-    equipped: equippedItems(character),
-    stats: totalStatsOf(character),
-    ascension: character.progression.ascension,
-    highestFloorEverCleared: character.tower.highestFloorEverCleared,
-  });
+  return powerLevel(powerInputsFor(character, null));
 }
 
 /** Everything a scripted player does between fights, in the order they'd do it. */

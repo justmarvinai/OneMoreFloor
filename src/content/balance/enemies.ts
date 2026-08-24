@@ -99,3 +99,31 @@ export function curseMagnitude(statCount: number): { stat: number; reward: numbe
     ? { stat: CURSE_BROAD_STAT_BONUS, reward: CURSE_BROAD_REWARD_BONUS }
     : { stat: CURSE_STAT_BONUS, reward: CURSE_REWARD_BONUS };
 }
+
+/**
+ * Elites (Q44) — the spike the drop retune took out.
+ *
+ * Gear became an event in the fifth round, which was right for the economy and
+ * cost the climb its surprises: forty floors of gold in a row is a spreadsheet.
+ * An elite is a normal floor's enemy standing a head taller, marked on the trail
+ * from the bottom of the screen, that always pays gear.
+ *
+ * It is *not* a boss. A boss is a gate with authored kit and a signature; an
+ * elite is a scaled-up local, carrying one procedural modifier even inside the
+ * authored range — so a Frenzied Cutpurse is a fight the tower can produce on
+ * floor 12 and never has before.
+ */
+export const ELITE_CHANCE = 0.09;
+
+/** No elites in the opening floors: a wall before the tutorial ends is a wall. */
+export const ELITE_FROM_FLOOR = 5;
+
+/** How much bigger an elite is than the floor it stands on, per stat. */
+export const ELITE_MULTIPLIER: Readonly<Record<string, number>> = {
+  strength: 1.35,
+  defense: 1.4,
+  hp: 1.85,
+  resource: 1.2,
+  luck: 1.3,
+  speed: 1.15,
+};

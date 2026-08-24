@@ -19,6 +19,7 @@ import type {
   SignatureKind,
   UnitId,
 } from '@/domain/combat/types.ts';
+import type { HealSource } from '@/domain/combat/types.ts';
 
 /**
  * Presentation timing, in milliseconds at x1. These are pacing, not balance:
@@ -37,6 +38,8 @@ export const TIMING = {
   afterHit: 240,
   afterCrit: 340,
   afterDodge: 260,
+  /** Health coming back reads as a smaller beat than a blow landing. */
+  afterHeal: 200,
   effect: 150,
   resource: 60,
   defeat: 620,
@@ -55,11 +58,20 @@ export const TIMING = {
 export const HEAVY_HIT_FRACTION = 0.15;
 
 export type Step =
-  | { kind: 'start'; hero: CombatantSnapshot; enemy: CombatantSnapshot; isBoss: boolean }
+  | {
+      kind: 'start';
+      hero: CombatantSnapshot;
+      enemy: CombatantSnapshot;
+      /** Absent when the hero climbs alone (Q42). */
+      pet?: CombatantSnapshot;
+      isBoss: boolean;
+    }
   | { kind: 'round'; round: number }
   | {
       kind: 'windUp';
       unit: UnitId;
+      /** Whom it is aimed at — three units on the field, so it has to be said. */
+      target: UnitId;
       action: 'strike' | 'doubleStrike' | 'signature';
       signature?: SignatureKind;
     }
@@ -74,6 +86,14 @@ export type Step =
       heavy: boolean;
     }
   | { kind: 'dodge'; unit: UnitId; source: UnitId }
+  | {
+      kind: 'heal';
+      unit: UnitId;
+      amount: number;
+      unitHp: number;
+      /** Which rule paid for it, so the card can name what healed. */
+      source: HealSource;
+    }
   | { kind: 'resource'; unit: UnitId; from: number; to: number; full: boolean }
   | { kind: 'effectOn'; unit: UnitId; effect: EffectDef }
   | { kind: 'effectOff'; unit: UnitId; effectId: string }
@@ -102,7 +122,7 @@ export function floatLifeFor(crit: boolean, rate: number): number {
 export function choreograph(script: CombatScript): Beat[] {
   const beats: Beat[] = [];
   let at = 0;
-  const maxHp: Record<UnitId, number> = { hero: 1, enemy: 1 };
+  const maxHp: Record<UnitId, number> = { hero: 1, pet: 1, enemy: 1 };
 
   /** False until the first round begins — see `effectApplied` below. */
   let opened = false;
@@ -117,8 +137,15 @@ export function choreograph(script: CombatScript): Beat[] {
       case 'fightStart': {
         maxHp.hero = event.hero.maxHp;
         maxHp.enemy = event.enemy.maxHp;
+        if (event.pet) maxHp.pet = event.pet.maxHp;
         push(
-          { kind: 'start', hero: event.hero, enemy: event.enemy, isBoss: event.isBoss },
+          {
+            kind: 'start',
+            hero: event.hero,
+            enemy: event.enemy,
+            ...(event.pet ? { pet: event.pet } : {}),
+            isBoss: event.isBoss,
+          },
           TIMING.fightStart,
         );
         // `fightStart.floorEffects` states the opening board; the engine *also*
@@ -139,6 +166,7 @@ export function choreograph(script: CombatScript): Beat[] {
           {
             kind: 'windUp',
             unit: event.unit,
+            target: event.target,
             action: event.kind,
             ...(event.signature ? { signature: event.signature } : {}),
           },
@@ -180,6 +208,19 @@ export function choreograph(script: CombatScript): Beat[] {
         push(
           { kind: 'effectOn', unit: event.unit, effect: event.effect },
           opened ? TIMING.effect : TIMING.floorEffect,
+        );
+        break;
+
+      case 'heal':
+        push(
+          {
+            kind: 'heal',
+            unit: event.unit,
+            amount: event.amount,
+            unitHp: event.unitHp,
+            source: event.source,
+          },
+          TIMING.afterHeal,
         );
         break;
 

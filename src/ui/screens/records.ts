@@ -11,12 +11,13 @@
  * question — *what have I actually seen?* — and a rail entry per list would be
  * two destinations that a player always visits together.
  */
-import { OrnateHeader, Panel, Portrait, StatChip, h } from '@/ui/fui/index.ts';
+import { Button, OrnateHeader, Panel, Portrait, StatBar, StatChip, h } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { commas } from '@/ui/fui/index.ts';
 import { RUN_HISTORY_LIMIT } from '@/domain/tower/run.ts';
 import { FAMILY_NAMES, getEnemy } from '@/content/enemies/index.ts';
 import { bestiaryEntries, bestiaryProgress } from '@/domain/account/bestiary.ts';
+import { deedBoard, deedEstimate } from '@/domain/account/deeds.ts';
 import type { BestiaryEntry } from '@/domain/account/bestiary.ts';
 import type { Account, Character } from '@/domain/character/types.ts';
 import type { Screen } from '@/app/router.ts';
@@ -28,10 +29,12 @@ export interface RecordsScreenOptions {
   character: Character;
   /** The bestiary belongs to the account, not to the hero standing in it (Q4). */
   account: Account;
+  /** Settle one tier of one deed (Q40). */
+  onClaimDeed: (id: string, tier: number) => void;
 }
 
 export function createRecordsScreen(options: RecordsScreenOptions): Screen {
-  const { character, account } = options;
+  const { character, account, onClaimDeed } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -215,11 +218,117 @@ export function createRecordsScreen(options: RecordsScreenOptions): Screen {
     }),
   );
 
+  /**
+   * The deed ledger (Q40).
+   *
+   * On the Records screen because that is what it is: the account's history,
+   * beside the runs it is made of and the bestiary it filled in. The difference
+   * is that this history pays — every row that has reached a tier carries the
+   * button that settles it.
+   */
+  function buildDeeds(): HTMLElement {
+    const record = character.tower.highestFloorEverCleared;
+    const board = h('div', { class: 'omf-deeds', dataset: { testid: 'deeds' } });
+
+    for (const status of deedBoard(account)) {
+      const { def } = status;
+      const finished = status.tier === null && status.claimable.length === 0;
+      const row = h('div', {
+        class: 'omf-deed',
+        dataset: {
+          testid: `deed-${def.id}`,
+          state: status.claimable.length > 0 ? 'claimable' : finished ? 'done' : 'open',
+        },
+      });
+
+      row.appendChild(
+        h('span', { class: 'omf-deed__mark', style: { maskImage: `var(--fui-img-${def.glyph})` } }),
+      );
+
+      const body = h('div', { class: 'omf-deed__body' });
+      body.appendChild(h('span', { class: 'omf-deed__name fui-title', text: t(def.nameKey) }));
+      body.appendChild(h('p', { class: 'omf-deed__desc', text: t(def.descriptionKey) }));
+
+      // Progress towards the tier being worked on, or the fact that there is
+      // none left — never a silent blank (§20.5).
+      body.appendChild(
+        h('span', {
+          class: 'omf-deed__progress fui-num',
+          text: finished
+            ? t('deed.allClaimed')
+            : t('deed.progress', { have: commas(status.progress), need: commas(status.need) }),
+        }),
+      );
+
+      const bar = track(
+        new StatBar({
+          kind: 'xp',
+          value: finished ? status.need : Math.min(status.progress, status.need),
+          max: Math.max(1, status.need),
+          readout: 'none',
+        }),
+      );
+      bar.el.style.width = '100%';
+      body.appendChild(bar.el);
+
+      row.appendChild(body);
+
+      // One button per row, for the shallowest tier that is owed. Claiming it
+      // rebuilds the screen, so the next one is one press away.
+      const owed = status.claimable[0];
+      if (owed !== undefined) {
+        const spoils = deedEstimate(owed, record);
+        const claim = track(new Button({ label: t('deed.claim'), size: 'sm', variant: 'primary' }));
+        claim.el.dataset.testid = `claim-${def.id}`;
+        claim.on('click', () => onClaimDeed(def.id, owed));
+        setTip(claim.el, {
+          title: t(def.nameKey),
+          subtitle: t('deed.tier', { tier: owed + 1, max: def.tiers.length }),
+          flavor: spoils.ticket
+            ? t('deed.paysTicket', {
+                gold: commas(spoils.gold),
+                materials: spoils.materials,
+              })
+            : t('deed.pays', { gold: commas(spoils.gold), materials: spoils.materials }),
+        });
+        row.appendChild(claim.el);
+      } else {
+        row.appendChild(
+          h('span', {
+            class: 'omf-deed__tier',
+            text: finished
+              ? t('deed.done')
+              : t('deed.tier', {
+                  tier: (status.tier ?? 0) + 1,
+                  max: def.tiers.length,
+                }),
+          }),
+        );
+      }
+
+      board.appendChild(row);
+    }
+
+    return board;
+  }
+
+  const deedsPanel = track(
+    new Panel({
+      title: t('deed.title'),
+      subtitle: t('deed.subtitle'),
+      variant: 'default',
+      width: '100%',
+      height: '100%',
+      scroll: true,
+      content: [buildDeeds()],
+    }),
+  );
+
   const el = h(
     'div',
     { class: 'omf-records', dataset: { fuiTheme: 'stone-vine', testid: 'records' } },
     track(new OrnateHeader({ title: t('records.title'), subtitle: t('records.subtitle') })).el,
-    h('div', { class: 'omf-records__body' }, runsPanel.el, bestiaryPanel.el),
+    h('div', { class: 'omf-records__body' }, runsPanel.el, deedsPanel.el, bestiaryPanel.el),
   );
 
   return {

@@ -9,6 +9,7 @@
 import { MAX_CHARACTER_SLOTS, STARTING_CHARACTER_SLOTS } from '@/content/balance/progression.ts';
 import { MAX_BACKPACK_SLOTS, STARTING_BACKPACK_SLOTS } from '@/content/balance/account.ts';
 import { SLOT_IDS, type Account, type SlotId } from './types.ts';
+import { echoBonuses } from '../account/echoes.ts';
 
 export function createAccount(): Account {
   return {
@@ -18,6 +19,14 @@ export function createAccount(): Account {
     tutorialCompleted: false,
     backpackSlots: STARTING_BACKPACK_SLOTS,
     bestiary: {},
+    echoes: 0,
+    echoesEarned: 0,
+    echoNodes: {},
+    deeds: {},
+    deedsClaimed: [],
+    bossRushBest: 0,
+    expeditions: {},
+    pets: {},
   };
 }
 
@@ -82,9 +91,15 @@ export function afterCharacterReset(account: Account, slotId: SlotId): Account {
  * constant — the size is an upgrade now (§15, Q30), and a constant would be a
  * second answer waiting to disagree with the save.
  */
-export function backpackCapacity(account: Pick<Account, 'backpackSlots'>): number {
-  return Math.max(
+export function backpackCapacity(
+  account: Pick<Account, 'backpackSlots'> & Partial<Pick<Account, 'echoNodes'>>,
+): number {
+  const bought = Math.max(
     STARTING_BACKPACK_SLOTS,
     Math.min(MAX_BACKPACK_SLOTS, Math.floor(account.backpackSlots)),
   );
+  // Coffers sits *above* the purchased ceiling on purpose (Q36): the upgrade is
+  // what gold buys and the echo node is what the climb earns, and a permanent
+  // reward that only mattered until you could afford the shop would not be one.
+  return bought + echoBonuses(account.echoNodes ? { echoNodes: account.echoNodes } : null).coffers;
 }

@@ -17,6 +17,9 @@ import {
   gearLevelCost,
 } from '@/domain/items/upgrade.ts';
 import { materialIdForTier } from '@/content/items/materials.ts';
+import { talentTree } from '@/domain/talents/talents.ts';
+import { anyReady } from '@/domain/expeditions/expeditions.ts';
+import { anyClaimable } from '@/domain/account/deeds.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { canEquip } from '@/domain/items/equip.ts';
 import { statUpgradeCost } from '@/domain/economy/statUpgrades.ts';
@@ -41,16 +44,25 @@ export function computeBadges(character: Character, now: number, account?: Accou
     // Climbing is always available, so a dot here would say nothing.
     tower: false,
     character: hasCharacterAction(character),
+    // A point in hand is only news if there is somewhere to put it: a hero with
+    // three points and a tree whose open rows are all full has nothing to do
+    // here, and a dot that led to a screen with no move is the kind of lie that
+    // teaches players to ignore dots (§20.5).
+    talents: talentTree(character).some((node) => node.learnable),
     // One dot per shop, because they are two destinations now: a dot on the
     // rail has to say *which* counter has something on it, or it sends the
     // player to the wrong one and reads as a lie (§20.5).
     equipmentMerchant: hasMerchantAction('equipment', character, now),
     magicMerchant: hasMerchantAction('magic', character, now),
     // A quest dot means a reward is sitting there — never "the board changed".
-    quests: claimableCount(character.quests) > 0,
-    // A record is history. There is nothing to *do* there, so a dot would be
-    // decoration — and one decorative dot teaches a player to ignore all of them.
-    records: false,
+    // The expedition board lives on the same screen (Q37), so a party standing
+    // in the hall with its spoils lights the same dot: one destination, one
+    // question, and the answer is still "there is something to collect".
+    quests: claimableCount(character.quests) > 0 || (account ? anyReady(account, now) : false),
+    // A record was history, and a dot on history would be decoration. The deed
+    // ledger sits on that screen now (Q40), and a tier standing there earned and
+    // unpaid *is* something to do — so the dot means that and nothing else.
+    records: account ? anyClaimable(account) : false,
     // §16.3's whole target reaction is "finally I can pull again" — so the dot
     // lights when a rite can actually be performed, not when a ticket is merely
     // held. A full backpack refuses the pull, and a dot that led to a refusal

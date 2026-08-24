@@ -8,9 +8,20 @@
  * reports, and a balance simulator that runs the real engine at full speed.
  */
 import type { ClassId, ResourceKind } from '../character/types.ts';
+import type { UniquePowerId } from '@/content/items/uniques.ts';
 import type { StatBlock, StatId } from '../stats.ts';
 
-export type UnitId = 'hero' | 'enemy';
+/**
+ * Who can be in a fight.
+ *
+ * Three, since companions (Q42). The pet is a full unit rather than a stat the
+ * hero carries: it has its own health bar, takes its own turn and can be struck
+ * down without the fight ending — none of which a bonus can express.
+ */
+export type UnitId = 'hero' | 'pet' | 'enemy';
+
+/** Everyone on the player's side, for the rules that treat them as one. */
+export const ALLY_IDS: readonly UnitId[] = ['hero', 'pet'];
 
 /** Which signature move a unit performs when its bar fills (Q26). */
 export type SignatureKind =
@@ -57,8 +68,46 @@ export interface CombatantResource {
 }
 
 /** A unit as the engine tracks it through a fight. */
+/**
+ * What a talent tree is worth inside a fight (Q38).
+ *
+ * Only the four levers the engine actually has. Everything else a tree does —
+ * stats, gold, experience, materials — has already been folded in by the time a
+ * fight starts, or belongs to the reward roll rather than to combat.
+ */
+export interface CombatTalents {
+  /** Added to signature-move damage. */
+  signature: number;
+  /** Added to how fast the resource bar fills. */
+  resourceFill: number;
+  /** Added to the extra damage a critical hit deals. */
+  critDamage: number;
+  /** Share of every incoming blow turned aside. */
+  damageReduction: number;
+  /** Share of the unit's pool healed at the end of each round. */
+  regeneration: number;
+}
+
+/** What paid for a heal — a named unique, or the hero's own talent tree. */
+export type HealSource = UniquePowerId | 'regeneration';
+
 export interface Combatant {
   id: UnitId;
+  /**
+   * Rules this unit carries from named uniques (Q45). Absent is the same as
+   * empty; enemies never have any, which is why it is optional rather than a
+   * field every enemy definition has to remember to leave blank.
+   */
+  powers?: readonly UniquePowerId[];
+  /**
+   * Numbers a hero's talent tree contributes (Q38).
+   *
+   * A bundle of plain fractions rather than a reference to the character: the
+   * engine must never know what a character *is*, so `heroCombatant` reads the
+   * tree and hands the engine the arithmetic. Absent is the same as none, which
+   * is why no enemy definition has to carry an empty one.
+   */
+  talents?: CombatTalents;
   nameKey: string;
   /** Class for the hero, enemy definition id otherwise — for the UI's art. */
   sourceId: ClassId | string;
@@ -92,6 +141,8 @@ export type CombatEvent =
       isBoss: boolean;
       hero: CombatantSnapshot;
       enemy: CombatantSnapshot;
+      /** Present only when a companion came along (Q42). */
+      pet?: CombatantSnapshot;
       /** Floor modifiers applied before the first blow (Brief §3.2). */
       floorEffects: Array<{ unit: UnitId; effect: EffectDef }>;
     }
@@ -99,6 +150,14 @@ export type CombatEvent =
   | {
       type: 'action';
       unit: UnitId;
+      /**
+       * Whom the action is aimed at.
+       *
+       * With three units on the field, "Grimhild attacks" no longer names a
+       * target by elimination, and a log line that guessed would be wrong every
+       * time the enemy went for the companion instead.
+       */
+      target: UnitId;
       kind: 'strike' | 'doubleStrike' | 'signature';
       signature?: SignatureKind;
     }
@@ -112,6 +171,16 @@ export type CombatEvent =
       targetHp: number;
     }
   | { type: 'dodged'; unit: UnitId; source: UnitId }
+  | {
+      /** Health returned rather than taken — lifesteal, and later a companion. */
+      type: 'heal';
+      unit: UnitId;
+      amount: number;
+      /** Health after it, so the performer never recomputes. */
+      unitHp: number;
+      /** Which rule paid for it, so the stage can name it. */
+      source: HealSource;
+    }
   | { type: 'resource'; unit: UnitId; from: number; to: number; full: boolean }
   | { type: 'effectApplied'; unit: UnitId; effect: EffectDef }
   | { type: 'effectExpired'; unit: UnitId; effectId: string }
@@ -139,6 +208,23 @@ export interface CombatScript {
 export interface CombatOutcome {
   winner: UnitId;
   heroSurvived: boolean;
+  /**
+   * Whether the companion was still standing at the end (Q42).
+   *
+   * Absent when none came along. It never decides the fight — a hero standing
+   * over a fallen pet has cleared the floor — but the aftermath says so, and a
+   * player who never learns their companion went down learns nothing from
+   * choosing a sturdier one.
+   */
+  petSurvived?: boolean;
+  /**
+   * The companion's health at the bell, for fights that chain (Q39).
+   *
+   * A boss rush carries wounds from one gate to the next — for the hero and for
+   * whatever is standing beside them — so the next fight has to be handed a
+   * number rather than guessing one.
+   */
+  petHpRemaining?: number;
   rounds: number;
   heroHpRemaining: number;
   byRoundCap: boolean;

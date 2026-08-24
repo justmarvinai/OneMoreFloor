@@ -247,3 +247,27 @@ export const SALVAGE_ASCENSION_HIGH_TIER_PER_STAR = 1;
  */
 export const REFORGE_GOLD_MULTIPLIER = 0.55;
 export const REFORGE_MATERIAL_COUNT = 3;
+
+/**
+ * The workbench (Q43) — what a tier of material is worth in the tier above it.
+ *
+ * Materials are tiered by depth, which ties ascension to *climbing*. It also
+ * means every material a player outgrows becomes dead weight: a hero at floor
+ * 300 holds a pile of Spire Dust that no recipe will ever ask for again. Five
+ * for one is deliberately a bad rate — transmuting is a way to *rescue* a
+ * stockpile, never a way to farm the shallow floors for deep material, because
+ * five-to-one compounds to 3,125-to-one across five tiers and the tower pays
+ * better than that at every depth.
+ */
+export const TRANSMUTE_RATE = 5;
+
+/**
+ * Brewing a draught from materials instead of gold (Q43).
+ *
+ * Q29 settled that buying a potion *drinks* it — there is no potion inventory,
+ * and brewing does not introduce one: a brewed draught is drunk on the spot,
+ * at the hero's own bracket, exactly like a bought one. What it changes is the
+ * currency, so a player rich in materials and short on gold has a way to spend
+ * what they have.
+ */
+export const BREW_MATERIAL_COST = 4;

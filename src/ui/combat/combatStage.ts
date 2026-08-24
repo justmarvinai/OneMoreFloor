@@ -28,6 +28,7 @@ import type { FuiComponent } from '@/ui/fui/index.ts';
 import type { CombatScript, EffectDef, UnitId } from '@/domain/combat/types.ts';
 import type { StatBlock } from '@/domain/stats.ts';
 import { bandForFloor } from '@/content/floors/index.ts';
+import { UNIQUE_POWERS } from '@/content/items/uniques.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 import { choreograph, floatLifeFor, TIMING, type Beat, type Step } from './choreography.ts';
 import { effectChip, tipEffects } from './effectChips.ts';
@@ -59,16 +60,25 @@ export class CombatStage {
   readonly el: HTMLElement;
 
   private readonly parts: FuiComponent[] = [];
-  private readonly frames: Record<UnitId, UnitFrame>;
-  private readonly chips: Record<UnitId, BuffBar>;
-  private readonly cards: Record<UnitId, HTMLElement>;
-  private readonly effects: Record<UnitId, EffectDef[]> = { hero: [], enemy: [] };
+  /**
+   * Partial rather than complete, because a companion is optional (Q42).
+   *
+   * Every read goes through the accessors below, so a fight without a pet in it
+   * plays exactly as it did before one existed — the pet branches simply find
+   * nothing and do nothing.
+   */
+  private readonly frames: Partial<Record<UnitId, UnitFrame>> = {};
+  private readonly chips: Partial<Record<UnitId, BuffBar>> = {};
+  private readonly cards: Partial<Record<UnitId, HTMLElement>> = {};
+  private readonly effects: Partial<Record<UnitId, EffectDef[]>> = {};
   private readonly floats: FloatingText;
   private readonly impact: ImpactFrame;
   private readonly vignette: DamageVignette;
   private readonly log: BattleLog;
   private readonly roundEl: HTMLElement;
-  private readonly names: Record<UnitId, string>;
+  private readonly names: Partial<Record<UnitId, string>> = {};
+  /** Everyone actually on the field, for the rules that sweep all of them. */
+  private readonly present: UnitId[] = [];
   private readonly beats: Beat[];
   private readonly animations = new Set<Animation>();
 
@@ -86,15 +96,16 @@ export class CombatStage {
     const { script, heroName, heroLevel, enemyName } = opts;
     this.rate = opts.rate;
     this.beats = choreograph(script);
-    this.names = { hero: heroName, enemy: enemyName };
 
     const start = script.events[0];
     if (!start || start.type !== 'fightStart') {
       throw new Error('[combat] a script must open with fightStart');
     }
 
-    this.frames = {
-      hero: this.track(
+    const petName = start.pet ? t(start.pet.nameKey as StringKey) : '';
+
+    this.enlist('hero', heroName, start.hero.stats, () =>
+      this.track(
         new UnitFrame({
           name: heroName,
           level: heroLevel,
@@ -108,7 +119,31 @@ export class CombatStage {
           kind: 'player',
         }),
       ),
-      enemy: this.track(
+    );
+
+    // The companion's card is smaller and sits under the hero's, because that is
+    // what it is: a second thing on your side of the field, not a second hero.
+    if (start.pet) {
+      const pet = start.pet;
+      this.enlist('pet', petName, pet.stats, () =>
+        this.track(
+          new UnitFrame({
+            name: petName,
+            portraitArt: pet.avatar,
+            portraitSize: 52,
+            health: pet.maxHp,
+            healthMax: pet.maxHp,
+            // No mana bar and no level badge: a companion has no resource pool
+            // (Q26) and its level belongs on the character sheet, not here.
+            kind: 'player',
+            compact: true,
+          }),
+        ),
+      );
+    }
+
+    this.enlist('enemy', enemyName, start.enemy.stats, () =>
+      this.track(
         new UnitFrame({
           name: enemyName,
           level: script.floor,
@@ -123,17 +158,7 @@ export class CombatStage {
           ...(script.isBoss ? { elite: t('tower.bossFloor') } : {}),
         }),
       ),
-    };
-
-    this.chips = {
-      hero: this.track(new BuffBar({ size: 38, autoTick: false })),
-      enemy: this.track(new BuffBar({ size: 38, autoTick: false })),
-    };
-
-    this.cards = {
-      hero: card('hero', this.frames.hero, this.chips.hero, start.hero.stats),
-      enemy: card('enemy', this.frames.enemy, this.chips.enemy, start.enemy.stats),
-    };
+    );
 
     this.roundEl = h('div', {
       class: 'omf-combat__round',
@@ -162,13 +187,22 @@ export class CombatStage {
       }),
     );
 
+    // Hero and companion share one column: the player's side of the field reads
+    // as a side rather than as two unrelated cards facing the same enemy.
+    const ourSide = h(
+      'div',
+      { class: 'omf-combat__side' },
+      this.cards.hero!,
+      ...(this.cards.pet ? [this.cards.pet] : []),
+    );
+
     const field = h(
       'div',
       { class: 'omf-combat__field' },
       banner,
-      this.cards.hero,
+      ourSide,
       this.roundEl,
-      this.cards.enemy,
+      this.cards.enemy!,
     );
 
     const backdrop = this.track(
@@ -303,8 +337,15 @@ export class CombatStage {
   private apply(step: Step, silent: boolean): void {
     switch (step.kind) {
       case 'start':
-        this.frames.hero.setHealth(step.hero.maxHp, step.hero.maxHp);
-        this.frames.enemy.setHealth(step.enemy.maxHp, step.enemy.maxHp);
+        this.frames.hero?.setHealth(step.hero.maxHp, step.hero.maxHp);
+        this.frames.enemy?.setHealth(step.enemy.maxHp, step.enemy.maxHp);
+        if (step.pet) {
+          this.frames.pet?.setHealth(step.pet.maxHp, step.pet.maxHp);
+          this.log.push(
+            { kind: 'system', text: t('combat.log.petJoins', { unit: this.nameOf('pet') }) },
+            { silent },
+          );
+        }
         break;
 
       case 'round':
@@ -318,19 +359,18 @@ export class CombatStage {
 
       case 'windUp': {
         const actor = this.cards[step.unit];
-        this.frames[step.unit].setActive(true);
-        this.frames[other(step.unit)].setActive(false);
+        this.setActor(step.unit);
         if (step.action === 'signature') {
           const name = step.signature ? t(`signature.${step.signature}` as StringKey) : '';
           this.log.push(
             {
               kind: 'buff',
-              actor: this.names[step.unit],
+              actor: this.nameOf(step.unit),
               text: t('combat.log.signature', { name }),
             },
             { silent },
           );
-          if (!silent) {
+          if (!silent && actor) {
             this.el.classList.add('is-signature');
             this.animate(actor, signatureFrames(step.unit), MOTION.signature);
             this.impact.setTone('break', 0.85).play(name);
@@ -345,28 +385,60 @@ export class CombatStage {
           this.log.push(
             {
               kind: 'damage',
-              actor: this.names[step.unit],
-              text: t(key, { target: this.names[other(step.unit)] }),
+              actor: this.nameOf(step.unit),
+              // The target is read off the event rather than inferred: with a
+              // companion on the field, "the other one" is two of them, and the
+              // enemy picks which.
+              text: t(key, { target: this.nameOf(step.target) }),
               turn: this.round,
             },
             { silent },
           );
-          if (!silent) this.animate(actor, lungeFrames(step.unit), MOTION.lunge);
+          if (!silent && actor) this.animate(actor, lungeFrames(step.unit), MOTION.lunge);
         }
         break;
       }
 
       case 'hit': {
-        this.frames[step.target].setHealth(step.targetHp);
+        this.frames[step.target]?.setHealth(step.targetHp);
         if (silent) break;
         this.floatAbove(step.target, {
           value: step.amount,
           kind: step.crit ? 'crit' : 'damage',
           life: floatLifeFor(step.crit, this.rate),
         });
-        this.animate(this.cards[step.target], recoilFrames(step.crit), MOTION.recoil);
+        const struck = this.cards[step.target];
+        if (struck) this.animate(struck, recoilFrames(step.crit), MOTION.recoil);
         if (step.crit) this.impact.setTone('crit', step.heavy ? 1 : 0.7).play(t('combat.critical'));
         if (step.target === 'hero' && step.heavy) this.vignette.flash('damage', 0.7);
+        break;
+      }
+
+      case 'heal': {
+        this.frames[step.unit]?.setHealth(step.unitHp);
+        this.log.push(
+          {
+            kind: 'buff',
+            actor: this.nameOf(step.unit),
+            text: t('combat.log.heal', {
+              amount: step.amount,
+              // A heal is named by whatever paid for it: a worn unique, or the
+              // hero's own tree. The log line reads the same either way.
+              power:
+                step.source === 'regeneration'
+                  ? t('talent.regeneration')
+                  : t(UNIQUE_POWERS[step.source].nameKey),
+            }),
+            turn: this.round,
+          },
+          { silent },
+        );
+        if (silent) break;
+        this.floatAbove(step.unit, {
+          value: `+${step.amount}`,
+          kind: 'heal',
+          life: floatLifeFor(false, this.rate),
+        });
         break;
       }
 
@@ -374,8 +446,8 @@ export class CombatStage {
         this.log.push(
           {
             kind: 'buff',
-            actor: this.names[step.unit],
-            text: t('combat.log.dodge', { source: this.names[step.source] }),
+            actor: this.nameOf(step.unit),
+            text: t('combat.log.dodge', { source: this.nameOf(step.source) }),
             turn: this.round,
           },
           { silent },
@@ -390,20 +462,20 @@ export class CombatStage {
         break;
 
       case 'resource':
-        this.frames[step.unit].setMana(step.to);
-        if (step.full && !silent) this.cards[step.unit].classList.add('is-charged');
-        if (!step.full) this.cards[step.unit].classList.remove('is-charged');
+        this.frames[step.unit]?.setMana(step.to);
+        if (step.full && !silent) this.cards[step.unit]?.classList.add('is-charged');
+        if (!step.full) this.cards[step.unit]?.classList.remove('is-charged');
         break;
 
       case 'effectOn':
-        this.effects[step.unit] = [...this.effects[step.unit], step.effect];
+        this.effects[step.unit] = [...(this.effects[step.unit] ?? []), step.effect];
         this.paintChips(step.unit);
         this.log.push(
           {
             kind: step.effect.tone === 'buff' ? 'buff' : 'debuff',
             text: t('combat.log.effectOn', {
               name: t(step.effect.nameKey as StringKey),
-              unit: this.names[step.unit],
+              unit: this.nameOf(step.unit),
             }),
             turn: this.round,
           },
@@ -412,10 +484,9 @@ export class CombatStage {
         break;
 
       case 'effectOff': {
-        const leaving = this.effects[step.unit].find((effect) => effect.id === step.effectId);
-        this.effects[step.unit] = this.effects[step.unit].filter(
-          (effect) => effect.id !== step.effectId,
-        );
+        const held = this.effects[step.unit] ?? [];
+        const leaving = held.find((effect) => effect.id === step.effectId);
+        this.effects[step.unit] = held.filter((effect) => effect.id !== step.effectId);
         this.paintChips(step.unit);
         if (leaving) {
           this.log.push(
@@ -423,7 +494,7 @@ export class CombatStage {
               kind: leaving.tone === 'buff' ? 'buff' : 'debuff',
               text: t('combat.log.effectOff', {
                 name: t(leaving.nameKey as StringKey),
-                unit: this.names[step.unit],
+                unit: this.nameOf(step.unit),
               }),
               turn: this.round,
             },
@@ -433,36 +504,77 @@ export class CombatStage {
         break;
       }
 
-      case 'defeat':
-        this.frames[step.unit].setInactive(true);
-        this.cards[step.unit].classList.add('is-defeated');
+      case 'defeat': {
+        const fallen = this.cards[step.unit];
+        this.frames[step.unit]?.setInactive(true);
+        fallen?.classList.add('is-defeated');
         this.log.push(
-          { kind: 'death', text: t('combat.log.defeated', { unit: this.names[step.unit] }) },
+          {
+            kind: 'death',
+            // A companion going down is not the end of anything, so it is said
+            // differently: the fight carries on without it (Q42).
+            text:
+              step.unit === 'pet'
+                ? t('combat.log.petDown', { unit: this.nameOf('pet') })
+                : t('combat.log.defeated', { unit: this.nameOf(step.unit) }),
+          },
           { silent },
         );
-        if (!silent) this.animate(this.cards[step.unit], collapseFrames(), MOTION.collapse);
+        if (!silent && fallen) this.animate(fallen, collapseFrames(), MOTION.collapse);
         break;
+      }
 
       case 'end':
         if (step.byRoundCap) {
           this.log.push({ kind: 'system', text: t('combat.log.roundCap') }, { silent });
         }
-        this.frames.hero.setActive(false);
-        this.frames.enemy.setActive(false);
+        for (const unit of this.present) this.frames[unit]?.setActive(false);
         break;
     }
   }
 
+  /**
+   * Put one unit on the field: its frame, its effect strip, its card, its name.
+   *
+   * One place, so a companion is enlisted by exactly the same code the hero and
+   * the enemy are — the alternative is three near-identical blocks and a fourth
+   * for whatever joins next.
+   */
+  private enlist(unit: UnitId, name: string, stats: StatBlock, build: () => UnitFrame): void {
+    const frame = build();
+    const chips = this.track(new BuffBar({ size: unit === 'pet' ? 30 : 38, autoTick: false }));
+
+    this.frames[unit] = frame;
+    this.chips[unit] = chips;
+    this.effects[unit] = [];
+    this.names[unit] = name;
+    this.cards[unit] = card(unit, frame, chips, stats);
+    this.present.push(unit);
+  }
+
+  /** The unit's name, or an empty string for one that never joined. */
+  private nameOf(unit: UnitId): string {
+    return this.names[unit] ?? '';
+  }
+
+  /** Light the acting unit and dim every other one on the field. */
+  private setActor(unit: UnitId): void {
+    for (const other of this.present) this.frames[other]?.setActive(other === unit);
+  }
+
   /** Numbers land across the portrait, where the reference screens put them. */
   private floatAbove(unit: UnitId, options: FloatOptions): void {
-    this.floats.spawnAt(this.frames[unit].portrait.el, options);
+    const frame = this.frames[unit];
+    if (frame) this.floats.spawnAt(frame.portrait.el, options);
   }
 
   private paintChips(unit: UnitId): void {
-    const effects = this.effects[unit];
-    this.chips[unit].set(effects.map(effectChip));
+    const effects = this.effects[unit] ?? [];
+    const chips = this.chips[unit];
+    if (!chips) return;
+    chips.set(effects.map(effectChip));
     // The bar rebuilds its cells on every `set`, so the cards go back on after.
-    tipEffects(this.chips[unit].el, effects);
+    tipEffects(chips.el, effects);
   }
 
   private animate(target: HTMLElement, frames: Keyframe[], durationMs: number): void {
@@ -512,13 +624,10 @@ function card(unit: UnitId, frame: UnitFrame, chips: BuffBar, stats: StatBlock):
   );
 }
 
-function other(unit: UnitId): UnitId {
-  return unit === 'hero' ? 'enemy' : 'hero';
-}
-
 /** A lunge travels toward the middle of the field, so both sides read as meeting. */
 function lungeFrames(unit: UnitId): Keyframe[] {
-  const toward = unit === 'hero' ? 42 : -42;
+  // Hero and companion share a side, so they lean the same way.
+  const toward = unit === 'enemy' ? -42 : 42;
   return [
     { transform: 'translateX(0)' },
     { transform: `translateX(${toward * -0.25}px)`, offset: 0.25 },
@@ -543,7 +652,7 @@ function recoilFrames(crit: boolean): Keyframe[] {
 
 /** The signature beat: the card swells and the world holds still for a moment. */
 function signatureFrames(unit: UnitId): Keyframe[] {
-  const toward = unit === 'hero' ? 26 : -26;
+  const toward = unit === 'enemy' ? -26 : 26;
   return [
     { transform: 'scale(1) translateX(0)', filter: 'brightness(1)' },
     { transform: 'scale(1.09) translateX(0)', filter: 'brightness(1.7)', offset: 0.35 },

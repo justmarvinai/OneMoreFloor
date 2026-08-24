@@ -15,6 +15,8 @@ import {
   POWER_WEIGHTS,
 } from '@/content/balance/power.ts';
 import { affixBudget, upgradeMultiplier } from '../items/derive.ts';
+import { UNIQUE_POWER_LEVEL } from '@/content/balance/uniques.ts';
+import { wornPowers } from '../items/sets.ts';
 import type { ItemInstance } from '../items/types.ts';
 import type { StatBlock } from '../stats.ts';
 import { STAT_IDS } from '../stats.ts';
@@ -27,6 +29,25 @@ export interface PowerInputs {
   stats: StatBlock;
   ascension: number;
   highestFloorEverCleared: number;
+  /**
+   * What the hero's talent tree is worth (Q38).
+   *
+   * Required rather than optional, and computed by `talentPower`, because a
+   * caller that could leave it out would be a §13 hole with no symptom: the
+   * drops would simply be a little too generous for a build nobody measured.
+   * Build these inputs with `powerInputsFor` and it cannot be forgotten.
+   */
+  talents: number;
+  /**
+   * What the companion at the hero's side is worth (Q42).
+   *
+   * Required for the same reason `talents` is: a companion has its own health
+   * bar and takes its own turn, so none of it is visible through the hero's
+   * stats — and the tower has to stay as hard relative to what a player can
+   * actually field. Build these inputs with `powerInputsFor`, which cannot
+   * produce one without an answer.
+   */
+  pet: number;
 }
 
 export interface PowerBreakdown {
@@ -34,6 +55,19 @@ export interface PowerBreakdown {
   stats: number;
   ascension: number;
   tower: number;
+  /**
+   * What the named uniques on the hero are worth (Q45).
+   *
+   * A unique's power is a *rule*, not a stat, so it contributes nothing through
+   * the stat path — and a piece whose whole value is invisible to the bracket
+   * would let a hero in five of them draw drops sized for someone weaker. This
+   * line is what keeps §13 honest about them.
+   */
+  uniques: number;
+  /** What talents that grant no stat are worth (Q38). */
+  talents: number;
+  /** What the companion at the hero's side is worth (Q42). */
+  pet: number;
   total: number;
 }
 
@@ -70,13 +104,19 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
   const ascension = inputs.ascension * POWER_PER_ASCENSION * POWER_WEIGHTS.ascension;
   const tower =
     evaluate(POWER_TOWER_CURVE, Math.max(0, inputs.highestFloorEverCleared)) * POWER_WEIGHTS.tower;
+  const uniques = wornPowers(inputs.equipped).length * UNIQUE_POWER_LEVEL;
+  const talents = Math.max(0, inputs.talents);
+  const pet = Math.max(0, inputs.pet);
 
   return {
     gear,
     stats,
     ascension,
     tower,
-    total: Math.round(gear + stats + ascension + tower),
+    uniques,
+    talents,
+    pet,
+    total: Math.round(gear + stats + ascension + tower + uniques + talents + pet),
   };
 }
 

@@ -9,10 +9,14 @@ import { createRng } from '@/app/rng.ts';
 import { ASCENSION_STEPS, MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { getClass } from '@/content/classes/index.ts';
 import { equipmentStats } from '../items/derive.ts';
+import { setBonusStats } from '../items/sets.ts';
 import { createStartingEquipment } from '../items/starting.ts';
 import type { ItemInstance } from '../items/types.ts';
 import { createMerchants } from '../merchants/merchants.ts';
 import { potionBonus } from '../potions/potions.ts';
+import type { PowerInputs } from '../power/power.ts';
+import { talentBonuses, talentPower, talentStats } from '../talents/talents.ts';
+import { petPower, type OwnedPet } from '../pets/pets.ts';
 import { emptyQuests } from '../quests/quests.ts';
 import { addStats, toStatBlock, type GrowableStats, type StatBlock } from '../stats.ts';
 import { normalizeName } from './naming.ts';
@@ -57,6 +61,7 @@ export function createCharacter(input: CreateCharacterInput): Character {
       autoClimb: 'off',
       runGold: 0,
       runFights: 0,
+      pathChoices: {},
     },
     equipment: createStartingEquipment(input.classId, rng),
     inventory: [],
@@ -71,6 +76,8 @@ export function createCharacter(input: CreateCharacterInput): Character {
     loadouts: [],
     wishlist: null,
     curses: [],
+    talents: {},
+    activePet: null,
   };
 }
 
@@ -139,7 +146,37 @@ export function baseStatsOf(character: Character): StatBlock {
  * `combatStatsOf`.
  */
 export function totalStatsOf(character: Character): StatBlock {
-  return addStats(baseStatsOf(character), equipmentStats(equippedItems(character)));
+  const worn = equippedItems(character);
+  const durable = addStats(baseStatsOf(character), equipmentStats(worn));
+  // Set bonuses are a percentage *of* the durable total, so they are folded in
+  // last and never compound with each other (Q45).
+  const suited = addStats(durable, setBonusStats(durable, worn));
+  // Talents are the last layer, and a share of everything under them (Q38).
+  // Speed is untouched by construction: the talent effect type cannot name it.
+  return addStats(suited, talentStats(suited, talentBonuses(character)));
+}
+
+/**
+ * Everything Power Level is computed from, for one character.
+ *
+ * The only supported way to build them. Power Level has grown a term that a
+ * hand-assembled input object can silently omit — the talent tree (Q38) — and an
+ * omission there is a §13 hole with no symptom at all: drops simply come out a
+ * little too generous for a build nobody measured. One constructor, one place to
+ * add the next term.
+ */
+export function powerInputsFor(character: Character, pet: OwnedPet | null): PowerInputs {
+  return {
+    equipped: equippedItems(character),
+    stats: totalStatsOf(character),
+    ascension: character.progression.ascension,
+    highestFloorEverCleared: character.tower.highestFloorEverCleared,
+    talents: talentPower(character),
+    // Passed rather than read, and required rather than optional: the companion
+    // lives on the *account*, so a character alone genuinely cannot answer this
+    // — and a caller that could leave it out would quietly answer "none" (Q42).
+    pet: petPower(pet),
+  };
 }
 
 /**

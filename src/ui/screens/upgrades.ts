@@ -9,7 +9,7 @@
  * how far short the purse is (§20.5). "Insanely expensive" (§15.1) only reads
  * as a goal rather than a wall if the player can see the distance.
  */
-import { CostButton, OrnateHeader, Panel, StatChip, h } from '@/ui/fui/index.ts';
+import { Button, CostButton, OrnateHeader, Panel, StatChip, h } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import {
   BATTLE_SPEED_BY_TIER,
@@ -27,6 +27,8 @@ import {
   type UpgradeId,
 } from '@/domain/account/upgrades.ts';
 import { CREDITS } from '@/content/credits/index.ts';
+import { ECHO_MAX_RANK, echoTree } from '@/domain/account/echoes.ts';
+import type { EchoNodeId } from '@/content/balance/echoes.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
@@ -34,6 +36,8 @@ export interface UpgradesScreenOptions {
   account: Account;
   character: Character;
   onBuy: (id: UpgradeId) => void;
+  /** Deepen one node of the echo tree (Q36). */
+  onDeepen: (id: string) => void;
 }
 
 export interface UpgradesScreen {
@@ -42,7 +46,7 @@ export interface UpgradesScreen {
 }
 
 export function createUpgradesScreen(options: UpgradesScreenOptions): UpgradesScreen {
-  const { account, character, onBuy } = options;
+  const { account, character, onBuy, onDeepen } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -177,10 +181,144 @@ export function createUpgradesScreen(options: UpgradesScreenOptions): UpgradesSc
     t('upgrades.backpackMax'),
   );
 
+  /**
+   * Echoes of the Spire (Q36) — the permanent layer, above the gold upgrades.
+   *
+   * It sits on this screen rather than in a rail entry of its own because this
+   * is already *the account's* screen: everything here is bought once and
+   * survives every reset, which is exactly what an echo is. Above the three
+   * gold upgrades because it is the one that never finishes.
+   *
+   * Six open nodes, no prerequisites. A lattice of locked branches would make
+   * the first purchase the most important decision a player ever makes, at the
+   * moment they know least about the game.
+   */
+  function buildEchoes(): HTMLElement {
+    const tree = echoTree(account);
+    const wrap = h('div', { class: 'omf-echoes', dataset: { testid: 'echoes' } });
+
+    wrap.appendChild(
+      h(
+        'div',
+        { class: 'omf-echoes__purse' },
+        track(
+          new StatChip({
+            label: t('echo.held', { count: '' }).trim(),
+            value: account.echoes,
+            glyph: 'glyph-shooting-stars',
+            tone: account.echoes > 0 ? 'gold' : 'neutral',
+          }),
+        ).el,
+        h('span', {
+          class: 'omf-echoes__earned',
+          text: t('echo.earned', { count: account.echoesEarned }),
+        }),
+      ),
+    );
+
+    const cards = h('div', { class: 'omf-echoes__cards' });
+    for (const node of tree) {
+      const maxed = node.cost === null;
+      const card = h('div', {
+        class: 'omf-echoes__card',
+        dataset: { testid: `echo-${node.def.id}`, maxed: String(maxed) },
+      });
+
+      card.appendChild(
+        h('span', { class: 'omf-echoes__name fui-title', text: t(node.def.nameKey) }),
+      );
+      card.appendChild(
+        h('span', {
+          class: 'omf-echoes__rank',
+          text: t('echo.rank', { rank: node.rank, max: ECHO_MAX_RANK }),
+        }),
+      );
+      card.appendChild(h('p', { class: 'omf-echoes__desc', text: t(node.def.descKey) }));
+      card.appendChild(
+        h('p', {
+          class: 'omf-echoes__now',
+          text: t('echo.now', { value: describe(node.def.id, node.effect) }),
+        }),
+      );
+
+      if (maxed) {
+        card.appendChild(h('p', { class: 'omf-echoes__maxed', text: t('echo.maxed') }));
+      } else {
+        const buy = track(
+          new Button({
+            label: t('echo.buy'),
+            size: 'sm',
+            variant: node.affordable ? 'primary' : 'ghost',
+            block: true,
+            disabled: !node.affordable,
+          }),
+        );
+        buy.on('click', () => onDeepen(node.def.id));
+        setTip(buy.el, {
+          title: t(node.def.nameKey),
+          subtitle: t('echo.cost', { cost: node.cost ?? 0 }),
+          stats: [
+            {
+              label: t('echo.now', { value: '' }).trim(),
+              value: describe(node.def.id, node.effect),
+            },
+            {
+              label: t('echo.next', { value: '' }).trim(),
+              value: describe(node.def.id, node.effect + node.step),
+              tone: 'good',
+            },
+          ],
+          flavor: node.affordable
+            ? t(node.def.descKey)
+            : t('echo.short', { missing: (node.cost ?? 0) - account.echoes }),
+        });
+        card.appendChild(buy.el);
+        if (!node.affordable) {
+          // Said on the card, not only in the tooltip: a greyed button whose
+          // reason is a hover away is a reason most players never read (§20.5).
+          card.appendChild(
+            h('p', {
+              class: 'omf-echoes__short',
+              text: t('echo.short', { missing: (node.cost ?? 0) - account.echoes }),
+            }),
+          );
+        }
+      }
+
+      cards.appendChild(card);
+    }
+
+    wrap.appendChild(cards);
+    return track(
+      new Panel({
+        title: t('echo.title'),
+        subtitle: t('echo.subtitle'),
+        variant: 'alt',
+        width: '100%',
+        content: [wrap],
+      }),
+    ).el;
+  }
+
+  /**
+   * A node's worth, in the units that node is measured in.
+   *
+   * Coffers counts sockets and the rest are percentages, and printing "0.1
+   * sockets" or "2%" for the wrong one is the sort of thing a player notices
+   * immediately and never trusts again.
+   */
+  function describe(id: EchoNodeId, value: number): string {
+    if (value <= 0) return t('echo.none');
+    return id === 'coffers'
+      ? t('echo.sockets', { count: Math.round(value) })
+      : t('echo.percent', { percent: Math.round(value * 100) });
+  }
+
   const el = h(
     'div',
     { class: 'omf-upgrades', dataset: { fuiTheme: 'stone-vine', testid: 'upgrades' } },
     track(new OrnateHeader({ title: t('upgrades.title'), subtitle: t('upgrades.subtitle') })).el,
+    buildEchoes(),
     h('div', { class: 'omf-upgrades__cards' }, speed, slots, bag),
     h('div', { class: 'omf-credits', dataset: { testid: 'credits' } }, credits.el),
   );

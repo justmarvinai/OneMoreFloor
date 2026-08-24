@@ -29,15 +29,20 @@ import {
   RARITY_WEIGHTS,
   REWARD_VARIANCE,
   TICKET_DROP_CHANCE,
+  ELITE_MATERIAL_COUNT,
+  ELITE_REWARD_MULTIPLIER,
 } from '@/content/balance/rewards.ts';
 import { affixPool } from '@/content/items/affixPools.ts';
 import { ITEM_BASES, materialIdForTier } from '@/content/items/index.ts';
 import { unlockedSlotsAt } from '../character/character.ts';
 import type { AscensionTier } from '../character/types.ts';
-import { defsForBracket, generateItem } from '../items/generate.ts';
+import { defsForBracket, generateItem, pickBase } from '../items/generate.ts';
 import { RARITIES, type ItemInstance, type Rarity } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
 import { curseRewardMultiplier } from './curses.ts';
+import { NO_ECHOES, type EchoBonuses } from '../account/echoes.ts';
+import { NO_TALENTS, type TalentBonuses } from '../talents/talents.ts';
+import { NO_PATH_SPOILS, type PathSpoils } from './paths.ts';
 
 export interface FloorReward {
   gold: number;
@@ -57,6 +62,26 @@ export interface RollRewardInput {
   classId: string;
   /** Ascension tier, which gates relic and artifact drops (Q22). */
   ascension: AscensionTier;
+  /** An elite floor pays more, and always pays gear (Q44). */
+  isElite?: boolean;
+  /**
+   * What the account's echo tree adds (Q36). Absent means none — every caller
+   * without an account in hand rolls the unmodified floor, which is what the
+   * simulator and the balance gates measure.
+   */
+  echoes?: EchoBonuses;
+  /**
+   * The hero's talent tree (Q38). Three of its nodes pay in gold, experience and
+   * materials — never in bracket, so §13 holds however the tree is spent. Absent
+   * means an untalented hero, which is what the simulator and the balance gates
+   * measure.
+   */
+  talents?: TalentBonuses;
+  /**
+   * The road this leg is being walked on (Q41). Like curses, it multiplies gold,
+   * experience and materials — never the bracket, so §13 holds on every route.
+   */
+  path?: PathSpoils;
   /**
    * Curses the player has taken (Q35). They multiply gold, experience and
    * materials — never the bracket, so §13 holds with a full set of them on.
@@ -117,15 +142,18 @@ export function floorRewardEstimate(
   floor: number,
   isBoss: boolean,
   curses: readonly string[] = [],
+  isElite = false,
 ): FloorRewardEstimate {
-  const multiplier = (isBoss ? BOSS_REWARD_MULTIPLIER : 1) * curseRewardMultiplier(curses);
+  const multiplier =
+    (isBoss ? BOSS_REWARD_MULTIPLIER : isElite ? ELITE_REWARD_MULTIPLIER : 1) *
+    curseRewardMultiplier(curses);
   return {
     gold: Math.max(
       1,
       Math.round(evaluate({ kind: 'exponential', ...FLOOR_GOLD }, floor) * multiplier),
     ),
     xp: Math.max(1, Math.round(evaluate({ kind: 'exponential', ...FLOOR_XP }, floor) * multiplier)),
-    itemChance: isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : EQUIPMENT_DROP_CHANCE,
+    itemChance: isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : isElite ? 1 : EQUIPMENT_DROP_CHANCE,
   };
 }
 
@@ -134,13 +162,21 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
   // A cursed tower pays more for the same floor. Applied to the payout rather
   // than to the curve so the curve keeps meaning "what floor N is worth".
   const curses = curseRewardMultiplier(input.curses ?? []);
-  const multiplier = (isBoss ? BOSS_REWARD_MULTIPLIER : 1) * curses;
+  const elite = input.isElite === true;
+  const echoes = input.echoes ?? NO_ECHOES;
+  const talents = input.talents ?? NO_TALENTS;
+  const path = input.path ?? NO_PATH_SPOILS;
+  const multiplier =
+    (isBoss ? BOSS_REWARD_MULTIPLIER : elite ? ELITE_REWARD_MULTIPLIER : 1) * curses;
 
   const gold = Math.max(
     1,
     Math.round(
       evaluate({ kind: 'exponential', ...FLOOR_GOLD }, floor) *
         multiplier *
+        echoes.gold *
+        talents.gold *
+        path.gold *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
@@ -149,20 +185,36 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     Math.round(
       evaluate({ kind: 'exponential', ...FLOOR_XP }, floor) *
         multiplier *
+        echoes.xp *
+        talents.xp *
+        path.xp *
         rng.range(REWARD_VARIANCE.min, REWARD_VARIANCE.max),
     ),
   );
 
   const materials: Record<string, number> = {};
-  const materialChance = isBoss ? BOSS_MATERIAL_DROP_CHANCE : MATERIAL_DROP_CHANCE;
+  // An elite always pays materials, like a boss: the point of one is that it is
+  // worth stopping for, and a maybe is not.
+  const materialChance = isBoss || elite ? BOSS_MATERIAL_DROP_CHANCE : MATERIAL_DROP_CHANCE;
   if (rng.chance(materialChance)) {
-    const range = isBoss ? BOSS_MATERIAL_COUNT : MATERIAL_COUNT;
+    const range = isBoss ? BOSS_MATERIAL_COUNT : elite ? ELITE_MATERIAL_COUNT : MATERIAL_COUNT;
     const id = materialIdForTier(bracket.materialTier);
-    materials[id] = Math.max(1, Math.round(rng.int(range.min, range.max) * curses));
+    materials[id] = Math.max(
+      1,
+      Math.round(
+        rng.int(range.min, range.max) *
+          curses *
+          echoes.materials *
+          talents.materials *
+          path.materials,
+      ),
+    );
   }
 
   const items: ItemInstance[] = [];
-  const dropChance = isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : EQUIPMENT_DROP_CHANCE;
+  // Gear is the whole reason to want an elite, so it is a certainty rather than
+  // a good chance — the surprise is meeting one, not what it leaves behind.
+  const dropChance = isBoss ? BOSS_EQUIPMENT_DROP_CHANCE : elite ? 1 : EQUIPMENT_DROP_CHANCE;
   if (rng.chance(dropChance)) {
     const item = rollItem(input);
     if (item) items.push(item);
@@ -182,8 +234,8 @@ export function rollFloorReward(input: RollRewardInput): FloorReward {
     xp,
     materials,
     items,
-    tickets: rng.chance(ticketChance) ? 1 : 0,
-    luckyTickets: rng.chance(luckyChance) ? 1 : 0,
+    tickets: rng.chance(Math.min(1, ticketChance * echoes.tickets)) ? 1 : 0,
+    luckyTickets: rng.chance(Math.min(1, luckyChance * echoes.tickets)) ? 1 : 0,
   };
 }
 
@@ -197,8 +249,11 @@ export function rollItem(input: RollRewardInput): ItemInstance | null {
   );
   if (candidates.length === 0) return null;
 
-  const def = rng.pick(candidates);
+  // Rarity first, because the unique gate reads it: a named piece is not in the
+  // pool until the roll has already come up legendary or better (Q45).
   const rarity = rng.weighted(rarityWeightsFor(bracket.index));
+  const def = pickBase(candidates, rarity, rng);
+  if (!def) return null;
 
   // The one door every item comes through (Brief §13, BALANCE.md §6).
   return generateItem({
@@ -224,6 +279,31 @@ export function mergeRewards(a: FloorReward, b: FloorReward): FloorReward {
     items: [...a.items, ...b.items],
     tickets: a.tickets + b.tickets,
     luckyTickets: a.luckyTickets + b.luckyTickets,
+  };
+}
+
+/**
+ * A reward, scaled.
+ *
+ * Used where a payout is a *share* of what a floor is worth rather than a floor
+ * of its own — a boss-rush chest (Q39) is the first, and the arithmetic belongs
+ * beside the shape it operates on rather than at the one call site that needed
+ * it first. Items are never scaled: half a piece of gear is nothing.
+ */
+export function scaleReward(reward: FloorReward, factor: number): FloorReward {
+  const materials: Record<string, number> = {};
+  for (const [id, count] of Object.entries(reward.materials)) {
+    const scaled = Math.round(count * factor);
+    if (scaled > 0) materials[id] = scaled;
+  }
+
+  return {
+    gold: Math.max(0, Math.round(reward.gold * factor)),
+    xp: Math.max(0, Math.round(reward.xp * factor)),
+    materials,
+    tickets: reward.tickets,
+    luckyTickets: reward.luckyTickets,
+    items: reward.items,
   };
 }
 

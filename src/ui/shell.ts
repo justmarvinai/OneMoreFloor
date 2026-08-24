@@ -48,11 +48,12 @@ import { CLASSES } from '@/content/classes/index.ts';
 import { potionFor } from '@/content/items/potions.ts';
 import { backpackCapacity } from '@/domain/character/account.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
-import { equippedItems, totalStatsOf } from '@/domain/character/character.ts';
+import { powerInputsFor } from '@/domain/character/character.ts';
+import { activePetOf } from '@/domain/pets/pets.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
 import { powerLevel } from '@/domain/power/power.ts';
 import { xpToNextLevel } from '@/domain/progression/xp.ts';
-import type { Character } from '@/domain/character/types.ts';
+import type { Account, Character } from '@/domain/character/types.ts';
 import type { AppStore } from '@/app/state.ts';
 import type { Screen } from '@/app/router.ts';
 import { clock } from '@/app/time.ts';
@@ -74,6 +75,7 @@ import { t } from '@/strings/index.ts';
 export type ShellSection =
   | 'tower'
   | 'character'
+  | 'talents'
   | 'equipmentMerchant'
   | 'magicMerchant'
   | 'gacha'
@@ -85,6 +87,7 @@ export type ShellSection =
 const NAV_ORDER: readonly ShellSection[] = [
   'tower',
   'character',
+  'talents',
   'equipmentMerchant',
   'magicMerchant',
   'gacha',
@@ -142,13 +145,17 @@ export function createShell(options: ShellOptions): Shell {
   };
 
   const character = store.get().activeCharacter;
+  // The account is read alongside the hero because the rail carries both: the
+  // hero's own balances, and the echoes that outlive them (Q36).
+  const account = store.get().account;
   const definition = character ? CLASSES[character.identity.classId] : null;
   // One service decides every dot in the game (§20.5); the rail only renders it.
   const badges: Badges = character
-    ? computeBadges(character, clock().now(), store.get().account)
+    ? computeBadges(character, clock().now(), account)
     : {
         tower: false,
         character: false,
+        talents: false,
         equipmentMerchant: false,
         magicMerchant: false,
         gacha: false,
@@ -243,53 +250,55 @@ export function createShell(options: ShellOptions): Shell {
    * The wallet, whole.
    *
    * Gold is the only *money* in the game (Q1); tickets are what the rites take
-   * (§16.1), and until now they were visible on exactly one screen. Each one is
-   * shown only once the hero holds some — a nought beside a currency a new
-   * player has never heard of explains nothing and costs a line.
+   * (§16.1), and echoes are what the account keeps when a hero does not (Q36).
+   *
+   * Every balance is built, and the ones at nought are hidden rather than left
+   * out: a nought beside a currency a new player has never heard of explains
+   * nothing and costs a line, but an entry that does not exist cannot be
+   * updated — and a background auto-climb banks echoes with nobody changing
+   * screens. Built once, painted on every change, and the first echo appears
+   * where the number will keep rising.
    */
+  const WALLET: readonly { id: CurrencyId; icon: string; label: string }[] = [
+    { id: 'gold', icon: 'icon-coins', label: t('currency.gold.what') },
+    { id: 'tickets', icon: 'icon-scroll', label: t('currency.tickets') },
+    { id: 'luckyTickets', icon: 'icon-star', label: t('currency.luckyTickets') },
+    { id: 'echoes', icon: 'icon-rune-stone', label: t('echo.title') },
+  ];
+
   const currencies = track(
     new CurrencyBar({
-      currencies: [
-        { id: 'gold', icon: 'icon-coins', amount: character?.currencies.gold ?? 0, label: 'Gold' },
-        ...(character && character.currencies.tickets > 0
-          ? [
-              {
-                id: 'tickets',
-                icon: 'icon-scroll',
-                amount: character.currencies.tickets,
-                label: t('currency.tickets'),
-              },
-            ]
-          : []),
-        ...(character && character.currencies.luckyTickets > 0
-          ? [
-              {
-                id: 'luckyTickets',
-                icon: 'icon-star',
-                amount: character.currencies.luckyTickets,
-                label: t('currency.luckyTickets'),
-              },
-            ]
-          : []),
-      ],
+      currencies: WALLET.map((entry) => ({ ...entry, amount: 0 })),
       format: 'short',
     }),
   );
 
-  // `CurrencyBar` labels each balance with a native `title` — which the tooltip
-  // service would adopt and serve as the name alone. What the player wants to
-  // know is what the balance is *for*, and where more of it comes from; that
-  // card is built once in `wallet.ts` and served by every surface that shows a
-  // balance, so the rail and the shop counter never disagree.
-  const shown: CurrencyId[] = [
-    'gold',
-    ...((character?.currencies.tickets ?? 0) > 0 ? (['tickets'] as const) : []),
-    ...((character?.currencies.luckyTickets ?? 0) > 0 ? (['luckyTickets'] as const) : []),
-  ];
-  currencies.el.querySelectorAll<HTMLElement>('.fui-currency__item').forEach((item, index) => {
-    const id = shown[index];
-    if (id) setTip(item, currencyTooltip(id, character?.currencies[id] ?? 0));
-  });
+  /**
+   * Paint the strip from the state.
+   *
+   * `CurrencyBar` labels each balance with a native `title` — which the tooltip
+   * service would adopt and serve as the name alone. What the player wants to
+   * know is what the balance is *for*, and where more of it comes from; that
+   * card is built once in `wallet.ts` and served by every surface that shows a
+   * balance, so the rail and the shop counter never disagree.
+   */
+  const items = [...currencies.el.querySelectorAll<HTMLElement>('.fui-currency__item')];
+  const paintWallet = (hero: Character | null, held: Account | null): void => {
+    WALLET.forEach((entry, index) => {
+      const amount =
+        entry.id === 'echoes' ? (held?.echoes ?? 0) : (hero?.currencies[entry.id] ?? 0);
+      currencies.set(entry.id, amount);
+      const item = items[index];
+      if (!item) return;
+      // Gold is always shown, even at nought: it is the balance every price in
+      // the game is quoted in, and a purse that vanished when it emptied would
+      // read as a bug rather than as poverty.
+      item.hidden = entry.id !== 'gold' && amount <= 0;
+      item.dataset.testid = `wallet-${entry.id}`;
+      setTip(item, currencyTooltip(entry.id, amount));
+    });
+  };
+  paintWallet(character, account);
 
   const nav = track(
     new SideNav({
@@ -300,6 +309,12 @@ export function createShell(options: ShellOptions): Shell {
           label: t('nav.section.character'),
           glyph: 'glyph-cloaked-figure',
           ...(badges.character ? { dot: true } : {}),
+        },
+        {
+          id: 'talents',
+          label: t('nav.section.talents'),
+          glyph: 'glyph-holy-cross',
+          ...(badges.talents ? { dot: true } : {}),
         },
         {
           id: 'equipmentMerchant',
@@ -418,14 +433,9 @@ export function createShell(options: ShellOptions): Shell {
   /** Every number in the climb plate, from one character. */
   const paintClimb = (current: Character | null, now: number): void => {
     if (!current) return;
-    powerChip.set(
-      powerLevel({
-        equipped: equippedItems(current),
-        stats: totalStatsOf(current),
-        ascension: current.progression.ascension,
-        highestFloorEverCleared: current.tower.highestFloorEverCleared,
-      }),
-    );
+    // The companion counts towards the number in the rail, because it counts
+    // towards the bracket the tower reads (Q42).
+    powerChip.set(powerLevel(powerInputsFor(current, activePetOf(store.get().account, current))));
 
     const used = current.inventory.length;
     const capacity = backpackCapacity(store.get().account ?? { backpackSlots: 0 });
@@ -542,8 +552,17 @@ export function createShell(options: ShellOptions): Shell {
         next: commas(max),
       });
       setTip(xpBlock, xpTip(current.progression.xp, max, current.progression.level));
-      currencies.set('gold', current.currencies.gold);
+      paintWallet(current, store.get().account);
       paintClimb(current, clock().now());
+    },
+  );
+
+  // Echoes are the account's, not the hero's, and the background auto-climb
+  // banks them with the player sitting on another screen entirely (Q32/Q36).
+  const unsubscribeAccount = store.select(
+    (state) => state.account,
+    (current) => {
+      paintWallet(store.get().activeCharacter, current);
     },
   );
 
@@ -557,6 +576,7 @@ export function createShell(options: ShellOptions): Shell {
       clearInterval(potionTimer);
       unsubscribeSave();
       unsubscribeCharacter();
+      unsubscribeAccount();
       main.destroy();
       for (const part of parts) part.destroy();
       el.remove();

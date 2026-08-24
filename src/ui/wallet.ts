@@ -17,7 +17,7 @@ import { commas } from '@/ui/fui/index.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 
 /** Every balance the game keeps. Materials are counted separately, by id. */
-export type CurrencyId = 'gold' | 'tickets' | 'luckyTickets';
+export type CurrencyId = 'gold' | 'tickets' | 'luckyTickets' | 'echoes';
 
 /**
  * A currency's card: what it is, what it buys, where it comes from.

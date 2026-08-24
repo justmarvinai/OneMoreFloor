@@ -16,6 +16,9 @@ import {
   BOSS_KIT_SCALING,
   BOSS_MULTIPLIER,
   BOSS_RAMP,
+  ELITE_CHANCE,
+  ELITE_FROM_FLOOR,
+  ELITE_MULTIPLIER,
   ENEMY_BASE,
   ENEMY_POWER,
   MODIFIER_CHANCE,
@@ -32,10 +35,17 @@ import { bandForFloor, isBossFloor, type FloorBand } from '@/content/floors/inde
 import type { Combatant, EffectDef, UnitId } from '../combat/types.ts';
 import { STAT_IDS, type StatBlock, type StatId } from '../stats.ts';
 import { curseStatMultiplier } from './curses.ts';
+import { pathElites, pathStats, type PathDef } from './paths.ts';
 
 export interface GeneratedFloor {
   floor: number;
   isBoss: boolean;
+  /**
+   * An elite: a normal floor's enemy standing a head taller (Q44). Never true
+   * on a boss floor — a gate is already the thing an elite is a small version
+   * of, and stacking them would make one floor in eleven impassable.
+   */
+  isElite: boolean;
   band: FloorBand;
   enemy: EnemyDef | BossDef;
   modifier: EnemyModifier | null;
@@ -105,6 +115,8 @@ export function generateFloor(
   runSeed: string,
   floor: number,
   curses: readonly string[] = [],
+  /** The road this leg is being walked on, if one has been chosen (Q41). */
+  path: PathDef | null = null,
 ): GeneratedFloor {
   const rng = createRng(floorSeed(runSeed, floor));
   const boss = isBossFloor(floor);
@@ -112,16 +124,35 @@ export function generateFloor(
 
   const enemy: EnemyDef | BossDef = boss ? bossForFloor(floor) : enemyFor(runSeed, floor, band);
 
+  /**
+   * Elite, drawn from the floor's own stream so the preview, the trail mark and
+   * the fight all agree without anything being stored (Q44).
+   *
+   * Rolled before the modifier, and deliberately *widening* it: an elite carries
+   * a modifier even inside the authored range, which is what makes a Frenzied
+   * Cutpurse a fight floor 12 can produce and never has before.
+   */
+  // The Gauntlet turns a leg into a run of champions. Rolled from the floor's
+  // own stream either way, so the preview, the trail mark and the fight agree.
+  const eliteChance = Math.min(1, ELITE_CHANCE + pathElites(path));
+  const elite = !boss && floor >= ELITE_FROM_FLOOR && rng.chance(eliteChance);
+
   // Past the authored floors an enemy may carry a modifier, which trades one
   // stat for another rather than simply inflating it (CONTENT_PIPELINE §2).
-  const canModify = !boss && floor > enemy.floors[1];
-  const modifier = canModify && rng.chance(MODIFIER_CHANCE) ? rng.pick(ENEMY_MODIFIERS) : null;
+  const canModify = !boss && (elite || floor > enemy.floors[1]);
+  const modifier =
+    canModify && (elite || rng.chance(MODIFIER_CHANCE)) ? rng.pick(ENEMY_MODIFIERS) : null;
 
   const profile = modifier ? applyModifier(enemy.profile, modifier) : enemy.profile;
   // Curses are applied to the *finished* stats rather than to the profile, so a
   // cursed floor is the same floor with harder numbers — same enemy, same
   // modifier, same seed — which is what keeps a run replayable (Q35).
-  const stats = curseStats(statsFor(floor, profile, boss), curses);
+  // Route, then elite, then curses — all applied to the *finished* stats, so a
+  // hard leg is the same floor with harder numbers rather than a different roll.
+  const stats = curseStats(
+    pathStats(eliteStats(statsFor(floor, profile, boss), elite), path),
+    curses,
+  );
 
   const effects: Array<{ unit: UnitId; effect: EffectDef }> = [];
   if (enemy.playerDebuff) {
@@ -135,7 +166,55 @@ export function generateFloor(
     effects.push({ unit: 'enemy', effect: scaleEffect(selfBuff, floor) });
   }
 
-  return { floor, isBoss: boss, band, enemy, modifier, stats, effects };
+  return { floor, isBoss: boss, isElite: elite, band, enemy, modifier, stats, effects };
+}
+
+/**
+ * One gate of the boss rush: a named boss, fought at a chosen depth (Q39).
+ *
+ * The rush does not walk the tower, so it cannot ask a *floor* which boss lives
+ * there — it names the boss and picks the depth. Everything else is the ordinary
+ * boss floor: the same stat curve, the same scaled debuff and self-buff, the
+ * same curse arithmetic. A gate that were built any other way would drift away
+ * from the boss the player fights on the way up, which is the one thing the rush
+ * is measuring them against.
+ */
+export function generateGate(
+  boss: BossDef,
+  floor: number,
+  curses: readonly string[] = [],
+): GeneratedFloor {
+  return {
+    floor,
+    isBoss: true,
+    isElite: false,
+    band: bandForFloor(floor),
+    enemy: boss,
+    modifier: null,
+    stats: curseStats(statsFor(floor, boss.profile, true), curses),
+    effects: bossEffects(boss, floor),
+  };
+}
+
+/** The debuff a boss lands and the buff it gives itself, both scaled to depth. */
+function bossEffects(boss: BossDef, floor: number): Array<{ unit: UnitId; effect: EffectDef }> {
+  const effects: Array<{ unit: UnitId; effect: EffectDef }> = [];
+  if (boss.playerDebuff) {
+    effects.push({ unit: 'hero', effect: scaleEffect(boss.playerDebuff, floor) });
+  }
+  if (boss.selfBuff) effects.push({ unit: 'enemy', effect: scaleEffect(boss.selfBuff, floor) });
+  return effects;
+}
+
+/** An elite is the same enemy, larger. Applied per stat so the shape survives. */
+function eliteStats(stats: StatBlock, elite: boolean): StatBlock {
+  if (!elite) return stats;
+
+  const raised = { ...stats };
+  for (const stat of STAT_IDS) {
+    raised[stat] = Math.max(1, Math.round(raised[stat] * (ELITE_MULTIPLIER[stat] ?? 1)));
+  }
+  return raised;
 }
 
 /** Raise every stat the player has chosen to make harder (fifth polish round). */

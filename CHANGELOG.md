@@ -7,6 +7,122 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Added
 
+- **Deeds — the ledger of everything an account has ever done.** Nine of them,
+  three tiers each, on the Records screen beside the runs that earned them. Every
+  deed counts something the game was **already** counting: seven read the quest
+  board's own event stream — the same events that advance a daily — and two are
+  high-water marks read off the account, the deepest floor any hero has cleared
+  and the best Boss Rush. Nothing here has a counter that exists only for deeds,
+  which is what keeps a deed from drifting out of step with the thing it claims
+  to measure. They pay, and what they pay is priced against the depth the account
+  has reached, so a tier claimed at floor 40 is worth forty floors' effort and the
+  same tier at floor 900 is worth nine hundred — a fixed payout would be a fortune
+  at the bottom of the tower and a rounding error at the top, which is how an
+  achievement list quietly stops being read. First tiers are deliberately shallow
+  (ten floors, the first gate, five purchases) because a ledger whose first payout
+  is hours away teaches a new player it is not for them; third tiers are hundreds
+  of hours, which is what makes the middle one worth working towards. The ledger
+  belongs to the account, so a hero's death costs none of it and a second hero
+  inherits every one.
+- **Branching paths — a fork at every gate.** The tower's shape was a line, and
+  a line has no decisions in it. Every ten floors — the tower's own cadence, so
+  the fork sits where the player already stops to look up — the road splits three
+  ways, and the choice holds for the whole stretch. Every road is a *trade*, never
+  an upgrade: the Sheer Face pays for danger, the Vaults buy coin with
+  experience, the Reliquary pays in the one currency gold cannot, the Gauntlet
+  fills the stretch with champions, and the Quiet Way buys survival with
+  everything else — which is the road that gets a stalled climb past its wall.
+  One of the three is always the plain way, because a fork whose every branch is
+  a gamble is not a choice, it is a tax. What is offered comes from the run seed,
+  so a road not taken was really there and a replay of the run offers what the
+  run offered. Two rules inherited from the curses that came before them: a road
+  **never touches the bracket**, so anti-overshoot holds on every route, and it
+  **never touches the seed** — a floor on the Sheer Face is the same enemy with
+  harder numbers, not a different roll. The choice belongs to the *run*, so it
+  dies with the run. The fight controls stay shut until a road is taken, and the
+  auto-climb stops at a fork rather than deciding for you.
+- **The Boss Rush — ten gates, one health bar.** The tower hands the hero a full
+  bar at every floor; the rush does not. It runs the ten authored bosses back to
+  back on whatever is left of you, which makes a build's *depth* the thing being
+  measured rather than its ceiling. Gate *i* is fought at a tenth of the hero's
+  own record, floored at that boss's canonical floor — so at a record of a
+  hundred it is exactly the ladder they climbed through (10, 20, … 100), and past
+  that the ten gates spread across whatever depth they have actually earned. It
+  is a real test at floor 90 and at floor 9000 alike. Wounds carry between gates,
+  and so does a fallen companion — the cost of fielding a striker where a
+  guardian would have held. Two rules keep it honest: it **pays only for gates
+  past the account's best**, the same "new ground only" rule the echoes run on,
+  so a rush cannot be farmed; and it **costs nothing to lose** — a rush never
+  touches the run floor, the record or the seed, because a side mode that could
+  undo an hour of climbing is one nobody with an hour of climbing behind them
+  would ever open. The summary names all ten gates and marks the one that stopped
+  you, which is the only thing on the screen that tells a player what to go and
+  fix.
+- **Expeditions — the board that works while you do not.** Six routes out of the
+  Spire, from a two-hour errand to a full day's descent, each gated behind a
+  record deep enough to make the board read as a ladder. Send a party, come back
+  to what they found. The exchange rate is the whole design and it is stated in
+  the only unit this game has: an hour away is worth a handful of *floors* at a
+  fraction of the depth the hero has actually reached, so a player who is
+  climbing always beats a player who is waiting — what a wait buys is the hours
+  nobody was going to spend climbing anyway. Two things a route never pays:
+  **gear**, because every item in the game comes from a source anti-overshoot
+  brackets and a timer is not allowed to be a fourth one, and **echoes**, which
+  are paid for new ground alone. Materials come from the *claiming* hero's
+  bracket, so a party can never hand over something that hero could not have
+  earned. A party can be called home early and comes back with nothing, which is
+  deliberate: a partial payout would make "send, recall, send again" the best way
+  to run the board. Parties are dispatched one per character slot the account has
+  opened — so the §15 slot upgrade finally means something to a player with no
+  interest in a second hero, and the first slot is free.
+- **Companions that actually fight.** Six species, each freed by a floor deep
+  enough that finding one is an event — the roster spans floor 5 to floor 260.
+  A companion is a **third combatant**, not a stat: its own health bar, its own
+  turn between the hero's and the enemy's, its own card on the battlefield, and
+  it can be struck down without the fight ending. Everything it is comes off the
+  hero it walks beside — a share of their stats per species — so a companion
+  never needs gear, never needs a bracket of its own, and never goes obsolete
+  twenty floors after it is found. Each one draws a share of the enemy's
+  attention onto itself, which is the whole reason to field a Stone Whelp over a
+  Spire Owl, and gives the hero an aura at the bell, which is the reason to
+  switch rather than simply to field the strongest. The roster and its levels
+  belong to the **account**, so a hero's death costs none of it (§3.3); which one
+  is out belongs to the **character**, so two heroes on one account can field
+  different companions. Only the one that fought earns experience: a roster that
+  all levelled at once would be a roster with no choice in it. What a companion
+  is worth is counted into Power Level, so the tower stays as hard relative to
+  what a player can actually field (§13).
+- **Class talents — the level-up becomes a question.** A tree per class, eleven
+  talents in four rows, five ranks each, and one point every level to spend on
+  them. Deeper rows cost more per rank and open on points already committed
+  rather than on prerequisites between nodes — a tree that gates C behind B is
+  only a longer way of saying "buy B" — so specialising early is genuinely
+  different from spreading thin, and a full tree is a hundred and forty points
+  of climbing rather than a formality. Every tree pulls the same nine levers
+  (five stats, signature damage, resource fill, critical damage, mitigation,
+  regeneration, and the gold, experience and materials a floor pays), and each
+  class leans on the ones its resource already rewards. Unlearning everything
+  costs gold, priced at the rate floors pay it, so changing your mind is about
+  two floors of climbing whether you have spent four points or a hundred.
+  Two rules hold the tree to the rest of the game: **nothing here can raise
+  Speed** — the effect type is built on the stat union that excludes it, so gear
+  stays its only source (§6) — and **every point is visible to the bracket**,
+  stat talents through the hero's stat total and the rest counted explicitly, so
+  a heavily-talented hero cannot draw drops sized for someone weaker (§13).
+- **Echoes of the Spire — the layer that outlives a hero.** A permanent account
+  currency, paid once for each floor the account has never cleared. That one rule
+  is the whole design: re-climbing earns nothing, so echoes cannot be farmed, and
+  death takes none away, so the second hero starts ahead of where the first did
+  because of what the first did. Six nodes on the Account screen deepen five ranks
+  each, all of them offered from the start with no prerequisites — Spoils (gold
+  from every floor), Insight (experience), Prospect (materials), Fortune's Eye
+  (tickets on the way up), Patience (a shorter auto-climb wait) and Coffers
+  (backpack sockets). Patience is capped below half, permanently, so no amount of
+  deepening makes auto-climb the fastest way to play (Q32); Coffers adds sockets
+  *above* the purchased ceiling rather than inside it, so a reward the climb earns
+  does not stop mattering the moment the shop is affordable. The balance rides in
+  the rail beside gold, and nothing toasts: on a fresh climb every floor is new
+  ground, so a toast per floor would be a toast per fight.
 - **Curses: the enemy affix system, on the player's side.** From level 100 a hero
   can take up to three, and each raises a stat on *every* enemy in the Spire
   while raising what every floor pays. It is the mirror of the procedural
@@ -90,6 +206,34 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ### Changed
 
+- The Records screen's red dot now means something: it lights when a deed tier is
+  sitting there earned and unpaid. It was hard-coded off, because history has
+  nothing to do in it — the ledger does.
+- "One More Floor" now returns to the tower when the next floor opens a new leg,
+  because that is where the fork is. It walks straight into the next fight
+  otherwise, so a refusal alone would have left the player on the aftermath
+  screen with a toast and nowhere to go.
+- A fight now reports the companion's remaining health as well as the hero's, so
+  fights that chain can hand the next one a number instead of guessing one.
+- The quest board's red dot now also lights when a party is standing in the hall
+  with its spoils. One destination, one question — "is there something to
+  collect?" — and one honest answer.
+- The combat engine understands three units rather than two, and every action it
+  records now names its target. With a companion on the field, "the other one"
+  is two of them and the enemy picks which, so a log line that inferred the
+  target would be wrong every time the companion was the one being hit.
+- Power Level's inputs are built by one constructor rather than assembled by
+  hand at each call site. The number has grown a term a hand-written object can
+  silently omit, and an omission there is an anti-overshoot hole with no symptom
+  at all — the drops simply come out a little too generous for a build nobody
+  measured.
+- The rail's rows tighten on a laptop-height window, so a 720-tall screen now
+  reaches further down the navigation than it did before Talents was added to it.
+- The rail's wallet is built whole and painted from the state rather than
+  assembled from whatever the hero happened to hold when the screen was made.
+  A balance earned while the player stands somewhere else — a background
+  auto-climb banking echoes — now appears where the number keeps rising, instead
+  of waiting for the next screen change.
 - Save schema **v6**. One bump carries the whole polish round's new state:
   accounts gained a backpack size and a bestiary; characters gained saved
   loadouts, a rite wish list, curses, and — inside `tower` — milestones claimed,

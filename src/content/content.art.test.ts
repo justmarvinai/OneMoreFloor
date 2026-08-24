@@ -16,6 +16,8 @@ import { FLOOR_BANDS } from '@/content/floors/index.ts';
 import { ITEM_BASES } from '@/content/items/bases.ts';
 import { MATERIALS } from '@/content/items/materials.ts';
 import { BANNERS } from '@/content/balance/gacha.ts';
+import { PETS } from '@/content/pets/index.ts';
+import { ALL_TALENTS, TALENT_GLYPH, talentGlyph } from '@/content/talents/index.ts';
 
 /** Every art id the game can render, read from the CSS that declares them. */
 const ART_IDS = new Set(
@@ -59,6 +61,32 @@ describe('art bindings', () => {
   it('gives every floor band a backdrop that exists (Q11)', () => {
     for (const band of FLOOR_BANDS) {
       expect(ART_IDS, `${band.id}: no artwork for "${band.backdrop}"`).toContain(band.backdrop);
+    }
+  });
+
+  it('gives every companion painted artwork (Q42)', () => {
+    for (const def of PETS) {
+      expect(ART_IDS, `${def.id}: no artwork for "${def.avatar}"`).toContain(def.avatar);
+      // Painted, not masked: the roster and the battlefield both draw it as a
+      // background image, and a glyph there resolves to a black square.
+      expect(isGlyph(def.avatar), `${def.id}: companion art must be painted`).toBe(false);
+    }
+  });
+
+  it('gives every talent effect a mark the tree can mask (Q38)', () => {
+    for (const [effect, glyph] of Object.entries(TALENT_GLYPH)) {
+      expect(ART_IDS, `${effect}: no artwork for "${glyph}"`).toContain(glyph);
+      // The reverse rule: the talent card *masks* its mark, and a painted image
+      // under a mask resolves to a silhouette.
+      expect(isGlyph(glyph), `${effect}: talent marks are masked`).toBe(true);
+    }
+  });
+
+  it('gives every talent in the game one of those marks', () => {
+    for (const def of ALL_TALENTS) {
+      expect(ART_IDS, `${def.id}: no artwork for "${talentGlyph(def.effect)}"`).toContain(
+        talentGlyph(def.effect),
+      );
     }
   });
 

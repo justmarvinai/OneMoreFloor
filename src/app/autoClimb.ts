@@ -19,7 +19,8 @@
  * a player past it while they read a shop is the one behaviour that would make
  * this feature a liability.
  */
-import { AUTO_CLIMB_FLOOR_DELAY_MS, effectiveMode } from '@/domain/tower/autoClimb.ts';
+import { autoClimbDelayMs, effectiveMode } from '@/domain/tower/autoClimb.ts';
+import { echoBonuses } from '@/domain/account/echoes.ts';
 import type { AppStore } from './state.ts';
 
 export interface AutoClimbService {
@@ -60,19 +61,24 @@ export function createAutoClimbService(options: AutoClimbOptions): AutoClimbServ
     if (mode === 'off') return;
     if (mode === 'watching' && !onTower()) return;
 
-    timer = setTimeout(() => {
-      timer = null;
-      // The world can have moved on during the wait — the player may have
-      // switched it off, walked away, or died. Ask again rather than trusting
-      // the decision made twenty seconds ago.
-      const current = store.get().activeCharacter;
-      if (!current || busy()) return;
-      const now = effectiveMode(current);
-      if (now === 'off') return;
-      if (now === 'watching' && !onTower()) return;
-      if (now === 'background') climbInBackground();
-      else climbWatched();
-    }, AUTO_CLIMB_FLOOR_DELAY_MS);
+    timer = setTimeout(
+      () => {
+        timer = null;
+        // The world can have moved on during the wait — the player may have
+        // switched it off, walked away, or died. Ask again rather than trusting
+        // the decision made twenty seconds ago.
+        const current = store.get().activeCharacter;
+        if (!current || busy()) return;
+        const now = effectiveMode(current);
+        if (now === 'off') return;
+        if (now === 'watching' && !onTower()) return;
+        if (now === 'background') climbInBackground();
+        else climbWatched();
+        // Read at schedule time, not at construction: a rank of Patience bought
+        // between two floors should shorten the very next wait (Q36).
+      },
+      autoClimbDelayMs(echoBonuses(store.get().account).patience),
+    );
   };
 
   return {

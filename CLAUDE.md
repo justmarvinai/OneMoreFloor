@@ -4,7 +4,14 @@ OneMoreFloor is a single-player Fantasy-RPG roguelike tower-climber for the brow
 
 ## ✅ Phase gates — all passed
 
-Planning delivered, all of Q1–Q29 answered (`USER_QUESTIONS.md` is the decision ledger, and it has no open questions), and **development approved by the owner on 2026-08-22**. **M0–M10 are complete** (foundation, save layer, item domain, combat, presentation, economy, quests/tutorial/upgrades, gacha, content fill, balance, hardening) — **Early Access 0.1 is built**, and the one thing left in `ROADMAP.md` is the owner deploying it (`docs/DEPLOY.md`).
+Planning delivered, every question answered through **Q45** (`USER_QUESTIONS.md` is the decision ledger, and it has no open questions), and **development approved by the owner on 2026-08-22**. **M0–M10 are complete** (foundation, save layer, item domain, combat, presentation, economy, quests/tutorial/upgrades, gacha, content fill, balance, hardening) — **Early Access 0.1 is built**, and the one thing left in `ROADMAP.md` is the owner deploying it (`docs/DEPLOY.md`).
+
+Six polish rounds have landed since. The fifth added curses, salvage, reforge,
+presets, the bestiary, run history, milestones, auto-climb and a gacha wish list
+(Q30–Q35); the sixth added echoes, sets and named uniques, talents, expeditions,
+the workbench, elites, branching paths, deeds, the boss rush and companions
+(Q36–Q45). Every one of them is recorded in the ledger with the rule that kept
+it inside §13.
 
 Work after this point is reworks, changes and fixes on a shipped game, not milestone order. Two things change what "done" means: the save schema now has players' data behind it (a shape change needs its migration *and* its captured-blob fixture in the same commit — SAVE_SCHEMA §4), and `CHANGELOG.md` has a released `[0.1.0]` section, so new work goes under `[Unreleased]` and released entries are history, not drafts.
 

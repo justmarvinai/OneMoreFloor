@@ -172,6 +172,24 @@ body {
   }
 }
 
+/*
+ * A second step for laptop glass. The rail has always scrolled on a window this
+ * short — that is the designed answer, and the smoke test proves the nav never
+ * grows through the button under it — but every destination added since is
+ * another row below the fold. Tightening the rows here buys back more than the
+ * Talents row cost, so a 720-tall window reaches further down the rail than it
+ * did before the destination existed.
+ */
+@media (max-height: 780px) {
+  .omf-shell__rail > .fui-sidenav {
+    --fui-nav-size: 36px;
+  }
+
+  .omf-shell__rail .fui-sidenav__group:not(.fui-sidenav__group--footer) .fui-sidenav__item {
+    max-height: 44px;
+  }
+}
+
 .omf-shell__main {
   min-width: 0;
   min-height: 0;
@@ -1325,7 +1343,10 @@ body > .fui-tooltip .fui-tooltip__price {
   display: grid;
   flex: 1;
   min-height: 0;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  /* Runs, deeds, bestiary. The ledger sits between them because it is made of
+     both: the runs are what earned it, the bestiary is one of the things it
+     counts. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, 1fr);
   gap: var(--omf-gap);
 }
 
@@ -1334,7 +1355,7 @@ body > .fui-tooltip .fui-tooltip__price {
 @media (width <= 1500px) {
   .omf-records__body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    grid-template-rows: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 
@@ -2383,6 +2404,18 @@ body > .fui-tooltip .fui-tooltip__price {
   overflow-y: auto;
 }
 
+/**
+ * Every block keeps its own height and the column scrolls.
+ *
+ * Flex items shrink by default, and a shrunk block does not clip what it holds
+ * — it lets it spill over whatever is underneath. With the echo tree added
+ * above the upgrade cards that put the tree's buttons *behind* the cards' chips,
+ * which is the kind of bug that only shows up when something tries to click one.
+ */
+.omf-upgrades > * {
+  flex: 0 0 auto;
+}
+
 /* Three cards since Q30 added the backpack. `auto-fit` rather than a fixed
    three, so the rack still reads on a narrow window and would take a fourth
    without a second edit here. */
@@ -3031,4 +3064,1115 @@ body > .fui-tooltip .fui-tooltip__price {
 
 .omf-curses[data-unlocked='false'] .omf-curses__hint {
   opacity: 0.7;
+}
+
+/* --- The workbench, at the Alchemist's counter ---------------------------- */
+
+/**
+ * Two benches in one panel, because they answer the same question — what do I
+ * do with the materials I have outgrown? — and a player who has just seen the
+ * ladder is exactly the player who wants the brew under it.
+ */
+.omf-bench {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/**
+ * The bench shares the shelf's column rather than the sell panel's.
+ *
+ * The Alchemist stocks five draughts and stops, leaving most of its frame
+ * empty, while the side column is narrow enough that a ladder row truncates to
+ * "5 × …". Putting the bench under the shelf gives it the width its rows need
+ * and gives the screen back the space the shelf was not using — so on that one
+ * screen the shelf takes only the height it needs and the bench takes the rest,
+ * which is the reverse of the column's default.
+ */
+.omf-shop__main:has(.omf-bench) > .omf-shop__panel {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.omf-bench__title {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-bench__hint {
+  margin: 4px 0 10px;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-bench__ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/**
+ * A rung. The columns line up down the list so the ladder reads as a ladder:
+ * five of this becomes one of that, and here is how close you are.
+ */
+.omf-bench__row {
+  display: grid;
+  /* Fixed columns rather than fractions: stretched across a full-width panel a
+     ladder stops reading as a ladder and starts reading as a table of unrelated
+     words. It stays a tight list on the left however wide the frame gets. */
+  grid-template-columns: 11em 1.2em 11em 5.5em auto auto;
+  align-items: center;
+  justify-content: start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 0.74rem;
+  color: var(--fui-ink-dim);
+}
+
+.omf-bench__row:nth-child(odd) {
+  background: rgb(255 255 255 / 3%);
+}
+
+.omf-bench__row[data-ready='false'] {
+  opacity: 0.62;
+}
+
+.omf-bench__from,
+.omf-bench__to {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.omf-bench__to {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-bench__arrow {
+  color: var(--fui-ink-faint);
+}
+
+.omf-bench__held {
+  text-align: right;
+  color: var(--fui-ink-faint);
+}
+
+.omf-bench__row .fui-btn {
+  padding-inline: 9px;
+}
+
+.omf-bench__subtitle {
+  display: block;
+  margin: 12px 0 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-bench__brews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.omf-bench__brew {
+  padding: 4px 10px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+}
+
+.omf-bench__brew:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 46%, transparent);
+  color: var(--fui-ink);
+}
+
+.omf-bench__brew:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* --- Elites --------------------------------------------------------------- */
+
+/**
+ * An elite is worth seeing from the bottom of the screen (Q44).
+ *
+ * Crimson rather than the boss's gold: they are different kinds of danger, and a
+ * player scanning the path should never have to read a word to tell which is
+ * which. The ring pulses, because the one thing an elite must not be is easy to
+ * walk into by accident.
+ */
+.omf-tower__trail .omf-tower__elite .fui-trail__disc {
+  border-color: #c4453a;
+  box-shadow:
+    0 0 0 2px rgb(196 69 58 / 45%),
+    0 0 18px rgb(196 69 58 / 55%);
+  animation: omf-elite-pulse 2.4s ease-in-out infinite;
+}
+
+.omf-tower__trail .omf-tower__elite .fui-trail__note {
+  color: #f0b7ae;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@keyframes omf-elite-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 2px rgb(196 69 58 / 45%),
+      0 0 18px rgb(196 69 58 / 55%);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 3px rgb(196 69 58 / 70%),
+      0 0 26px rgb(196 69 58 / 80%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .omf-tower__trail .omf-tower__elite .fui-trail__disc {
+    animation: none;
+  }
+}
+
+/* The preview says it too, in the one place a player is already looking. */
+.omf-tower__matchup[data-elite='true'] .omf-tower__face:last-child .omf-tower__face-note {
+  color: #f0b7ae;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.omf-tower__matchup[data-elite='true'] .omf-tower__face:last-child .fui-portrait {
+  box-shadow: 0 0 0 2px rgb(196 69 58 / 55%);
+}
+
+/* --- Sets, on the character sheet ----------------------------------------- */
+
+/**
+ * What the worn sets are giving, and what the next piece would add.
+ *
+ * A live threshold is gold and a sleeping one is faint, because the whole value
+ * of the block is answering "how far off am I?" at a glance — a player who has
+ * to read three lines to find out is a player who stops reading them.
+ */
+.omf-sets {
+  margin-top: 14px;
+}
+
+.omf-sets__card {
+  margin-bottom: 8px;
+  padding: 9px 11px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 24%);
+}
+
+.omf-sets__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.omf-sets__name {
+  font-size: 0.86rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-sets__count {
+  font-size: 0.72rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-sets__bonus {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--fui-ink-faint);
+}
+
+.omf-sets__bonus[data-active='true'] {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-sets__bonus[data-active='true']::before {
+  content: '● ';
+  color: var(--fui-gold, #d8b26a);
+}
+
+.omf-sets__bonus[data-active='false']::before {
+  content: '○ ';
+}
+
+/* --- Echoes of the Spire -------------------------------------------------- */
+
+/**
+ * The permanent layer, above the gold upgrades on the account's own screen.
+ *
+ * Six open nodes in one grid rather than a branching lattice: the tree is a set
+ * of choices about *what to speed up first*, and drawing it as a dependency
+ * graph would imply an order it does not have.
+ */
+.omf-echoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.omf-echoes__purse {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.omf-echoes__earned {
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-echoes__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.omf-echoes__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+}
+
+/* Bought out: quiet, but never hidden — a finished node is progress on display. */
+.omf-echoes__card[data-maxed='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 40%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 30%), rgb(0 0 0 / 26%));
+}
+
+.omf-echoes__name {
+  font-size: 0.9rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-echoes__rank {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-echoes__desc {
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--fui-ink-dim);
+}
+
+.omf-echoes__now {
+  margin: 0 0 4px;
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-echoes__maxed {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold, #d8b26a);
+}
+
+.omf-echoes__card .fui-btn {
+  margin-top: auto;
+}
+
+.omf-echoes__short {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--fui-ink-faint);
+}
+
+/* --- Talents (Q38) ------------------------------------------------------- */
+
+.omf-talentsScreen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.omf-talents {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* The ledger: points in hand on the left, the way back out on the right. */
+.omf-talents__ledger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-talents__earned {
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-talents__undo {
+  margin-left: auto;
+}
+
+.omf-talents__tier {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * A row that has not opened is dimmed rather than hidden: what is coming is
+ * half the reason to keep spending, and a tree that only shows what you already
+ * have teaches nothing about where it goes.
+ */
+.omf-talents__tier[data-open='false'] {
+  opacity: 0.62;
+}
+
+.omf-talents__tierHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.omf-talents__tierName {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-talents__tierGate {
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-talents__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.omf-talent {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 10px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+}
+
+/* Learned to the brim: gold, and still readable. */
+.omf-talent[data-maxed='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 40%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 30%), rgb(0 0 0 / 26%));
+}
+
+.omf-talent[data-locked='true'] {
+  border-style: dashed;
+}
+
+.omf-talent__mark {
+  width: 30px;
+  height: 30px;
+  background: var(--fui-gold-soft, #f0d9a0);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.omf-talent[data-locked='true'] .omf-talent__mark {
+  background: var(--fui-ink-faint);
+}
+
+.omf-talent__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.omf-talent__name {
+  font-size: 0.9rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-talent__rank {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-talent__desc {
+  margin: 2px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--fui-ink-dim);
+}
+
+.omf-talent__now {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  color: var(--fui-ink);
+}
+
+/* Five pips, always: the tree is legible from across the screen. */
+.omf-talent__pips {
+  display: flex;
+  gap: 4px;
+  margin: 2px 0 4px;
+}
+
+.omf-talent__pip {
+  width: 12px;
+  height: 5px;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 2px;
+  background: rgb(0 0 0 / 35%);
+}
+
+.omf-talent__pip[data-on='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 60%, transparent);
+  background: var(--fui-gold, #d8b26a);
+}
+
+.omf-talent__maxed {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+/* Why not, on the card rather than a hover away (§20.5). */
+.omf-talent__refusal {
+  margin: 4px 0 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--fui-ink-faint);
+}
+
+.omf-respec__body {
+  margin: 0 0 14px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--fui-ink-dim);
+}
+
+.omf-respec__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* --- Companions (Q42) ---------------------------------------------------- */
+
+.omf-pets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.omf-pets__empty {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-pets__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.omf-pets__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 9px 10px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+  text-align: center;
+}
+
+/* The one that is out wears the gold, so the sheet answers "which?" at a glance. */
+.omf-pets__card[data-out='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 52%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 32%), rgb(0 0 0 / 26%));
+}
+
+.omf-pets__art {
+  width: 54px;
+  height: 54px;
+  background: center / contain no-repeat;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 70%));
+}
+
+.omf-pets__name {
+  font-size: 0.82rem;
+  line-height: 1.2;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-pets__level {
+  font-family: var(--fui-font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-pets__xp {
+  font-size: 0.66rem;
+  color: var(--fui-ink-dim);
+}
+
+/*
+ * The player's side of the battlefield: hero above, companion below, one column.
+ * Two cards facing the same enemy would read as two heroes rather than as a side.
+ */
+.omf-combat__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/*
+ * The companion reads as an attendant, not a second hero: a compact strip under
+ * the hero's card — portrait, name, health — and no stat block of its own. It is
+ * also what keeps the player's column inside a 720-tall window, where the hero's
+ * full card and stat table already take nearly all of it.
+ */
+.omf-combat__card[data-unit='pet'] .fui-unit,
+.omf-combat__card[data-unit='pet'] .fui-unit[data-kind='player'] {
+  flex-direction: row;
+  align-items: center;
+  width: 330px;
+  padding: 7px 11px;
+  text-align: left;
+}
+
+.omf-combat__card[data-unit='pet'] .fui-unit__stack {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.omf-combat__card[data-unit='pet'] .fui-unit__namerow,
+.omf-combat__card[data-unit='pet'] .fui-unit__name {
+  justify-content: flex-start;
+  text-align: left;
+  font-size: 13px;
+}
+
+.omf-combat__card[data-unit='pet'] .omf-combat__stats {
+  display: none;
+}
+
+/*
+ * Laptop glass, with a companion on the field.
+ *
+ * The player's column is the hero's card, their stat table and the companion's
+ * strip, and at 720 tall that lands eight pixels over the frame. The frame gives
+ * up padding rather than the column giving up the strip: every row in it is
+ * something a losing player needs in order to see why (COMBAT.md §9).
+ */
+@media (max-height: 780px) {
+  .omf-combat__field {
+    gap: 6px 20px;
+    padding: 10px 24px 12px;
+  }
+
+  .omf-combat__side {
+    gap: 6px;
+  }
+}
+
+/* A downed companion stays on screen, dimmed: the fight went on without it. */
+.omf-combat__card[data-unit='pet'].is-defeated {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
+/* --- Expeditions (Q37) --------------------------------------------------- */
+
+/*
+ * The board sits under the two quest columns and is *bounded*: it takes what it
+ * needs up to a share of the screen and scrolls inside that. Left unbounded it
+ * pushed itself past the bottom of a frame that does not scroll, which put six
+ * routes somewhere no player could reach them.
+ */
+.omf-expeditions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  max-height: 44%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.omf-expeditions__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.omf-expeditions__title {
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-expeditions__sub {
+  font-family: var(--fui-font-ui);
+  font-size: 0.72rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-expeditions__parties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.omf-party {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 7px;
+  background: rgb(0 0 0 / 24%);
+}
+
+/* Home with something: the one state that wants the player's attention. */
+.omf-party[data-state='ready'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 52%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 32%), rgb(0 0 0 / 26%));
+}
+
+.omf-party__slot {
+  font-family: var(--fui-font-ui);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-party__name {
+  font-size: 0.88rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-party__status {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--fui-ink-dim);
+}
+
+/*
+ * Routes wrap rather than stack. One party on a wide screen would otherwise be
+ * six full-width buttons in a column, which reads as a form rather than a board.
+ */
+.omf-party__routes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 5px;
+}
+
+.omf-party__route {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Why a route is shut, on the row rather than a hover away (§20.5). */
+.omf-party__locked {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  line-height: 1.3;
+  color: var(--fui-ink-faint);
+}
+
+/* --- The Boss Rush (Q39) ------------------------------------------------- */
+
+.omf-rushCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 11px 11px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 24%, transparent);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 26%);
+}
+
+.omf-rushCard__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.omf-rushCard__title {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-rushCard__best {
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-rushCard__locked {
+  margin: 0;
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  line-height: 1.35;
+  color: var(--fui-ink-faint);
+}
+
+/* The summary: the result panel, then the ladder that says which gate stopped it. */
+/*
+ * Verdict and ladder, side by side.
+ *
+ * Stacked, the ladder sat under a result panel tall enough to fill the window,
+ * and a ladder nobody scrolls to is a ladder that does not exist. The ten gates
+ * are the reason to read this screen — which one stopped you is the only thing
+ * on it that tells a player what to go and fix — so they get their own column.
+ */
+.omf-rush {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+
+/* Below the two-column width the ladder goes under the verdict and it scrolls. */
+@media (max-width: 1000px) {
+  .omf-rush {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/*
+ * The summary panel is not the set-piece here — the ladder is. `ResultScreen`
+ * reserves 480px for its own moment, which on a 720-tall window pushes the ten
+ * gates below the fold, and a ladder nobody scrolls to is a ladder that does not
+ * exist. The panel gives the height up; the gates keep it.
+ */
+.omf-rush .fui-result {
+  min-height: 0;
+  padding: 18px 20px 14px;
+  border-radius: 6px;
+}
+
+.omf-rush__ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 560px;
+  width: 100%;
+  justify-self: center;
+}
+
+.omf-rush__gate {
+  display: grid;
+  grid-template-columns: 5.2em minmax(0, 1fr) 5.6em 7.2em;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 11px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 5px;
+  background: rgb(0 0 0 / 24%);
+  font-size: 0.78rem;
+}
+
+/* Held: gold. Fell: the one row a player actually reads. Never reached: quiet. */
+.omf-rush__gate[data-state='held'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 40%, transparent);
+}
+
+.omf-rush__gate[data-state='fell'] {
+  border-color: color-mix(in srgb, var(--fui-danger, #c0453a) 55%, transparent);
+  background: linear-gradient(180deg, rgb(70 20 16 / 34%), rgb(0 0 0 / 26%));
+}
+
+.omf-rush__gate[data-state='untouched'] {
+  opacity: 0.5;
+}
+
+.omf-rush__index {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-rush__boss {
+  font-size: 0.84rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+  min-width: 0;
+}
+
+.omf-rush__floor,
+.omf-rush__state {
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  color: var(--fui-ink-dim);
+  text-align: right;
+  /* One line each, so ten rows are ten equal rows rather than a ragged column. */
+  white-space: nowrap;
+}
+
+/* --- Branching paths (Q41) ----------------------------------------------- */
+
+.omf-fork {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* Open: the decision. Chosen: one quiet line saying what is under way. */
+.omf-fork[data-open='true'] {
+  padding: 9px 10px 10px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 34%, transparent);
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgb(58 42 16 / 26%), rgb(0 0 0 / 28%));
+}
+
+.omf-fork__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.omf-fork__title {
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-fork__range {
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-fork__roads {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* The whole row is the button: an easier target, and it fits a 300px rail. */
+.omf-fork__road {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 5px;
+  background: rgb(0 0 0 / 30%);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--fui-t-fast, 120ms) ease,
+    background var(--fui-t-fast, 120ms) ease;
+}
+
+.omf-fork__road:hover,
+.omf-fork__road:focus-visible {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 60%, transparent);
+  background: rgb(58 42 16 / 34%);
+}
+
+.omf-fork__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.omf-fork__mark {
+  width: 22px;
+  height: 22px;
+  background: var(--fui-gold-soft, #f0d9a0);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.omf-fork__name {
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-fork__line {
+  font-family: var(--fui-font-ui);
+  font-size: 0.62rem;
+  line-height: 1.3;
+  color: var(--fui-ink-dim);
+}
+
+/* The road under way: a single row, because the decision is already made. */
+.omf-fork__walking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 5px;
+  background: rgb(0 0 0 / 26%);
+}
+
+.omf-fork__walkingText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.omf-fork__until {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  color: var(--fui-ink-faint);
+}
+
+/* --- Deeds (Q40) --------------------------------------------------------- */
+
+.omf-deeds {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.omf-deed {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px 10px;
+  border: 1px solid rgb(255 255 255 / 9%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 24%);
+}
+
+/* Earned and unpaid: the one state that wants pressing. */
+.omf-deed[data-state='claimable'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 55%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 32%), rgb(0 0 0 / 26%));
+}
+
+/* Every tier settled: quiet, never hidden — a finished deed is progress on display. */
+.omf-deed[data-state='done'] {
+  opacity: 0.72;
+}
+
+.omf-deed__mark {
+  width: 26px;
+  height: 26px;
+  background: var(--fui-gold-soft, #f0d9a0);
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.omf-deed__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.omf-deed__name {
+  font-size: 0.86rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-deed__desc {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--fui-ink-dim);
+}
+
+.omf-deed__progress {
+  font-family: var(--fui-font-ui);
+  font-size: 0.68rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-deed__tier {
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+  white-space: nowrap;
 }

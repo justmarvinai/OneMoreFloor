@@ -25,6 +25,7 @@ import { createRouter, type Router } from './app/router.ts';
 import { createSession } from './app/session.ts';
 import type { Refusal } from './app/gameActions.ts';
 import { CURSE_UNLOCK_LEVEL } from './domain/tower/curses.ts';
+import { getMaterial, materialForTier } from './content/items/materials.ts';
 import { createAppStore, saveLoaded, type AppStore } from './app/state.ts';
 import { createClock, setClock } from './app/time.ts';
 import { acquireSessionLock } from './save/sessionLock.ts';
@@ -39,6 +40,14 @@ import { t, type StringKey } from './strings/index.ts';
 import { sellValue } from './domain/items/upgrade.ts';
 import { commas } from './ui/fui/index.ts';
 import { createShell, type Shell } from './ui/shell.ts';
+import { createTalentsScreen } from './ui/screens/talents.ts';
+import { createBossRushScreen } from './ui/screens/bossRush.ts';
+import type { BossRushResult } from './domain/bossRush/bossRush.ts';
+import { ownedPets } from './domain/pets/pets.ts';
+import { needsChoice } from './domain/tower/paths.ts';
+import { getExpedition } from './content/expeditions/index.ts';
+import { shortDuration } from './ui/format.ts';
+import type { PetHarvest } from './app/gameActions.ts';
 import { createCharacterSelectScreen } from './ui/screens/characterSelect.ts';
 import { createCombatScreen } from './ui/screens/combat.ts';
 import { createHeroCreationScreen } from './ui/screens/heroCreation.ts';
@@ -76,6 +85,8 @@ type ScreenId =
   | 'combat'
   | 'raid'
   | 'character'
+  | 'talents'
+  | 'bossRush'
   | 'equipmentMerchant'
   | 'magicMerchant'
   | 'gacha'
@@ -126,6 +137,8 @@ export async function boot(mount: HTMLElement): Promise<void> {
     let pendingFight: { hero: Character; result: FloorResult } | null = null;
     /** The raid the summary screen reports. */
     let pendingRaid: QuickRaidResult | null = null;
+    /** The rush the summary screen is about to perform (Q39). */
+    let pendingRush: BossRushResult | null = null;
 
     /** The bag's size, which the rites and the shell both have to agree on. */
     const bagSize = (): number => backpackCapacity(store.get().account ?? { backpackSlots: 0 });
@@ -140,10 +153,38 @@ export async function boot(mount: HTMLElement): Promise<void> {
      * Fight one floor. Resolution and its save happen before the screen swaps,
      * so the combat screen is handed a decided fight to perform (COMBAT.md §1).
      */
+    /**
+     * Say when the Spire sends something after you (Q42).
+     *
+     * Worth a toast where the echoes were not: a companion turns up six times in
+     * the life of an account, and each one is a thing the player now has to make
+     * a decision about. A level-up is quieter — one line, no body.
+     */
+    const announcePets = (pets: PetHarvest): void => {
+      for (const def of pets.found) {
+        notify(t('pet.found', { name: t(def.nameKey) }), t('pet.foundBody'));
+      }
+    };
+
     const startFight = (floor: number): void => {
       const hero = requireCharacter();
+      /**
+       * The fork is the decision the leg is about, so a climb that began without
+       * one would quietly take it away (Q41).
+       *
+       * Refused *and* returned to the tower, because that is where the fork is.
+       * "One More Floor" walks straight into the next fight without passing the
+       * tower, so a refusal that left the player on the aftermath would be a
+       * dead end with a toast on it.
+       */
+      if (needsChoice(hero, floor)) {
+        refuse(t('path.refused.noChoice'), t('path.refused.noChoiceBody'));
+        router.go('tower');
+        return;
+      }
       void session.fight(floor).then((result) => {
         pendingFight = { hero, result };
+        announcePets(result.pets);
         // The chest is announced rather than folded into the aftermath's reward
         // strip: a milestone is for the *depth*, and burying it among the
         // floor's own spoils would make it look like part of the fight.
@@ -157,6 +198,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
     const startRaid = (throughFloor: number): void => {
       void session.raid(throughFloor).then((result) => {
         pendingRaid = result;
+        announcePets(result.pets);
         router.go('raid');
       });
     };
@@ -175,10 +217,14 @@ export async function boot(mount: HTMLElement): Promise<void> {
     const climbInBackground = (): void => {
       const hero = store.get().activeCharacter;
       if (!hero) return;
+      // An auto-climb walks the tower; it does not make the player's decisions
+      // for them. At a fork it simply stops and waits (Q41).
+      if (needsChoice(hero, hero.tower.currentRunFloor)) return;
       autoBusy = true;
       void session
         .fight(hero.tower.currentRunFloor)
         .then((result) => {
+          announcePets(result.pets);
           if (result.cleared) {
             notify(t('tower.auto.cleared', { floor: result.floor }));
             if (result.milestone) {
@@ -209,7 +255,13 @@ export async function boot(mount: HTMLElement): Promise<void> {
     const autoClimb = createAutoClimbService({
       store,
       onTower: () => router.current() === 'tower',
-      busy: () => autoBusy || router.current() === 'combat' || router.current() === 'raid',
+      busy: () =>
+        autoBusy ||
+        router.current() === 'combat' ||
+        router.current() === 'raid' ||
+        // A rush summary is a screen the player is reading; a floor resolving
+        // behind it would rewrite the hero it is describing (Q39).
+        router.current() === 'bossRush',
       climbWatched: () => {
         const hero = store.get().activeCharacter;
         if (hero) startFight(hero.tower.currentRunFloor);
@@ -246,6 +298,9 @@ export async function boot(mount: HTMLElement): Promise<void> {
           return;
         case 'records':
           router.go('records');
+          return;
+        case 'talents':
+          router.go('talents');
           return;
         case 'upgrades':
           router.go('upgrades');
@@ -397,6 +452,75 @@ export async function boot(mount: HTMLElement): Promise<void> {
         case 'tooMany':
           refuse(t('curse.refused.tooMany'), t('curse.refused.tooManyBody'));
           return;
+        case 'atCeiling':
+          refuse(t('bench.refused.atCeiling'), t('bench.refused.atCeilingBody'));
+          return;
+        case 'noSuchExpedition':
+          refuse(t('expedition.refused.noSuch'), t('expedition.refused.noSuchBody'));
+          return;
+        case 'noSuchSlot':
+          refuse(t('expedition.refused.noSlot'), t('expedition.refused.noSlotBody'));
+          return;
+        case 'slotBusy':
+          refuse(t('expedition.refused.slotBusy'), t('expedition.refused.slotBusyBody'));
+          return;
+        case 'tooDeep':
+          // Shared between the expedition board and the rush, and they mean the
+          // same thing: the Spire has not been climbed far enough yet.
+          if (router.current() === 'tower') {
+            refuse(t('rush.refused.tooDeep'), t('rush.refused.tooDeepBody'));
+          } else {
+            refuse(t('expedition.refused.tooDeep'), t('expedition.refused.tooDeepBody'));
+          }
+          return;
+        case 'notBack':
+          refuse(t('expedition.refused.notReady'), t('expedition.refused.notReadyBody'));
+          return;
+        case 'nothingOut':
+          refuse(t('expedition.refused.empty'), t('expedition.refused.emptyBody'));
+          return;
+        case 'noSuchDeed':
+          refuse(t('deed.refused.unknown'), t('deed.refused.unknownBody'));
+          return;
+        case 'notEarned':
+          refuse(t('deed.refused.notEarned'), t('deed.refused.notEarnedBody'));
+          return;
+        case 'alreadyClaimed':
+          refuse(t('deed.refused.alreadyClaimed'), t('deed.refused.alreadyClaimedBody'));
+          return;
+        case 'noSuchPath':
+          refuse(t('path.refused.unknown'), t('path.refused.unknownBody'));
+          return;
+        case 'notOffered':
+          refuse(t('path.refused.notOffered'), t('path.refused.notOfferedBody'));
+          return;
+        case 'alreadyChosen':
+          refuse(t('path.refused.alreadyChosen'), t('path.refused.alreadyChosenBody'));
+          return;
+        case 'noSuchPet':
+          refuse(t('pet.refused.noSuchPet'), t('pet.refused.noSuchPetBody'));
+          return;
+        case 'notFound':
+          refuse(t('pet.refused.notFound'), t('pet.refused.notFoundBody'));
+          return;
+        case 'notEnoughPoints':
+          refuse(t('talent.refused.points'), t('talent.refused.pointsBody'));
+          return;
+        case 'tierLocked':
+          refuse(t('talent.refused.tier'), t('talent.refused.tierBody'));
+          return;
+        case 'nothingLearned':
+          refuse(t('talent.refused.none'), t('talent.refused.noneBody'));
+          return;
+        case 'notEnoughEchoes':
+          refuse(t('echo.refused.notEnough'), t('echo.refused.notEnoughBody'));
+          return;
+        case 'maxed':
+          refuse(t('echo.refused.maxRank'), t('echo.refused.maxRankBody'));
+          return;
+        case 'notEnoughMaterials':
+          refuse(t('item.reforgeShort'), t('item.reforgeShortBody'));
+          return;
         default:
           refuse(t('item.cannotEquip'));
       }
@@ -424,6 +548,29 @@ export async function boot(mount: HTMLElement): Promise<void> {
           now: clock().now(),
           onBuy: (index) => void session.buyFromMerchant(id, index).then(refreshScreen),
           onDrink: (stat) => void session.drinkPotion(stat).then(refreshScreen),
+          onBrew: (stat) => {
+            void session.brewPotion(stat).then((outcome) => {
+              if (outcome.ok) notify(t('bench.brewed'));
+              else sayNo(outcome.reason);
+              refreshScreen();
+            });
+          },
+          onTransmute: (materialId, times) => {
+            void session.transmuteMaterial(materialId, times).then((outcome) => {
+              if (!outcome.ok) sayNo(outcome.reason);
+              else {
+                const source = getMaterial(materialId);
+                const made = source ? materialForTier(source.tier + 1) : null;
+                notify(
+                  t('bench.made', {
+                    count: outcome.value,
+                    name: made ? t(made.nameKey as StringKey) : '',
+                  }),
+                );
+              }
+              refreshScreen();
+            });
+          },
           onReroll: () => void session.rerollMerchant(id).then(refreshScreen),
           onSelectItem: inspectItem,
           onSell: (uid) => {
@@ -494,6 +641,24 @@ export async function boot(mount: HTMLElement): Promise<void> {
               onFight: startFight,
               onRaid: startRaid,
               onAutoClimb: (mode) => void session.setAutoClimb(mode).then(refreshScreen),
+              bestRush: store.get().account?.bossRushBest ?? 0,
+              onBossRush: () => {
+                void session.bossRush().then((outcome) => {
+                  if (!outcome.ok) {
+                    sayNo(outcome.reason);
+                    refreshScreen();
+                    return;
+                  }
+                  pendingRush = outcome.value;
+                  router.go('bossRush');
+                });
+              },
+              onChoosePath: (id) => {
+                void session.choosePath(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
               onCurse: (id) => {
                 const held = requireCharacter().curses ?? [];
                 void session.toggleCurse(id).then((outcome) => {
@@ -513,6 +678,7 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createCharacterScreen({
               character: requireCharacter(),
+              pets: ownedPets(store.get().account),
               capacity: bagSize(),
               now: clock().now(),
               onSelectItem: inspectItem,
@@ -537,6 +703,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
                 void session.saveLoadout(index, name).then((outcome) => {
                   if (outcome.ok) notify(t('loadout.saved'), t('loadout.savedBody'));
                   else sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
+              onSetPet: (id) => {
+                void session.setActivePet(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
                   refreshScreen();
                 });
               },
@@ -582,9 +754,39 @@ export async function boot(mount: HTMLElement): Promise<void> {
             onNavigate: goTo,
             main: createQuestScreen({
               character: requireCharacter(),
+              account: store.get().account!,
               now: clock().now(),
               onClaim: (cadence, index) =>
                 void session.claimQuest(cadence, index).then(refreshScreen),
+              onSend: (slot, id) => {
+                void session.sendExpedition(slot, id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else {
+                    const def = getExpedition(id);
+                    notify(
+                      t('expedition.sent', { name: def ? t(def.nameKey) : '' }),
+                      t('expedition.sentBody', {
+                        time: shortDuration(outcome.value - clock().now()),
+                      }),
+                    );
+                  }
+                  refreshScreen();
+                });
+              },
+              onClaimExpedition: (slot) => {
+                void session.claimExpedition(slot).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else notify(t('expedition.claimed'), t('expedition.claimedBody'));
+                  refreshScreen();
+                });
+              },
+              onRecall: (slot) => {
+                void session.recallExpedition(slot).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else notify(t('expedition.recalled'), t('expedition.recalledBody'));
+                  refreshScreen();
+                });
+              },
             }),
           }),
 
@@ -597,6 +799,51 @@ export async function boot(mount: HTMLElement): Promise<void> {
             main: createRecordsScreen({
               character: requireCharacter(),
               account: store.get().account!,
+              onClaimDeed: (id, tier) => {
+                void session.claimDeed(id, tier).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  else {
+                    notify(
+                      t('deed.claimedToast', {
+                        name: t(outcome.value.def.nameKey),
+                        tier: outcome.value.tier + 1,
+                      }),
+                      t('deed.claimedBody'),
+                    );
+                  }
+                  refreshScreen();
+                });
+              },
+            }),
+          }),
+
+        bossRush: () => {
+          const rush = pendingRush;
+          if (!rush) throw new Error('[boot] the rush screen needs a resolved run');
+          return createBossRushScreen({ result: rush, onContinue: () => router.go('tower') });
+        },
+
+        talents: () =>
+          createShell({
+            store,
+            active: 'talents',
+            onSwitch: leaveCharacter,
+            onNavigate: goTo,
+            main: createTalentsScreen({
+              character: requireCharacter(),
+              onLearn: (id) => {
+                void session.learnTalent(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
+              onRespec: () => {
+                void session.respecTalents().then((outcome) => {
+                  if (outcome.ok) notify(t('talent.respecDone'), t('talent.respecDoneBody'));
+                  else sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
             }),
           }),
 
@@ -610,6 +857,12 @@ export async function boot(mount: HTMLElement): Promise<void> {
               account: store.get().account!,
               character: requireCharacter(),
               onBuy: (id) => void session.buyUpgrade(id).then(refreshScreen),
+              onDeepen: (id) => {
+                void session.buyEchoNode(id).then((outcome) => {
+                  if (!outcome.ok) sayNo(outcome.reason);
+                  refreshScreen();
+                });
+              },
             }),
           }),
 

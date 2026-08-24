@@ -112,6 +112,44 @@ All §10 gates still pass unchanged: first wall floor 12–28, first-session dep
 
 **Auto-climb** brakes *between* floors, never inside one: `AUTO_CLIMB_FLOOR_DELAY_MS` is 20 seconds per floor, and Battle Speed still owns how fast a fight resolves. That ordering is what keeps auto-climb from ever being the fastest way to play — a player at the keyboard beats the timer at every floor — while still being worth switching on for a long session. Background climbing unlocks at level `BACKGROUND_AUTO_CLIMB_LEVEL` (500), by which point the floors it resolves are far behind the hero's power and the mode is a convenience rather than progression. Both modes stop dead on a death, because a run that continues after the player has lost is a run they did not choose.
 
+### What the sixth polish round added, and what it is not allowed to touch (Q36–Q45)
+
+Ten features landed in one round. Every one of them can make a hero stronger or a
+floor richer, so every one of them had to answer the same two questions: does it
+touch the **bracket** (§13), and does it touch the **seed**? The answer is no in
+all ten cases, and the table says how each was stopped.
+
+| Feature | What it multiplies | How §13 is kept |
+|---|---|---|
+| **Echoes** (Q36) | gold, xp, materials, ticket chance; auto-climb wait; backpack sockets | Never the bracket. Patience clamped below 0.5 so auto-climb can never be the fastest way to play (Q32); Coffers adds sockets *above* the purchased ceiling (Q30). |
+| **Sets & uniques** (Q45) | stats, and five combat rules | Membership is a property of the **base**, so no instance shape changed. A unique's power is a rule rather than a stat, so `UNIQUE_POWER_LEVEL` counts it into Power Level — otherwise a hero in five of them draws drops sized for someone weaker. Uniques **gate on** rarity, never promote it, so the printed rate table stays true. |
+| **Talents** (Q38) | five stats, signature damage, resource fill, crit damage, mitigation, regeneration, and the gold/xp/materials a floor pays | Stat talents reach the bracket through the hero's stat total; the rest are counted explicitly at `POWER_PER_TALENT_POINT`, and *only* the rest, so nothing is paid for twice. Mitigation is clamped, and the clamp is applied to the printed step too. |
+| **Expeditions** (Q37) | gold, xp, materials, ticket chance | Pays no gear at all — a timer is not allowed to be a fourth item source. Materials come from the **claiming** hero's bracket. Pays no echoes: those are for new ground alone. |
+| **The Workbench** (Q43) | nothing | Both operations are conversions between things the player already holds, so neither is a source. |
+| **Elites** (Q44) | enemy stats, and what the floor pays | Same seed stream as the floor, so the preview, the trail mark and the fight agree. Never on a boss floor. |
+| **Branching paths** (Q41) | enemy stats, gold, xp, materials, elite chance | Applied to the *finished* stats, exactly as curses are (Q35): same enemy, same modifier, same seed, harder numbers. |
+| **Deeds** (Q40) | nothing while counting; a tier pays gold, materials and a ticket | Priced against the depth the account has reached rather than fixed at authoring time. Materials from the claiming hero's bracket; never gear. |
+| **Boss Rush** (Q39) | nothing | Pays for gates past the account's best only, so it cannot be farmed. Costs nothing to lose: the run, the record and the seed are untouched. |
+| **Companions** (Q42) | the hero's stats via an aura; the pet's own blows | A companion's stats are a fraction of the hero's, so it needs no bracket of its own. What it is worth is counted into Power Level at `POWER_PER_PET_LEVEL`, because it has a health bar and a turn that the hero's stats know nothing about. |
+
+Two shapes are worth stating on their own, because both are exchange rates
+between *not playing* and *playing*, and both are the numbers to turn first if
+the game ever starts rewarding the wrong thing:
+
+- **An hour of expedition is worth `EXPEDITION_FLOORS_PER_HOUR` floors** at a
+  fraction of the hero's record. A player who is climbing clears many times that
+  in the same hour. What a wait buys is the hours nobody was going to spend
+  climbing anyway.
+- **A talent respec costs what two floors pay**, at every point on the curve —
+  the price rides `FLOOR_GOLD`'s own rate, because points come one per level and
+  M9 tuned levels to track depth.
+
+One constructor now builds Power Level's inputs (`powerInputsFor`). The number
+has grown three terms since M2 that a hand-assembled object could silently omit,
+and an omission there has no symptom at all: the drops simply come out a little
+generous for a build nobody measured. Making the terms required turned six latent
+holes into six compile errors.
+
 ## 8. Gacha odds (§16)
 
 Two banners, single pulls only, every pull pays something, no pity counter — all confirmed by Q20. Provisional shape, tuned in M9: Ticket banner — jackpot (Legendary-at-bracket) low single-digit %; the rest of the table pays Rare/Epic gear and material/gold bundles (the *animation* sells the near-miss, §16.3). Lucky banner — Mythical jackpot ≪1%; floor of the table is Epic/Legendary. Ticket faucets (rare drops §16.1 + hard quests §17 + tutorial's single Lucky Ticket §18) are throttled so pulls are *events* — provisional target: a Ticket every day-or-two of normal play, Lucky Tickets ~weekly from the hard weekly (Q21's guaranteed hard slot).

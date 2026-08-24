@@ -51,7 +51,32 @@ import {
   stockOf,
   type MerchantId,
 } from '@/domain/merchants/merchants.ts';
-import { bracketForCharacter, fightFloor, quickRaid } from '@/domain/tower/run.ts';
+import { bracketForCharacter, fightFloor, quickRaid, type FightAids } from '@/domain/tower/run.ts';
+import {
+  activePetOf,
+  awardPetXp,
+  grantPets,
+  petXpForFloor,
+  petsFoundAt,
+  setActivePet,
+  type OwnedPet,
+} from '@/domain/pets/pets.ts';
+import type { PetDef } from '@/content/pets/index.ts';
+import {
+  canRush,
+  recordBest,
+  runBossRush,
+  type BossRushResult,
+} from '@/domain/bossRush/bossRush.ts';
+import {
+  claimExpedition,
+  recallExpedition,
+  sendExpedition,
+  type ClaimRefusal,
+  type SendRefusal,
+} from '@/domain/expeditions/expeditions.ts';
+import type { ExpeditionDef } from '@/content/expeditions/index.ts';
+import type { FloorReward } from '@/domain/tower/rewards.ts';
 import { canAutoClimb } from '@/domain/tower/autoClimb.ts';
 import type { FloorResult, QuickRaidResult } from '@/domain/tower/run.ts';
 import {
@@ -66,7 +91,29 @@ import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
 import { recordKills } from '@/domain/account/bestiary.ts';
+import { claimDeed, recordDeeds, type DeedDef, type DeedRefusal } from '@/domain/account/deeds.ts';
+import {
+  buyEchoRank,
+  echoBonuses,
+  echoesForNewGround,
+  grantEchoes,
+  type EchoBonuses,
+} from '@/domain/account/echoes.ts';
+import {
+  BREW_MATERIAL_COST,
+  canBrew,
+  spendBrew,
+  transmute,
+  type TransmuteRefusal,
+} from '@/domain/items/workbench.ts';
 import { toggleCurse, type CurseRefusal } from '@/domain/tower/curses.ts';
+import { choosePath } from '@/domain/tower/paths.ts';
+import {
+  learnTalent,
+  pointsAvailable,
+  respecCost,
+  respecTalents,
+} from '@/domain/talents/talents.ts';
 import { reforge, salvageFromInventory } from '@/domain/items/salvage.ts';
 import {
   canPull,
@@ -89,6 +136,27 @@ export type Refusal =
   | CurseRefusal
   | PresetApplyRefusal
   | PresetCaptureRefusal
+  | 'atCeiling'
+  | 'notEnoughEchoes'
+  | 'notEnoughPoints'
+  | 'tierLocked'
+  | 'nothingLearned'
+  | 'wrongClass'
+  | 'noSuchTalent'
+  | 'noSuchPet'
+  | 'notFound'
+  | 'noSuchDeed'
+  | 'notEarned'
+  | 'alreadyClaimed'
+  | 'noSuchPath'
+  | 'notOffered'
+  | 'alreadyChosen'
+  | 'noSuchExpedition'
+  | 'noSuchSlot'
+  | 'slotBusy'
+  | 'tooDeep'
+  | 'notBack'
+  | 'nothingOut'
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -103,11 +171,36 @@ export type Refusal =
 export type Outcome<T = undefined> =
   { ok: true; value: T; character: Character } | { ok: false; reason: Refusal };
 
+/** What a settled deed handed over, for the caller to announce (Q40). */
+export interface DeedSpoils {
+  def: DeedDef;
+  tier: number;
+  reward: FloorReward;
+}
+
+/** What a finished expedition handed over, for the caller to announce (Q37). */
+export interface ExpeditionSpoils {
+  def: ExpeditionDef;
+  reward: FloorReward;
+}
+
+/** What a climb did for the companions, for the caller to announce (Q42). */
+export interface PetHarvest {
+  /** Species the depth just freed for the whole account. */
+  found: readonly PetDef[];
+  /** Levels the companion that fought gained. */
+  levelsGained: number;
+}
+
 export interface GameActions {
-  fight(floor: number): Promise<FloorResult>;
+  fight(floor: number): Promise<FloorResult & { pets: PetHarvest }>;
   /** Turn auto-climb on, off, or on in the background (Q32). */
   setAutoClimb(mode: AutoClimbMode): Promise<Outcome>;
-  raid(throughFloor: number): Promise<QuickRaidResult>;
+  raid(throughFloor: number): Promise<QuickRaidResult & { pets: PetHarvest }>;
+  /** Send a companion out, or call it back in (Q42). */
+  setActivePet(id: string | null): Promise<Outcome>;
+  /** Run the ten gates back to back (Q39). Refuses before the first is met. */
+  bossRush(): Promise<Outcome<BossRushResult>>;
 
   equip(uid: string): Promise<Outcome<ItemInstance[]>>;
   /** Save what the hero is wearing into preset `index` (fifth polish round). */
@@ -132,12 +225,27 @@ export interface GameActions {
   buyFromMerchant(id: MerchantId, index: number): Promise<Outcome<ItemInstance>>;
   rerollMerchant(id: MerchantId): Promise<Outcome<number>>;
   drinkPotion(stat: UpgradableStatId): Promise<Outcome<number>>;
+  /** Brew a draught from materials instead of gold (Q43). */
+  brewPotion(stat: UpgradableStatId): Promise<Outcome<number>>;
+  /** Push one rung up the material ladder; the value is how many were made. */
+  transmuteMaterial(materialId: string, times: number): Promise<Outcome<number>>;
 
   /** Bring both quest boards up to date for the current period (Q10). */
   visitQuests(): Promise<Character>;
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
   /** Take a curse, or lift one (Q35). */
   toggleCurse(id: string): Promise<Outcome>;
+  /** Take a road at the fork this leg opens with (Q41). */
+  choosePath(id: string): Promise<Outcome>;
+  /** Settle one tier of one deed; the value is what it paid (Q40). */
+  claimDeed(id: string, tier: number): Promise<Outcome<DeedSpoils>>;
+
+  /** Send a party out on a route (Q37); the value is when they are due back. */
+  sendExpedition(slot: number, id: string): Promise<Outcome<number>>;
+  /** Take a finished expedition's spoils; the value is what came home. */
+  claimExpedition(slot: number): Promise<Outcome<ExpeditionSpoils>>;
+  /** Call a party home early, for nothing (Q37). */
+  recallExpedition(slot: number): Promise<Outcome>;
   /**
    * Aim what the rites hand over at one slot, or clear the wish (Q33).
    * Refuses a slot the hero has not unlocked, rather than wishing into a
@@ -146,6 +254,12 @@ export interface GameActions {
   setWishlist(slot: EquipSlotId | null): Promise<Outcome>;
   /** Buy one of the two account upgrades (Brief §15). */
   buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
+  /** Deepen one node of the echo tree; the value is the echoes left (Q36). */
+  buyEchoNode(id: string): Promise<Outcome<number>>;
+  /** Spend one talent point; the value is the points still unspent (Q38). */
+  learnTalent(id: string): Promise<Outcome<number>>;
+  /** Unlearn the whole tree for gold; the value is what it cost (Q38). */
+  respecTalents(): Promise<Outcome<number>>;
 
   /**
    * Spend one ticket on one pull (Brief §16, Q20).
@@ -167,7 +281,42 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
   async function commit(character: Character): Promise<Character> {
     await save.saveCharacter(character);
     characterEntered(store, character);
+    // After the character is safe, never before: a tab that dies between the two
+    // loses a deed's progress rather than the floor that earned it.
+    await flushDeeds();
     return character;
+  }
+
+  /**
+   * Events waiting to reach the deed ledger (Q40).
+   *
+   * Buffered rather than written where they happen, for one reason: `withQuests`
+   * is the single place every event in the game passes through, and hanging the
+   * ledger off it means a deed cannot fall out of step with the quest board that
+   * counts the same thing. Twenty call sites each remembering to record a deed
+   * is nineteen chances to forget.
+   */
+  let pendingDeeds: QuestEvent[] = [];
+
+  /**
+   * Fold what has happened into the ledger and save the account if it moved.
+   *
+   * Runs on every commit rather than only when events are pending, because two
+   * deeds are high-water marks read off the state — the deepest floor and the
+   * best Boss Rush — and those move without an event to announce them.
+   */
+  async function flushDeeds(): Promise<void> {
+    const events = pendingDeeds;
+    pendingDeeds = [];
+
+    const account = store.get().account;
+    if (!account) return;
+
+    const updated = recordDeeds(account, events, store.get().activeCharacter);
+    if (updated === account) return;
+
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
   }
 
   function questContext(character: Character) {
@@ -188,6 +337,9 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
    * and the new one starts counting from the very next floor (Q10).
    */
   function withQuests(character: Character, events: QuestEvent[]): Character {
+    // Every event the quest board sees, the deed ledger sees (Q40).
+    if (events.length > 0) pendingDeeds.push(...events);
+
     const timing = clock();
     const refreshed = refreshBoards(
       character.quests,
@@ -229,6 +381,111 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
     await save.saveAccount(updated);
     accountLoaded(store, updated);
+  }
+
+  /**
+   * The workbench speaks its own small vocabulary of refusals; the UI speaks
+   * one. Mapping here rather than widening `Refusal` with a synonym keeps
+   * "not enough materials" a single phrase everywhere it is said.
+   */
+  function refusalOf(reason: TransmuteRefusal): Refusal {
+    return reason === 'atCeiling' ? 'atCeiling' : 'notEnoughMaterials';
+  }
+
+  /** The ledger's refusals, in the vocabulary the UI already translates (Q40). */
+  function refusalOfDeed(reason: DeedRefusal): Refusal {
+    switch (reason) {
+      case 'noSuchDeed':
+        return 'noSuchDeed';
+      case 'notEarned':
+        return 'notEarned';
+      case 'alreadyClaimed':
+        return 'alreadyClaimed';
+    }
+  }
+
+  /** The board's refusals, in the vocabulary the UI already translates (Q37). */
+  function refusalOfSend(reason: SendRefusal): Refusal {
+    switch (reason) {
+      case 'noSuchExpedition':
+        return 'noSuchExpedition';
+      case 'noSuchSlot':
+        return 'noSuchSlot';
+      case 'slotBusy':
+        return 'slotBusy';
+      case 'tooDeep':
+        return 'tooDeep';
+    }
+  }
+
+  function refusalOfClaim(reason: ClaimRefusal): Refusal {
+    return reason === 'notBack'
+      ? 'notBack'
+      : reason === 'nothingOut'
+        ? 'nothingOut'
+        : 'noSuchExpedition';
+  }
+
+  /** What the account's echo tree is worth right now (Q36). */
+  function echoes(): EchoBonuses {
+    return echoBonuses(store.get().account);
+  }
+
+  /**
+   * Bank the echoes a climb earned, if it broke new ground.
+   *
+   * Called with the character *after* the clear, so the record it reads is the
+   * one the clear wrote — and compared against the record before, so a raid
+   * through four new floors is paid for all four.
+   */
+  async function bankEchoes(before: number, after: number): Promise<number> {
+    const account = store.get().account;
+    if (!account || after <= before) return 0;
+
+    const earned = echoesForNewGround(before, after);
+    if (earned <= 0) return 0;
+
+    const updated = grantEchoes(account, earned);
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
+    return earned;
+  }
+
+  /** The companion this hero has out, if any (Q42). */
+  function companion(): OwnedPet | null {
+    return activePetOf(store.get().account, store.get().activeCharacter);
+  }
+
+  /** What the account brings to a fight that the character cannot know. */
+  function aids(): FightAids {
+    return { echoes: echoes(), pet: companion() };
+  }
+
+  /**
+   * Bank what a climb did for the companions: experience for the one that
+   * fought, and any species the depth has just freed for the whole account.
+   *
+   * One account write for a whole raid rather than one per floor, and the found
+   * species are returned rather than announced, because only the caller knows
+   * how to say so.
+   */
+  async function bankPets(floors: readonly FloorResult[]): Promise<PetHarvest> {
+    const account = store.get().account;
+    const cleared = floors.filter((floor) => floor.cleared);
+    if (!account || cleared.length === 0) return { found: [], levelsGained: 0 };
+
+    const active = store.get().activeCharacter?.activePet ?? null;
+    const xp = cleared.reduce((total, floor) => total + petXpForFloor(floor.floor), 0);
+    const grown = awardPetXp(account, active, xp);
+
+    const deepest = cleared.reduce((best, floor) => Math.max(best, floor.floor), 0);
+    const found = petsFoundAt(grown.account, deepest);
+    const updated = grantPets(grown.account, found);
+
+    if (updated === account) return { found: [], levelsGained: 0 };
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
+    return { found, levelsGained: grown.levelsGained };
   }
 
   /** The bag's size right now — an account upgrade, so it is read, not assumed. */
@@ -294,11 +551,14 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
   return {
     async fight(floor) {
-      const result = fightFloor(active(), floor, clock().now());
+      const before = active().tower.highestFloorEverCleared;
+      const result = fightFloor(active(), floor, clock().now(), aids());
       const character = withQuests(result.character, floorEvents(result));
       await commit(character);
       await recordSightings([result]);
-      return { ...result, character };
+      await bankEchoes(before, character.tower.highestFloorEverCleared);
+      const pets = await bankPets([result]);
+      return { ...result, character, pets };
     },
 
     async setAutoClimb(mode) {
@@ -317,13 +577,16 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     },
 
     async raid(throughFloor) {
-      const result = quickRaid(active(), throughFloor, clock().now());
+      const before = active().tower.highestFloorEverCleared;
+      const result = quickRaid(active(), throughFloor, clock().now(), aids());
       const events = result.floors.flatMap(floorEvents);
       const character = withQuests(result.character, events);
       await commit(character);
       // One account write for the whole raid rather than one per floor.
       await recordSightings(result.floors);
-      return { ...result, character };
+      await bankEchoes(before, character.tower.highestFloorEverCleared);
+      const pets = await bankPets(result.floors);
+      return { ...result, character, pets };
     },
 
     async equip(uid) {
@@ -531,6 +794,36 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       return { ok: true, value: potion.price, character: await commit(next) };
     },
 
+    async brewPotion(stat) {
+      const character = active();
+      const bracket = bracketForCharacter(character);
+      if (!canBrew(character.materials, bracket.materialTier)) {
+        return { ok: false, reason: 'notEnoughMaterials' };
+      }
+
+      const potion = potionFor(stat, bracket.index);
+      const next = withQuests(
+        {
+          ...character,
+          materials: spendBrew(character.materials, bracket.materialTier),
+          potions: drink(character.potions, potion, clock().now()),
+        },
+        [{ kind: 'potionDrunk' }],
+      );
+      return { ok: true, value: BREW_MATERIAL_COST, character: await commit(next) };
+    },
+
+    async transmuteMaterial(materialId, times) {
+      const character = active();
+      const result = transmute(character.materials, materialId, times);
+      if (typeof result === 'string') return { ok: false, reason: refusalOf(result) };
+      return {
+        ok: true,
+        value: result.count,
+        character: await commit({ ...character, materials: result.materials }),
+      };
+    },
+
     async visitQuests() {
       const character = active();
       const next = withQuests(character, []);
@@ -553,6 +846,111 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       };
     },
 
+    async sendExpedition(slot, id) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      const result = sendExpedition(
+        account,
+        slot,
+        id,
+        character.tower.highestFloorEverCleared,
+        clock().now(),
+      );
+      if (typeof result === 'string') return { ok: false, reason: refusalOfSend(result) };
+
+      await save.saveAccount(result);
+      accountLoaded(store, result);
+      return {
+        ok: true,
+        value: result.expeditions[String(slot)]?.endsAt ?? 0,
+        character,
+      };
+    },
+
+    async claimExpedition(slot) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      const result = claimExpedition(
+        account,
+        slot,
+        {
+          record: character.tower.highestFloorEverCleared,
+          // The *claiming* hero's bracket decides the material tier, so a party
+          // can never hand over something the hero could not have earned (§13).
+          bracket: bracketForCharacter(character, companion()),
+          rng: createRng(`expedition:${slot}:${account.expeditions[String(slot)]?.startedAt ?? 0}`),
+        },
+        clock().now(),
+      );
+      if (typeof result === 'string') return { ok: false, reason: refusalOfClaim(result) };
+
+      // The account is written before the character is paid: a tab that dies
+      // between the two loses the spoils, never doubles them.
+      await save.saveAccount(result.account);
+      accountLoaded(store, result.account);
+
+      const granted = grantReward(character, result.reward);
+      const paid = withQuests(granted.character, [
+        { kind: 'goldEarned', amount: result.reward.gold },
+      ]);
+      return {
+        ok: true,
+        value: { def: result.def, reward: result.reward },
+        character: await commit(paid),
+      };
+    },
+
+    async recallExpedition(slot) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const result = recallExpedition(account, slot);
+      if (typeof result === 'string') return { ok: false, reason: 'nothingOut' };
+
+      await save.saveAccount(result);
+      accountLoaded(store, result);
+      return { ok: true, value: undefined, character: active() };
+    },
+
+    async claimDeed(id, tier) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      const result = claimDeed(account, id, tier, {
+        record: character.tower.highestFloorEverCleared,
+        bracket: bracketForCharacter(character, companion()),
+        rng: createRng(`deed:${id}:${tier}:${account.deedsClaimed.length}`),
+      });
+      if (typeof result === 'string') return { ok: false, reason: refusalOfDeed(result) };
+
+      // The claim is written before the character is paid: a tab that dies
+      // between the two loses the spoils, never doubles them.
+      await save.saveAccount(result.account);
+      accountLoaded(store, result.account);
+
+      const granted = grantReward(character, result.reward);
+      const paid = withQuests(granted.character, [
+        { kind: 'goldEarned', amount: result.reward.gold },
+      ]);
+      return {
+        ok: true,
+        value: { def: result.def, tier: result.tier, reward: result.reward },
+        character: await commit(paid),
+      };
+    },
+
+    async choosePath(id) {
+      const character = active();
+      const result = choosePath(character, character.tower.currentRunFloor, id);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: undefined, character: await commit(result) };
+    },
+
     async toggleCurse(id) {
       const result = toggleCurse(active(), id);
       if (typeof result === 'string') return { ok: false, reason: result };
@@ -569,6 +967,87 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         value: undefined,
         character: await commit({ ...character, wishlist: slot }),
       };
+    },
+
+    async buyEchoNode(id) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const result = buyEchoRank(account, id);
+      if (typeof result === 'string') {
+        return { ok: false, reason: result === 'maxRank' ? 'maxed' : 'notEnoughEchoes' };
+      }
+
+      await save.saveAccount(result);
+      accountLoaded(store, result);
+      // Nothing on the character changed, but every caller expects one back.
+      return { ok: true, value: result.echoes, character: active() };
+    },
+
+    async learnTalent(id) {
+      const character = active();
+      const result = learnTalent(character, id);
+      if (typeof result === 'string') {
+        return { ok: false, reason: result === 'maxRank' ? 'maxed' : result };
+      }
+
+      return { ok: true, value: pointsAvailable(result), character: await commit(result) };
+    },
+
+    async respecTalents() {
+      const character = active();
+      const cost = respecCost(character);
+      const result = respecTalents(character);
+      if (typeof result === 'string') return { ok: false, reason: result };
+
+      // Gold spent is gold spent, whatever it bought: the quest board counts it
+      // like any other purchase, so a respec can advance a spending quest.
+      const paid = withQuests(result, [{ kind: 'goldSpent', amount: cost }]);
+      return { ok: true, value: cost, character: await commit(paid) };
+    },
+
+    async bossRush() {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const character = active();
+      // Refused rather than hidden: the tower's own card says what opens it, and
+      // the action has to agree or a stale screen could start one anyway (§20.5).
+      if (!canRush(character)) return { ok: false, reason: 'tooDeep' };
+
+      const result = runBossRush({
+        character,
+        best: account.bossRushBest,
+        now: clock().now(),
+        aids: aids(),
+      });
+
+      // The best is banked before the chest: a tab that dies between the two
+      // loses the spoils and keeps the record, which is the right way round —
+      // the record is the thing the run was for.
+      const updated = recordBest(account, result.cleared);
+      if (updated !== account) {
+        await save.saveAccount(updated);
+        accountLoaded(store, updated);
+      }
+
+      // Only the gold, and deliberately: the quest board is about the *climb*,
+      // and a rush that ticked "clear 12 floors" or "defeat 8 bosses" would let
+      // a player finish a climbing quest without climbing — repeatably, since a
+      // rush can be run again for nothing.
+      const paid = withQuests(result.character, [
+        { kind: 'goldEarned', amount: result.reward.gold },
+      ]);
+      return { ok: true, value: result, character: await commit(paid) };
+    },
+
+    async setActivePet(id) {
+      const account = store.get().account;
+      if (!account) return { ok: false, reason: 'noCharacter' };
+
+      const result = setActivePet(account, active(), id);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: undefined, character: await commit(result) };
     },
 
     async buyUpgrade(id) {

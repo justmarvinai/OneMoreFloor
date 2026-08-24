@@ -48,6 +48,12 @@ export const en = {
   'currency.luckyTickets.use': 'One rite each at the Rite of Fortune, where the odds are kinder.',
   'currency.luckyTickets.where':
     'Rare from floors, likelier from bosses, and the reward the tour pays on completion.',
+  'currency.echoes.what': 'Echo of the Spire',
+  'currency.echoes.use':
+    'Deepened on the Account screen, into bonuses every hero on this account is born with.',
+  'currency.echoes.where':
+    'Paid once for each floor the account has never cleared. Re-climbing earns none, ' +
+    'and death takes none away.',
 
   'nav.hero.toCharacter': 'Open the character sheet',
   'nav.hero.here': 'You are looking at the character sheet',
@@ -439,6 +445,7 @@ export const en = {
   'tower.floor': 'Floor {floor}',
   'tower.currentFloor': 'Floor {floor} — {band}',
   'tower.bossFloor': 'Boss Floor',
+  'tower.eliteFloor': 'Elite',
   'tower.best': 'Best floor',
   'tower.highestNone': 'None yet',
   'tower.fight': 'Fight Floor {floor}',
@@ -469,6 +476,9 @@ export const en = {
   'tower.here': 'Here',
   'tower.hereTip': 'Your hero is standing on floor {floor}. This is the fight.',
   'tower.bossTip': 'A boss floor. Harder than the floors around it, and it pays like it.',
+  'tower.eliteTip':
+    'An elite stands here — the same creature, a head taller and carrying something extra. It always leaves gear behind.',
+  'tower.preview.elite': 'Elite',
   'tower.preview.noEffects': 'No floor modifiers here',
   'tower.stat.strength': 'STR',
   'tower.stat.defense': 'DEF',
@@ -521,6 +531,547 @@ export const en = {
   'curse.dominion': 'Dominion',
   'curse.dominion.desc':
     'Everything in the Spire is greater in every way. The Spire pays most for this one.',
+
+  // Echoes of the Spire — the permanent account tree (Q36).
+  'echo.title': 'Echoes of the Spire',
+  'echo.subtitle':
+    'Paid for ground nobody has walked. Spent once, kept forever — no reset touches them.',
+  'echo.held': '{count} unspent',
+  'echo.earned': '{count} earned in all',
+  'echo.rank': 'Rank {rank} of {max}',
+  'echo.buy': 'Deepen',
+  'echo.maxed': 'Fully deepened',
+  'echo.cost': '{cost} echoes',
+  'echo.short': '{missing} more echoes and this rank opens.',
+  'echo.now': 'Now: {value}',
+  'echo.next': 'Next rank: {value}',
+  'echo.none': 'Nothing yet',
+  'echo.percent': '+{percent}%',
+  'echo.sockets': '+{count} sockets',
+  'echo.refused.maxRank': 'Nothing deeper',
+  'echo.refused.maxRankBody': 'This one is as deep as it goes.',
+  'echo.refused.notEnough': 'Not enough echoes',
+  'echo.refused.notEnoughBody': 'Echoes come from floors the account has never cleared. Climb.',
+
+  // Deeds (Q40).
+  'deed.climber': 'The Long Climb',
+  'deed.climber.desc': 'Floors cleared, by every hero this account has ever owned.',
+  'deed.gatebreaker': 'Gatebreaker',
+  'deed.gatebreaker.desc':
+    'Gates thrown down. Every tenth floor has one, and none of them go quietly.',
+  'deed.deepest': 'High Water',
+  'deed.deepest.desc':
+    'The deepest floor anyone on this account has ever cleared. It only goes up.',
+  'deed.rush': 'Ten Gates',
+  'deed.rush.desc': 'Gates taken in a single Boss Rush, on one health bar.',
+  'deed.fortune': 'A Spire-Keeper’s Fortune',
+  'deed.fortune.desc':
+    'Gold banked, lifetime. The Spire has a great deal of it and no use for any.',
+  'deed.patron': 'Patron of the Landings',
+  'deed.patron.desc':
+    'Gold handed back to the Spire, lifetime. Somebody has to keep the merchants in business.',
+  'deed.smith': 'The Smith',
+  'deed.smith.desc': 'Levels bought into gear. Nothing you were given, and everything you made.',
+  'deed.magpie': 'Magpie',
+  'deed.magpie.desc':
+    'Pieces bought from a counter, rather than pulled off something that objected.',
+  'deed.apothecary': 'The Apothecary',
+  'deed.apothecary.desc': 'Draughts drunk. Not one of them lasted, and every one of them helped.',
+  'deed.title': 'Deeds',
+  'deed.subtitle': 'What this account has done, and what it is owed for it.',
+  'deed.tier': 'Tier {tier} of {max}',
+  'deed.progress': '{have} / {need}',
+  'deed.done': 'Done',
+  'deed.claim': 'Claim',
+  'deed.claimed': 'Claimed',
+  'deed.allClaimed': 'Every tier claimed',
+  'deed.locked': 'Tier {tier} at {need}',
+  'deed.pays': 'Pays about {gold} gold and {materials} materials',
+  'deed.paysTicket': 'Pays about {gold} gold, {materials} materials and a summoning ticket',
+  'deed.claimedToast': '{name} — tier {tier}',
+  'deed.claimedBody': 'The Spire settles up. Its spoils are in your purse and your pack.',
+  'deed.refused.unknown': 'No such deed',
+  'deed.refused.unknownBody': 'Nothing by that name is on the ledger.',
+  'deed.refused.notEarned': 'Not done yet',
+  'deed.refused.notEarnedBody': 'The tier has to be reached before it can be claimed.',
+  'deed.refused.alreadyClaimed': 'Already settled',
+  'deed.refused.alreadyClaimedBody': 'That tier has been paid once. It does not pay twice.',
+
+  // Branching paths (Q41).
+  'path.evenRoad': 'The Even Road',
+  'path.evenRoad.desc':
+    'The way the Spire was built. Nothing waits for you here that was not already coming.',
+  'path.sheerFace': 'The Sheer Face',
+  'path.sheerFace.desc':
+    'Up the outside. Everything on this stretch is bigger than it should be, and everything on it is carrying more.',
+  'path.vaults': 'The Vaults',
+  'path.vaults.desc':
+    'Through the counting-rooms. Whoever kept the ledgers left in a hurry, and the Spire has learned nothing new to teach you down here.',
+  'path.reliquary': 'The Reliquary',
+  'path.reliquary.desc':
+    'The shelves where the Spire keeps what it has broken. Little coin, and everything you need to mend what you are carrying.',
+  'path.gauntlet': 'The Gauntlet',
+  'path.gauntlet.desc':
+    'A landing the champions have claimed. Half of what you meet is one of theirs, and every one of them is carrying something.',
+  'path.quietWay': 'The Quiet Way',
+  'path.quietWay.desc':
+    'The service stair. Less waiting for you, and less left behind — but the ten floors go by, and you are still standing at the end of them.',
+  'path.forkTitle': 'The road forks',
+  'path.forkBody': 'Floors {from} to {to}. Choose once; it holds for the whole stretch.',
+  'path.take': 'Take this road',
+  'path.taken': 'Walking: {name}',
+  'path.until': 'Until floor {floor}',
+  'path.danger': 'Enemies {percent}',
+  'path.dangerEven': 'Enemies as the Spire built them',
+  'path.spoils': 'Gold {gold}, experience {xp}, materials {materials}',
+  'path.elites': 'Champions on {percent} more of it',
+  'path.stronger': '+{percent}% stronger',
+  'path.weaker': '{percent}% weaker',
+  'path.up': '+{percent}%',
+  'path.down': '−{percent}%',
+  'path.same': 'unchanged',
+  'path.mustChoose': 'Choose a road before you climb',
+  'path.refused.unknown': 'No such road',
+  'path.refused.unknownBody': 'Nothing by that name is on this fork.',
+  'path.refused.notOffered': 'That road is not on this fork',
+  'path.refused.notOfferedBody': 'The Spire offers three at a time. Choose one of them.',
+  'path.refused.alreadyChosen': 'You are already on a road',
+  'path.refused.alreadyChosenBody': 'The choice holds until the next gate. Climb.',
+  'path.refused.noChoice': 'The road forks first',
+  'path.refused.noChoiceBody': 'Choose which way the next ten floors go, then climb.',
+
+  // The Boss Rush (Q39).
+  'rush.title': 'Boss Rush',
+  'rush.enter': 'Boss Rush',
+  'rush.subtitle': 'Ten gates. One health bar. No second chances.',
+  'rush.card':
+    'The ten gates, back to back, on whatever is left of you. Nothing here touches your climb — you cannot lose the run, and you cannot lose a floor.',
+  'rush.best': 'Best: {count} of {max}',
+  'rush.bestNone': 'Never attempted',
+  'rush.locked': 'Opens once you have beaten the gate on floor {floor}',
+  'rush.gate': 'Gate {index}',
+  'rush.gateFloor': 'Floor {floor}',
+  'rush.held': 'Held',
+  'rush.fell': 'Fell here',
+  'rush.untouched': 'Never reached',
+  'rush.resultTitle': '{count} of {max} gates',
+  'rush.resultRecord': 'A new best — {count} of {max}',
+  'rush.resultNone': 'The first gate held',
+  'rush.resultAll': 'Every gate, in one breath',
+  'rush.subtitleRecord':
+    'Further than anyone on this account has gone. The chest is for the new ground alone.',
+  'rush.subtitleTied':
+    'The same depth as your best. The Spire pays for getting further, and nothing else.',
+  'rush.subtitleShort': 'Short of your best of {best}. Nothing owed, and nothing lost.',
+  'rush.close': 'Back to the Spire',
+  'rush.cleared': 'Gates cleared',
+  'rush.healthLeft': 'Health left',
+  'rush.refused.tooDeep': 'No gates to rush yet',
+  'rush.refused.tooDeepBody':
+    'Beat the gate on floor 10 first. There is nothing to run until then.',
+
+  // Expeditions (Q37).
+  'expedition.scavenge': 'Scavenging Run',
+  'expedition.scavenge.desc':
+    'Two hours on the lower landings, turning over what the last climbers left behind. Mostly coin, and mostly small.',
+  'expedition.survey': 'Survey of the Stair',
+  'expedition.survey.desc':
+    'Somebody has to write down which steps give way. The party comes back with less in their packs than in their notes.',
+  'expedition.quarry': 'Quarry Detail',
+  'expedition.quarry.desc':
+    'Down to where the Spire is still raw stone, with picks. Hard work, and the only thing they bring back is what ascension eats.',
+  'expedition.pilgrimage': 'Pilgrimage',
+  'expedition.pilgrimage.desc':
+    'A slow walk to a shrine nobody has found twice. They carry little and look for one thing: a rite worth performing.',
+  'expedition.reclaim': 'Reclamation March',
+  'expedition.reclaim.desc':
+    'Twelve hours retaking a landing that was taken from you. Everything the Spire owes, in equal measure.',
+  'expedition.descent': 'The Long Descent',
+  'expedition.descent.desc':
+    'A full day down a route the Spire does not advertise. Only send them if you already know how deep it goes.',
+  'expedition.title': 'Expeditions',
+  'expedition.subtitle': 'Send a party out. Come back to what they found.',
+  'expedition.slot': 'Party {index}',
+  'expedition.idle': 'Waiting for orders',
+  'expedition.away': 'Away · {time} left',
+  'expedition.ready': 'Back, and carrying something',
+  'expedition.send': 'Send',
+  'expedition.claim': 'Take the spoils',
+  'expedition.recall': 'Recall',
+  'expedition.recallTitle': 'Call them back?',
+  'expedition.recallBody':
+    'They are {time} from being done. Recalling them now brings the party home with nothing.',
+  'expedition.recallConfirm': 'Call them back',
+  'expedition.recallCancel': 'Let them finish',
+  'expedition.hours': '{hours}h',
+  'expedition.pays': 'About {gold} gold, {xp} xp, {materials} materials',
+  'expedition.paysTickets': 'and looks for a summoning ticket',
+  'expedition.paysNoTickets': 'and will not find a ticket on this route',
+  'expedition.locked': 'Opens once the Spire has been climbed to floor {floor}',
+  'expedition.noSlots': 'No party free',
+  'expedition.noSlotsBody':
+    'Every party is out. More open with every character slot the account buys.',
+  'expedition.claimed': 'The party is back',
+  'expedition.claimedBody': 'Their spoils are in your purse and your pack.',
+  'expedition.recalled': 'Party recalled',
+  'expedition.recalledBody': 'They came home empty-handed, and the slot is free again.',
+  'expedition.sent': '{name} is under way',
+  'expedition.sentBody':
+    'They will be back in {time}. The Spire does not wait for them, and neither should you.',
+  'expedition.refused.notReady': 'They are not back yet',
+  'expedition.refused.notReadyBody': 'Give them the time they were sent for.',
+  'expedition.refused.slotBusy': 'That party is already out',
+  'expedition.refused.slotBusyBody': 'Wait for them, or recall them and lose what they carry.',
+  'expedition.refused.noSlot': 'No party there',
+  'expedition.refused.noSlotBody': 'That slot is not one the account has opened.',
+  'expedition.refused.tooDeep': 'Nobody knows that route',
+  'expedition.refused.tooDeepBody': 'Climb further, and someone will.',
+  'expedition.refused.noSuch': 'No such expedition',
+  'expedition.refused.noSuchBody': 'Nothing by that name is on the board.',
+  'expedition.refused.empty': 'Nobody is out',
+  'expedition.refused.emptyBody': 'There is nothing to call back.',
+
+  // Companions (Q42).
+  'pet.emberling': 'Emberling',
+  'pet.emberling.desc':
+    'A knot of live coal that decided to follow you. It has no plan beyond setting things on fire, and it is very good at it.',
+  'pet.emberling.aura': 'Emberling’s Heat',
+  'pet.stoneWhelp': 'Stone Whelp',
+  'pet.stoneWhelp.desc':
+    'Hatched from something that was not an egg. It puts itself between you and whatever is coming, every single time, and it is heavy enough to matter.',
+  'pet.stoneWhelp.aura': 'Whelp’s Bulwark',
+  'pet.spireOwl': 'Spire Owl',
+  'pet.spireOwl.desc':
+    'It has been watching the Spire longer than you have. Nothing catches it, and it sees the opening a half-second before you do.',
+  'pet.spireOwl.aura': 'Owl’s Sight',
+  'pet.graveMoth': 'Grave Moth',
+  'pet.graveMoth.desc':
+    'Drawn to the lanterns on the deep landings. Wherever it settles, blows land a little softer — nobody has worked out why.',
+  'pet.graveMoth.aura': 'Moth’s Hush',
+  'pet.cinderHound': 'Cinder Hound',
+  'pet.cinderHound.desc':
+    'What the Emberling grows into if it survives long enough. It hunts ahead of you, and the room is warmer for it.',
+  'pet.cinderHound.aura': 'Hound’s Fury',
+  'pet.lanternWisp': 'Lantern Wisp',
+  'pet.lanternWisp.desc':
+    'A light that stayed after whoever carried it did not. It barely fights. It makes the moment you have been charging towards arrive sooner.',
+  'pet.lanternWisp.aura': 'Wisp’s Gift',
+  'pet.title': 'Companions',
+  'pet.none': 'No companion',
+  'pet.noneDesc': 'Climb, and the Spire will send something after you.',
+  'pet.noneFound': 'Nothing has followed you yet',
+  'pet.noneFoundBody': 'The first companion turns up on floor {floor}.',
+  'pet.level': 'Level {level} of {max}',
+  'pet.xp': '{xp} / {next} xp',
+  'pet.maxed': 'Fully grown',
+  'pet.send': 'Send out',
+  'pet.recall': 'Call back',
+  'pet.out': 'Out with you',
+  'pet.aura': 'Aura: {effect}',
+  'pet.auraStat': '+{percent}% {stat}',
+  'pet.auraReduction': '{percent}% of every blow turned aside',
+  'pet.taunt': 'Draws {percent}% of what comes at you',
+  'pet.share': 'Fights at {percent}% of your own numbers',
+  'pet.found': '{name} is following you',
+  'pet.foundBody': 'It waits on the character sheet. Only one goes out at a time.',
+  'pet.grew': '{name} reached level {level}',
+  'pet.refused.noSuchPet': 'No such companion',
+  'pet.refused.noSuchPetBody': 'Nothing by that name has ever followed anyone.',
+  'pet.refused.notFound': 'You have not met that one',
+  'pet.refused.notFoundBody': 'Companions turn up as the Spire is climbed. Keep going.',
+  'combat.log.petJoins': '{unit} steps in beside you.',
+  'combat.log.petDown': '{unit} goes down.',
+  'combat.pet': 'Companion',
+
+  // The talents screen (Q38).
+  'talent.title': 'The {class}\u2019s Talents',
+  'talent.subtitle': 'One point a level, and a long way down.',
+  'talent.available': 'Points',
+  'talent.spent': 'Committed',
+  'talent.earned': '{count} earned in all',
+  'talent.rank': 'Rank {rank} of {max}',
+  'talent.tier': 'Row {tier}',
+  'talent.tierOpen': '{cost} per rank',
+  'talent.tierClosed': 'Opens at {points} points committed',
+  'talent.tierShort': '{missing} more points committed and this row opens.',
+  'talent.pointsShort': '{missing} more points and this rank opens.',
+  'talent.learn': 'Learn \u00b7 {cost}',
+  'talent.cost': '{cost} points',
+  'talent.maxed': 'Fully learned',
+  'talent.now': 'Now: {value}',
+  'talent.next': 'Next rank: {value}',
+  'talent.none': 'Nothing yet',
+  'talent.value.stat': '+{percent}% {stat}',
+  'talent.value.percent': '+{percent}%',
+  'talent.value.reduction': '{percent}% of every blow turned aside',
+  'talent.value.regeneration': '{percent}% of your health each round',
+  'talent.respec': 'Unlearn all \u00b7 {cost}g',
+  'talent.respecNone': 'Nothing learned yet',
+  'talent.respecNoneBody': 'There is nothing to unlearn. Spend a point first.',
+  'talent.respecTitle': 'Unlearn everything?',
+  'talent.respecBody':
+    'Every talent is forgotten and {points} points come back to spend again. It costs {cost} gold, and the gold does not come back.',
+  'talent.respecCost': '{cost} gold',
+  'talent.respecConfirm': 'Unlearn \u00b7 {cost}g',
+  'talent.respecCancel': 'Keep them',
+  'talent.respecShort': '{missing} more gold and you could unlearn them.',
+  'talent.respecDone': 'Talents unlearned',
+  'talent.respecDoneBody': 'Every point is back in your hands.',
+  'talent.refused.points': 'Not enough points',
+  'talent.refused.pointsBody': 'Talent points come one per level. Climb.',
+  'talent.refused.tier': 'That row is not open',
+  'talent.refused.tierBody': 'Commit more points in the rows above it first.',
+  'talent.refused.none': 'Nothing to unlearn',
+  'talent.refused.noneBody': 'This hero has not spent a point yet.',
+  'nav.section.talents': 'Talents',
+
+  // What names a heal the tree paid for, in the combat log.
+  'talent.regeneration': 'Regeneration',
+
+  // The Warrior's tree (Q38).
+  'talent.warrior.brawn': 'Brawn',
+  'talent.warrior.brawn.desc':
+    'Years of swinging something heavy. Adds to everything Strength already gives you.',
+  'talent.warrior.thickHide': 'Thick Hide',
+  'talent.warrior.thickHide.desc': 'Scar over scar. Adds to the Defense you already carry.',
+  'talent.warrior.deepLungs': 'Deep Lungs',
+  'talent.warrior.deepLungs.desc':
+    'One more round in you than the fight expected. Adds to your health pool.',
+  'talent.warrior.ironSkin': 'Iron Skin',
+  'talent.warrior.ironSkin.desc': 'A share of every blow simply fails to land properly.',
+  'talent.warrior.rageBorn': 'Rage-Born',
+  'talent.warrior.rageBorn.desc':
+    'Anger arrives sooner. Rage fills faster from both giving and taking.',
+  'talent.warrior.spoilsOfWar': 'Spoils of War',
+  'talent.warrior.spoilsOfWar.desc':
+    'You go through their pockets afterwards. Every floor pays more gold.',
+  'talent.warrior.secondWind': 'Second Wind',
+  'talent.warrior.secondWind.desc':
+    'You close up between exchanges. Recover health at the end of each round.',
+  'talent.warrior.cleavingBlows': 'Cleaving Blows',
+  'talent.warrior.cleavingBlows.desc':
+    'When one lands right, it lands all the way through. Critical hits hurt more.',
+  'talent.warrior.scavenger': 'Scavenger',
+  'talent.warrior.scavenger.desc':
+    'Nothing usable gets left on the floor. Every floor gives up more materials.',
+  'talent.warrior.unbreakable': 'Unbreakable',
+  'talent.warrior.unbreakable.desc':
+    'The blow that should have ended it does not. A further share of all damage turned aside.',
+  'talent.warrior.warCry': 'War Cry',
+  'talent.warrior.warCry.desc':
+    'The bar empties into something the room hears. Berserk Strike and Shield Slam hit harder.',
+
+  // The Mage's tree (Q38).
+  'talent.mage.arcaneFocus': 'Arcane Focus',
+  'talent.mage.arcaneFocus.desc':
+    'Intent sharpened to a point. Adds to the Strength your spells are cut from.',
+  'talent.mage.deepWell': 'Deep Well',
+  'talent.mage.deepWell.desc':
+    'More to draw on before you have to stop. Adds to your resource pool.',
+  'talent.mage.wardingSigil': 'Warding Sigil',
+  'talent.mage.wardingSigil.desc':
+    'A sign held in the off hand. Adds to the Defense you already carry.',
+  'talent.mage.quickenedCasting': 'Quickened Casting',
+  'talent.mage.quickenedCasting.desc': 'The words come shorter. Mana gathers faster each round.',
+  'talent.mage.runicInsight': 'Runic Insight',
+  'talent.mage.runicInsight.desc':
+    'You read the tower as well as fight it. Every floor teaches more.',
+  'talent.mage.manaShield': 'Mana Shield',
+  'talent.mage.manaShield.desc':
+    'A thin skin of held power. A share of every blow is absorbed before it reaches you.',
+  'talent.mage.overchannel': 'Overchannel',
+  'talent.mage.overchannel.desc':
+    'More through the same channel than is strictly wise. Arcane Blast hits harder.',
+  'talent.mage.elementalFury': 'Elemental Fury',
+  'talent.mage.elementalFury.desc':
+    'When it goes right it goes very right. Critical hits hurt more.',
+  'talent.mage.transmuterEye': "Transmuter's Eye",
+  'talent.mage.transmuterEye.desc':
+    'You see what a thing could become. Every floor gives up more materials.',
+  'talent.mage.archmage': 'Archmage',
+  'talent.mage.archmage.desc':
+    'The title is not honorary. A further, large increase to Arcane Blast.',
+  'talent.mage.leylineTap': 'Leyline Tap',
+  'talent.mage.leylineTap.desc': 'Something under the Spire answers. Mana gathers faster still.',
+
+  // The Hunter's tree (Q38).
+  'talent.hunter.steadyHands': 'Steady Hands',
+  'talent.hunter.steadyHands.desc':
+    'The draw does not waver. Adds to the Strength behind every shot.',
+  'talent.hunter.keenEye': 'Keen Eye',
+  'talent.hunter.keenEye.desc': 'You see the gap before it opens. Adds to your Luck.',
+  'talent.hunter.endurance': 'Endurance',
+  'talent.hunter.endurance.desc':
+    'Days in the field teach a body to keep going. Adds to your health pool.',
+  'talent.hunter.killerInstinct': 'Killer Instinct',
+  'talent.hunter.killerInstinct.desc': 'You know where it hurts. Critical hits deal more damage.',
+  'talent.hunter.trophyHunter': 'Trophy Hunter',
+  'talent.hunter.trophyHunter.desc':
+    'Everything worth carrying gets carried. Every floor pays more gold.',
+  'talent.hunter.bracing': 'Bracing',
+  'talent.hunter.bracing.desc':
+    'You take it on the shoulder, not the ribs. A share of every blow turned aside.',
+  'talent.hunter.rapidNocking': 'Rapid Nocking',
+  'talent.hunter.rapidNocking.desc':
+    'The next arrow is already moving. Focus gathers faster from every hit.',
+  'talent.hunter.fieldDressing': 'Field Dressing',
+  'talent.hunter.fieldDressing.desc':
+    'Nothing usable is wasted. Every floor gives up more materials.',
+  'talent.hunter.huntersMark': "Hunter's Mark",
+  'talent.hunter.huntersMark.desc':
+    'You pick the spot before you loose. Piercing Volley hits harder.',
+  'talent.hunter.deadeye': 'Deadeye',
+  'talent.hunter.deadeye.desc':
+    'The shot that counts, counts double. A further, large increase to critical damage.',
+  'talent.hunter.volleyMaster': 'Volley Master',
+  'talent.hunter.volleyMaster.desc':
+    'Four arrows in the air at once, and all of them yours. A further increase to Piercing Volley.',
+
+  // The Bard's tree (Q38).
+  'talent.bard.silverTongue': 'Silver Tongue',
+  'talent.bard.silverTongue.desc': 'Fortune likes to be flattered. Adds to your Luck.',
+  'talent.bard.resonance': 'Resonance',
+  'talent.bard.resonance.desc': 'The note hangs longer than it should. Adds to your resource pool.',
+  'talent.bard.poise': 'Poise',
+  'talent.bard.poise.desc': 'A performer does not flinch. Adds to the Defense you already carry.',
+  'talent.bard.encore': 'Encore',
+  'talent.bard.encore.desc': 'They always want another. Inspiration gathers faster each round.',
+  'talent.bard.patronsPurse': "Patron's Purse",
+  'talent.bard.patronsPurse.desc':
+    'Somebody always pays for a good story. Every floor pays more gold.',
+  'talent.bard.balladOfVigour': 'Ballad of Vigour',
+  'talent.bard.balladOfVigour.desc':
+    'You sing yourself upright. Recover health at the end of each round.',
+  'talent.bard.risingCrescendo': 'Rising Crescendo',
+  'talent.bard.risingCrescendo.desc':
+    'The song builds to something worth waiting for. Crescendo hits harder.',
+  'talent.bard.sharpWit': 'Sharp Wit',
+  'talent.bard.sharpWit.desc': 'The line that lands, lands hard. Critical hits deal more damage.',
+  'talent.bard.curioCollector': 'Curio Collector',
+  'talent.bard.curioCollector.desc': 'You keep the odd bits. Every floor gives up more materials.',
+  'talent.bard.maestro': 'Maestro',
+  'talent.bard.maestro.desc':
+    'Nobody in the Spire plays it better. A further, large increase to Crescendo.',
+  'talent.bard.everlastingSong': 'Everlasting Song',
+  'talent.bard.everlastingSong.desc': 'It never quite stops. Inspiration gathers faster still.',
+
+  // The Swashbuckler's tree (Q38).
+  'talent.swashbuckler.sinewAndSpring': 'Sinew and Spring',
+  'talent.swashbuckler.sinewAndSpring.desc':
+    'Light, and stronger than light looks. Adds to your Strength.',
+  'talent.swashbuckler.fortunesFavour': "Fortune's Favour",
+  'talent.swashbuckler.fortunesFavour.desc':
+    'You have always been lucky, and you have always known it. Adds to your Luck.',
+  'talent.swashbuckler.windRead': 'Wind-Read',
+  'talent.swashbuckler.windRead.desc':
+    'You know which way the fight is leaning. Adds to your resource pool.',
+  'talent.swashbuckler.riposte': 'Riposte',
+  'talent.swashbuckler.riposte.desc':
+    'Their blade goes where you are not. A share of every blow turned aside.',
+  'talent.swashbuckler.pickpocket': 'Pickpocket',
+  'talent.swashbuckler.pickpocket.desc':
+    'You were closer to them than they realised. Every floor pays more gold.',
+  'talent.swashbuckler.duellistsRhythm': "Duellist's Rhythm",
+  'talent.swashbuckler.duellistsRhythm.desc': 'Step, feint, step. Focus gathers faster each round.',
+  'talent.swashbuckler.precision': 'Precision',
+  'talent.swashbuckler.precision.desc':
+    'One inch left and it would have been nothing. Critical hits deal more damage.',
+  'talent.swashbuckler.quickStudy': 'Quick Study',
+  'talent.swashbuckler.quickStudy.desc':
+    'You only need to be shown once. Every floor teaches more.',
+  'talent.swashbuckler.feintingFlurry': 'Feinting Flurry',
+  'talent.swashbuckler.feintingFlurry.desc':
+    'Three blades where there is one. Flurry and Feint hits harder.',
+  'talent.swashbuckler.bladeDance': 'Blade Dance',
+  'talent.swashbuckler.bladeDance.desc':
+    'It stops looking like fighting. A further, large increase to Flurry and Feint.',
+  'talent.swashbuckler.devilsOwnLuck': "Devil's Own Luck",
+  'talent.swashbuckler.devilsOwnLuck.desc':
+    'The kind nobody should have. A further, large increase to critical damage.',
+  'echo.spoils': 'Spoils',
+  'echo.spoils.desc': 'Every floor hands over more gold.',
+  'echo.insight': 'Insight',
+  'echo.insight.desc': 'Every floor teaches more.',
+  'echo.prospect': 'Prospect',
+  'echo.prospect.desc': 'Every floor gives up more of what it is made of.',
+  'echo.fortune': "Fortune's Eye",
+  'echo.fortune.desc': 'Tickets turn up more often on the way up.',
+  'echo.patience': 'Patience',
+  'echo.patience.desc': 'The auto-climb waits less between floors.',
+  'echo.coffers': 'Coffers',
+  'echo.coffers.desc': 'More sockets in every backpack this account owns.',
+
+  // Sets and named uniques (Q45).
+  'set.ironbound': 'Ironbound',
+  'set.ironbound.desc': 'Plate meant for a wall that does not move.',
+  'set.emberflow': 'Emberflow',
+  'set.emberflow.desc': 'Forged hot and never allowed to cool.',
+  'set.whisperstep': 'Whisperstep',
+  'set.whisperstep.desc': 'Made for those who would rather not be hit at all.',
+  'set.progress': '{worn} of {total} worn',
+  'set.bonusActive': '{pieces} pieces: +{percent}% {stat}',
+  'set.bonusIdle': '{pieces} pieces: +{percent}% {stat} — {missing} to go',
+  'set.title': 'Sets',
+  'set.none': 'Nothing you are wearing belongs to a set yet.',
+  'set.tip': 'Part of the {name} set. {worn} of {total} pieces worn.',
+
+  'item.set.ironboundHelm': 'Ironbound Helm',
+  'item.set.ironboundCuirass': 'Ironbound Cuirass',
+  'item.set.ironboundGreaves': 'Ironbound Greaves',
+  'item.set.ironboundSabatons': 'Ironbound Sabatons',
+  'item.set.ironboundFists': 'Ironbound Fists',
+  'item.set.ironboundDrape': 'Ironbound Drape',
+  'item.set.emberflowCrown': 'Emberflow Crown',
+  'item.set.emberflowPlate': 'Emberflow Plate',
+  'item.set.emberflowLegguards': 'Emberflow Legguards',
+  'item.set.emberflowTreads': 'Emberflow Treads',
+  'item.set.emberflowGrips': 'Emberflow Grips',
+  'item.set.emberflowMantle': 'Emberflow Mantle',
+  'item.set.whisperstepHood': 'Whisperstep Hood',
+  'item.set.whisperstepJerkin': 'Whisperstep Jerkin',
+  'item.set.whisperstepWraps': 'Whisperstep Wraps',
+  'item.set.whisperstepStriders': 'Whisperstep Striders',
+  'item.set.whisperstepGloves': 'Whisperstep Gloves',
+  'item.set.whisperstepShroud': 'Whisperstep Shroud',
+
+  'item.unique.heartOfEmber': 'Heart of Ember',
+  'item.unique.stonewardPlate': 'Stoneward Plate',
+  'item.unique.brambleMantle': 'Bramble Mantle',
+  'item.unique.quickeningBand': 'Quickening Band',
+  'item.unique.eyeOfTheSpire': 'Eye of the Spire',
+
+  'item.uniqueLine': 'Unique',
+  'unique.power.swiftCharge': 'Quickening',
+  'unique.power.swiftCharge.desc': 'Your signature charges {percent}% faster.',
+  'unique.power.lifesteal': 'Emberdrinker',
+  'unique.power.lifesteal.desc': 'You heal for {percent}% of the damage you deal.',
+  'unique.power.bulwark': 'Stoneward',
+  'unique.power.bulwark.desc': 'You take {percent}% less damage from everything.',
+  'unique.power.deadlyCrits': 'Spirekeen',
+  'unique.power.deadlyCrits.desc': 'Your critical hits land for {percent}% more.',
+  'unique.power.thorns': 'Bramblehide',
+  'unique.power.thorns.desc': '{percent}% of the damage you take goes back to whoever dealt it.',
+
+  // The workbench, at the Alchemist's counter (Q43).
+  'bench.title': 'Workbench',
+  'bench.hint':
+    'Materials you have climbed past are not dead weight. Five of a kind become one of the next kind, and a pouch can pay for a draught when the purse cannot.',
+  'bench.from': '{count} × {name}',
+  'bench.to': '{count} × {name}',
+  'bench.held': '{held} held',
+  'bench.make': 'Make',
+  'bench.makeAll': 'All',
+  'bench.makeTip': 'Melt five down into one {name}.',
+  'bench.makeAllTip': 'Do it {count} times over, in one press.',
+  'bench.short': '{count} more and this rung opens.',
+  'bench.brew': 'Brew a draught — {count} × {name}',
+  'bench.brewCost': 'Costs {count} × {name}',
+  'bench.brewShort': 'Not enough of the material this depth asks for.',
+  'bench.brewed': 'Brewed and drunk',
+  'bench.made': 'Made {count} × {name}',
+  'bench.refused.atCeiling': 'Nothing above it',
+  'bench.refused.atCeilingBody':
+    'This is the deepest material the Spire has. There is no rung above.',
 
   // The summoning wish list.
   'gacha.wish.title': 'Wish list',
@@ -630,6 +1181,7 @@ export const en = {
   'combat.log.doubleStrike': 'strikes {target} again',
   'combat.log.signature': 'unleashes {name}',
   'combat.log.dodge': 'dodges {source}',
+  'combat.log.heal': 'draws {amount} back — {power}',
   'combat.log.effectOn': '{name} takes hold on {unit}',
   'combat.log.effectOff': '{name} fades from {unit}',
   'combat.log.defeated': '{unit} falls',

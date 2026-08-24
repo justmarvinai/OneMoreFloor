@@ -9,8 +9,11 @@
  * Icons follow Q27: curated FantasyUI art bound by id, so replacing them with
  * commissioned item art later is a data change and nothing else.
  */
+import { BRACKET_COUNT } from '@/content/balance/items.ts';
+import { SET_BASE_WEIGHT, UNIQUE_BASE_WEIGHT } from '@/content/balance/uniques.ts';
 import type { EquipSlotId } from '@/domain/character/types.ts';
 import type { AffixPoolId, ItemDef, WeaponKind } from '@/domain/items/types.ts';
+import type { UniquePowerId } from './uniques.ts';
 import type { StringKey } from '@/strings/index.ts';
 
 /**
@@ -80,6 +83,55 @@ function accessory(
     affixPool,
     brackets: ACCESSORY_BRACKETS[spec.tier],
   }));
+}
+
+/**
+ * A set piece (Q45).
+ *
+ * Set bases span the **whole** bracket ladder rather than a depth tier: an
+ * Ironbound Helm found on floor 12 and one found on floor 1,200 are the same
+ * base sized for different depths, which is what lets a set stay worth chasing
+ * in a tower with no top. They sit below an ordinary base's weight so the six
+ * slots stay a chase rather than a formality.
+ */
+function setPiece(slot: EquipSlotId, setId: string, spec: Omit<BaseSpec, 'tier'>): ItemDef {
+  return {
+    id: `item.${slot}.${spec.key}`,
+    slot,
+    nameKey: spec.nameKey,
+    icon: spec.icon,
+    classId: null,
+    affixPool: 'armor' as AffixPoolId,
+    brackets: [0, BRACKET_COUNT],
+    setId,
+    weight: SET_BASE_WEIGHT,
+  };
+}
+
+/**
+ * A named unique (Q45).
+ *
+ * Also ladder-wide, and on slots no class competes for so any hero can find any
+ * of them. The rarity gate that keeps them out of ordinary drops lives in the
+ * generator, not here — a base does not get to decide what rarity it is.
+ */
+function uniquePiece(
+  slot: EquipSlotId,
+  power: UniquePowerId,
+  affixPool: AffixPoolId,
+  spec: Omit<BaseSpec, 'tier'>,
+): ItemDef {
+  return {
+    id: `item.${slot}.${spec.key}`,
+    slot,
+    nameKey: spec.nameKey,
+    icon: spec.icon,
+    classId: null,
+    affixPool,
+    brackets: [0, BRACKET_COUNT],
+    unique: power,
+    weight: UNIQUE_BASE_WEIGHT,
+  };
 }
 
 export const ITEM_BASES: readonly ItemDef[] = [
@@ -365,4 +417,125 @@ export const ITEM_BASES: readonly ItemDef[] = [
     },
     { key: 'sun-sigil', nameKey: 'item.artifact.sunSigil', icon: 'fire-sun-sigil', tier: 2 },
   ]),
+
+  // --- Sets: six armour slots each, at every depth (Q45) --------------------
+  setPiece('helmet', 'set.ironbound', {
+    key: 'ironbound-helm',
+    nameKey: 'item.set.ironboundHelm',
+    icon: 'crest-warmark',
+  }),
+  setPiece('chest', 'set.ironbound', {
+    key: 'ironbound-cuirass',
+    nameKey: 'item.set.ironboundCuirass',
+    icon: 'hero-vanguard',
+  }),
+  setPiece('leggings', 'set.ironbound', {
+    key: 'ironbound-greaves',
+    nameKey: 'item.set.ironboundGreaves',
+    icon: 'earth-rock-spire',
+  }),
+  setPiece('boots', 'set.ironbound', {
+    key: 'ironbound-sabatons',
+    nameKey: 'item.set.ironboundSabatons',
+    icon: 'earth-cobble-glow',
+  }),
+  setPiece('gauntlets', 'set.ironbound', {
+    key: 'ironbound-fists',
+    nameKey: 'item.set.ironboundFists',
+    icon: 'tech-power-gauntlet',
+  }),
+  setPiece('cape', 'set.ironbound', {
+    key: 'ironbound-drape',
+    nameKey: 'item.set.ironboundDrape',
+    icon: 'crest-warded-shield',
+  }),
+
+  setPiece('helmet', 'set.emberflow', {
+    key: 'emberflow-crown',
+    nameKey: 'item.set.emberflowCrown',
+    icon: 'crest-gilded-crown',
+  }),
+  setPiece('chest', 'set.emberflow', {
+    key: 'emberflow-plate',
+    nameKey: 'item.set.emberflowPlate',
+    icon: 'hero-emberknight',
+  }),
+  setPiece('leggings', 'set.emberflow', {
+    key: 'emberflow-legguards',
+    nameKey: 'item.set.emberflowLegguards',
+    icon: 'fire-molten-heart',
+  }),
+  setPiece('boots', 'set.emberflow', {
+    key: 'emberflow-treads',
+    nameKey: 'item.set.emberflowTreads',
+    icon: 'fire-sun-sigil',
+  }),
+  setPiece('gauntlets', 'set.emberflow', {
+    key: 'emberflow-grips',
+    nameKey: 'item.set.emberflowGrips',
+    icon: 'fire-dragon-eye',
+  }),
+  setPiece('cape', 'set.emberflow', {
+    key: 'emberflow-mantle',
+    nameKey: 'item.set.emberflowMantle',
+    icon: 'fire-phoenix-flight',
+  }),
+
+  setPiece('helmet', 'set.whisperstep', {
+    key: 'whisperstep-hood',
+    nameKey: 'item.set.whisperstepHood',
+    icon: 'crest-stone-guard',
+  }),
+  setPiece('chest', 'set.whisperstep', {
+    key: 'whisperstep-jerkin',
+    nameKey: 'item.set.whisperstepJerkin',
+    icon: 'hero-lone-wanderer',
+  }),
+  setPiece('leggings', 'set.whisperstep', {
+    key: 'whisperstep-wraps',
+    nameKey: 'item.set.whisperstepWraps',
+    icon: 'earth-mossy-stone',
+  }),
+  setPiece('boots', 'set.whisperstep', {
+    key: 'whisperstep-striders',
+    nameKey: 'item.set.whisperstepStriders',
+    icon: 'earth-golden-seed',
+  }),
+  setPiece('gauntlets', 'set.whisperstep', {
+    key: 'whisperstep-gloves',
+    nameKey: 'item.set.whisperstepGloves',
+    icon: 'tech-piston-fist',
+  }),
+  setPiece('cape', 'set.whisperstep', {
+    key: 'whisperstep-shroud',
+    nameKey: 'item.set.whisperstepShroud',
+    icon: 'blood-nightwing',
+  }),
+
+  // --- Uniques: rules rather than numbers (Q45) -----------------------------
+  uniquePiece('chest', 'lifesteal', 'armor', {
+    key: 'heart-of-ember',
+    nameKey: 'item.unique.heartOfEmber',
+    icon: 'blood-chalice',
+  }),
+  uniquePiece('leggings', 'bulwark', 'armor', {
+    key: 'stoneward-plate',
+    nameKey: 'item.unique.stonewardPlate',
+    icon: 'earth-monolith',
+  }),
+  uniquePiece('cape', 'thorns', 'armor', {
+    key: 'bramble-mantle',
+    nameKey: 'item.unique.brambleMantle',
+    icon: 'earth-verdant-ward',
+  }),
+  uniquePiece('ring', 'swiftCharge', 'accessory_offense', {
+    key: 'quickening-band',
+    nameKey: 'item.unique.quickeningBand',
+    icon: 'rune-sealed-ring',
+  }),
+  uniquePiece('amulet', 'deadlyCrits', 'accessory_offense', {
+    key: 'eye-of-the-spire',
+    nameKey: 'item.unique.eyeOfTheSpire',
+    icon: 'fire-inferno-eye',
+  }),
 ];

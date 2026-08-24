@@ -191,7 +191,22 @@ test('reports no console errors through the whole lifecycle', async ({ page }) =
 });
 
 /** Start the floor the hero is standing on, from the tower. */
+/**
+ * Take the plain road when the leg forks (Q41).
+ *
+ * Every ten floors the tower asks which way the next ten go, and the fight
+ * controls stay shut until it is answered. Tests that are not *about* the fork
+ * answer it the way a player in a hurry does.
+ */
+async function takeTheRoadIfForked(page: Page): Promise<void> {
+  const fork = page.locator('[data-testid="fork"][data-open="true"]');
+  if (!(await fork.isVisible().catch(() => false))) return;
+  await fork.locator('[data-testid="road-path.evenRoad"]').click();
+  await expect(page.locator('[data-testid="fork"][data-open="false"]')).toBeVisible();
+}
+
 async function startFight(page: Page): Promise<void> {
+  await takeTheRoadIfForked(page);
   // Anchored: once a Quick-Raid is available the control is a `SplitButton`, and
   // its caret is labelled "More fight floor 1 options" — which an unanchored
   // /Fight Floor/ matches just as well as the button that starts the fight.
@@ -261,9 +276,13 @@ test('a death keeps everything and offers the way back up (Brief §3.3/§3.4)', 
     }
 
     if (await death.isVisible().catch(() => false)) break;
-    // "One More Floor" walks straight into the next fight — no tower in between.
+    // "One More Floor" walks straight into the next fight — no tower in between,
+    // unless the next floor opens a leg, in which case it puts the player at the
+    // fork rather than choosing for them (Q41).
     await oneMore.click();
-    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+    const tower = page.locator('[data-testid="tower"]');
+    await expect(page.locator('[data-testid="combat-screen"]').or(tower).first()).toBeVisible();
+    if (await tower.isVisible().catch(() => false)) await startFight(page);
   }
 
   await expect(death).toBeVisible();
@@ -321,7 +340,9 @@ async function climb(page: Page, floors: number): Promise<void> {
 
     const raid = page.locator('[data-testid="raid"]');
     const tower = page.locator('[data-testid="tower"]');
-    await expect(raid.or(tower).first()).toBeVisible();
+    // Generous, and for a real reason: this click can kick off a Quick-Raid that
+    // resolves dozens of floors, and the suite runs four of these at once.
+    await expect(raid.or(tower).first()).toBeVisible({ timeout: 30_000 });
     if (await raid.isVisible().catch(() => false)) {
       await page.getByRole('button', { name: /^Continue$/ }).click();
     }
@@ -1207,7 +1228,10 @@ test('refuses a drop the socket cannot take, and says why (§20.5)', async ({ pa
     .first();
   await bagCellFor(page, slot).dragTo(wrong);
 
-  const toast = page.locator('.fui-toast');
+  // The *refusal*, addressed by its tone rather than by being the only card on
+  // screen: two dozen floors of climbing also turns up companions, and each of
+  // those is a toast of its own (Q42).
+  const toast = page.locator('.fui-toast[data-tone="warn"]').last();
   await expect(toast).toBeVisible();
   // A refusal that only says "no" is the bug; the card has to carry a reason.
   expect((await toast.innerText()).split('\n').length).toBeGreaterThan(1);
@@ -1405,24 +1429,42 @@ test('marks the bag pieces worth wearing without being hovered', async ({ page }
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');
 
-  const bag = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await climb(page, 4);
-    await goToSection(page, 'Character');
-    if ((await bag.count()) > 0) break;
-    await goToSection(page, 'Tower');
-  }
-  expect(await bag.count(), 'nothing dropped in twenty floors').toBeGreaterThan(0);
+  /**
+   * Bought rather than waited for.
+   *
+   * Gear is an event since the fifth round's retune — an ordinary floor drops a
+   * piece six times in a hundred — so a test that hopes for a drop is a test
+   * that fails one run in three. The shelf always has stock; it only ever needs
+   * the gold, and a purchase lands in the same backpack a drop would.
+   */
+  const buyButtons = page
+    .locator('[data-testid="merchant"] .fui-itemcard')
+    .getByRole('button', { name: 'Buy', exact: true })
+    .and(page.locator('button:not([disabled])'));
 
-  // A fresh Warrior wears three pieces, so most of what drops fills an empty
-  // socket — at least one bag slot must carry the mark.
-  await expect(page.locator('.omf-character__side .fui-inv .omf-upgrade').first()).toBeVisible();
+  const marked = page.locator('.omf-character__side .fui-inv .fui-slot.omf-upgrade');
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await goToSection(page, 'Character');
+    if ((await marked.count()) > 0) break;
+
+    await goToSection(page, 'Equipment');
+    if ((await buyButtons.count()) === 0) {
+      await goToSection(page, 'Tower');
+      await climb(page, 4);
+      continue;
+    }
+    await buyButtons.first().click();
+  }
+
+  await goToSection(page, 'Character');
+  expect(await marked.count(), 'nothing in the pack was ever worth wearing').toBeGreaterThan(0);
+  await expect(marked.first()).toBeVisible();
 
   // The shelf says it in words, and says the same thing the tooltip does.
   await goToSection(page, 'Equipment');
-  const marked = page.locator('.fui-shop__list .fui-itemcard.omf-upgrade').first();
-  if ((await marked.count()) > 0) {
-    await expect(marked).toContainText(/Upgrade/i);
+  const onTheShelf = page.locator('.fui-shop__list .fui-itemcard.omf-upgrade').first();
+  if ((await onTheShelf.count()) > 0) {
+    await expect(onTheShelf).toContainText(/Upgrade/i);
   }
 });
 
@@ -1461,6 +1503,184 @@ test('auto-climb offers three states and refuses the one not yet earned (§20.5)
   // Watching is available from the first floor, and switching it on sticks.
   await page.locator('[data-testid="auto-watching"]').click();
   await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
+});
+
+/* --- Round six: more to do, and more to tinker with ----------------------- */
+
+test('echoes are paid for new ground and bought on the account screen (Q36)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Nothing earned yet, and every node is offered with no prerequisites.
+  await goToSection(page, 'Account');
+  const echoes = page.locator('[data-testid="echoes"]');
+  await expect(echoes).toBeVisible();
+  await expect(echoes.locator('.omf-echoes__card')).toHaveCount(6);
+  await expect(echoes).toContainText('0 earned in all');
+
+  const spoils = page.locator('[data-testid="echo-spoils"]');
+  const deepen = spoils.getByRole('button', { name: 'Deepen' });
+  await expect(deepen).toBeDisabled();
+  // The reason is on the card, not a hover away.
+  await expect(spoils).toContainText(/more echoes/i);
+
+  // Nothing in the rail yet: the balance appears with the first echo, not before.
+  const railEchoes = page.locator('[data-testid="wallet-echoes"]');
+  await expect(railEchoes).toBeHidden();
+
+  // Climbing new ground pays them, and the rail carries the number — no toast
+  // per floor, because on a fresh climb every floor is new ground.
+  await goToSection(page, 'Tower');
+  await climb(page, 3);
+  await expect(railEchoes).toBeVisible();
+
+  await goToSection(page, 'Account');
+  await expect(echoes).not.toContainText('0 earned in all');
+
+  // Keep climbing until the first rank is affordable, then buy it.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await deepen.isEnabled()) break;
+    await goToSection(page, 'Tower');
+    await climb(page, 4);
+    await goToSection(page, 'Account');
+  }
+  await expect(deepen, 'the climb never paid enough echoes for one rank').toBeEnabled();
+
+  // Re-entered rather than clicked in place: the screen rebuilds after every
+  // climb, and a click racing that rebuild lands on a node already gone.
+  await goToSection(page, 'Tower');
+  await goToSection(page, 'Account');
+  await expect(echoes).toBeVisible();
+  await deepen.click();
+  await expect(spoils).toContainText('Rank 1 of 5');
+  // Spent, so the purse fell — and the lifetime total did not.
+  await expect(spoils).not.toContainText('Now: Nothing yet');
+});
+
+test('the workbench rescues material the hero has climbed past (Q43)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Alchemist');
+
+  const bench = page.locator('[data-testid="workbench"]');
+  await expect(bench).toBeVisible();
+  // Every rung is drawn, not only the affordable ones — a blank bench teaches
+  // nobody what it is for.
+  const dust = page.locator('[data-testid="transmute-mat.spire-dust"]');
+  await expect(dust).toBeVisible();
+  await expect(dust).toHaveAttribute('data-ready', 'false');
+  await expect(dust).toContainText('0 held');
+
+  // And the button says what would open it rather than only going grey.
+  const make = dust.getByRole('button', { name: 'Make' });
+  await expect(make).toBeDisabled();
+  await make.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/rung opens/i);
+
+  // Climb until the tower pays materials, then the rung opens and works.
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await goToSection(page, 'Tower');
+    await climb(page, 3);
+    await goToSection(page, 'Alchemist');
+    if ((await dust.getAttribute('data-ready')) === 'true') break;
+  }
+  await expect(dust, 'the tower never paid five of the shallowest material').toHaveAttribute(
+    'data-ready',
+    'true',
+  );
+
+  await dust.getByRole('button', { name: 'Make' }).click();
+  await expect(page.locator('.fui-toast', { hasText: /Made/i })).toBeVisible();
+  await expect(page.locator('[data-testid="transmute-mat.iron-sigil"]')).toContainText(/[1-9]/);
+});
+
+test('a set piece says what set it is in, and the sheet says what it gives (Q45)', async ({
+  page,
+}) => {
+  // Genuinely long: set bases sit below an ordinary base's weight, so finding
+  // one means working through several shelves' worth of stock.
+  test.setTimeout(240_000);
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  /**
+   * Bought rather than waited for, and bought until a set piece turns up: set
+   * bases sit below an ordinary base's weight on purpose, so a test that hopes
+   * for one on the first shelf is a test that fails.
+   */
+  const buyButtons = page
+    .locator('[data-testid="merchant"] .fui-itemcard')
+    .getByRole('button', { name: 'Buy', exact: true })
+    .and(page.locator('button:not([disabled])'));
+
+  const sets = page.locator('[data-testid="sets"]');
+  const marked = page.locator('.omf-character__side .fui-inv .fui-slot.omf-upgrade');
+
+  /**
+   * One action per pass, with a settle point after every navigation.
+   *
+   * Every purchase and every equip rebuilds the screen it happened on, so a
+   * tight loop of clicks races its own re-render and Playwright spends the whole
+   * budget retrying a detached node.
+   */
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await goToSection(page, 'Character');
+    await expect(page.locator('[data-testid="character"]')).toBeVisible();
+    if (await sets.isVisible().catch(() => false)) break;
+
+    // Wear anything the game says is worth wearing — a set piece is only on the
+    // sheet once it is on the hero.
+    if ((await marked.count()) > 0) {
+      await marked.first().click();
+      await expect(page.locator('[data-testid="gear-dialog"]')).toBeVisible();
+      await page.getByRole('button', { name: /^Equip$/ }).click();
+      await page.keyboard.press('Escape');
+      continue;
+    }
+
+    await goToSection(page, 'Equipment');
+    await expect(page.locator('[data-testid="merchant"]')).toBeVisible();
+    if ((await buyButtons.count()) === 0) {
+      await goToSection(page, 'Tower');
+      await climb(page, 4);
+      continue;
+    }
+    await buyButtons.first().click();
+  }
+
+  await goToSection(page, 'Character');
+  await expect(sets, 'no set piece was ever worn').toBeVisible();
+  // Three thresholds, said in full whether or not they are live.
+  await expect(sets).toContainText(/of 6 worn/i);
+  await expect(sets.locator('.omf-sets__bonus')).toHaveCount(3);
+  // A threshold that is not live says how far off it is rather than going quiet.
+  await expect(sets.locator('.omf-sets__bonus[data-active="false"]').first()).toContainText(
+    /to go/i,
+  );
+});
+
+test('an elite is visible from the bottom of the path, and always pays gear (Q44)', async ({
+  page,
+}) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Roughly one eligible floor in eleven carries one, and the trail draws
+  // eighteen ahead — so a few climbs is plenty to meet one.
+  const elite = page.locator('.omf-tower__elite').first();
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if (await elite.isVisible().catch(() => false)) break;
+    await climb(page, 4);
+  }
+  await expect(elite, 'no elite appeared in twenty-four floors').toBeVisible();
+
+  // It says what it is on the path rather than only in a tooltip.
+  await expect(elite).toContainText(/Elite/i);
+  await elite.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/always leaves gear/i);
 });
 
 test('curses are offered long before they can be taken (§20.5)', async ({ page }) => {
@@ -1542,7 +1762,7 @@ test('a piece can be broken down or reforged, not only sold', async ({ page }) =
 
   await salvage.click();
   await expect(dialog).toBeHidden();
-  await expect(page.locator('.fui-toast').last()).toContainText(/Broken down/i);
+  await expect(page.locator('.fui-toast', { hasText: /Broken down/i })).toBeVisible();
 });
 
 test('a gear set can be kept and put back on (fifth polish round)', async ({ page }) => {
@@ -1569,7 +1789,7 @@ test('a gear set can be kept and put back on (fifth polish round)', async ({ pag
 
   // Wearing what is already worn is refused in words (§20.5).
   await first.getByRole('button', { name: 'Wear' }).click();
-  await expect(page.locator('.fui-toast').last()).toContainText(/Already wearing it/i);
+  await expect(page.locator('.fui-toast', { hasText: /Already wearing it/i })).toBeVisible();
 });
 
 test('the bestiary fills in as the tower is met, and keeps its gaps', async ({ page }) => {
@@ -1625,8 +1845,12 @@ test('a finished run becomes a line in the records, and the record gets a ghost'
     }
 
     if (await death.isVisible().catch(() => false)) break;
+    // A leg's fork puts the player back at the tower rather than choosing for
+    // them, so the walk up may pass through it (Q41).
     await oneMore.click();
-    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+    const tower = page.locator('[data-testid="tower"]');
+    await expect(page.locator('[data-testid="combat-screen"]').or(tower).first()).toBeVisible();
+    if (await tower.isVisible().catch(() => false)) await startFight(page);
   }
   await expect(death).toBeVisible();
   // Walking back in rather than raiding: the Spire at Floor 1, below the record.
@@ -1642,4 +1866,238 @@ test('a finished run becomes a line in the records, and the record gets a ghost'
   await expect(row, 'the run that just ended').toBeVisible();
   await expect(row).toContainText(/Floor \d+/);
   await expect(row).toContainText(/gold/i);
+});
+
+test('a level buys a talent, and the tree says why it will not (Q38)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // A few floors first: unlearning costs gold, and a hero who has climbed
+  // nothing has none — which is the honest state, not a bug to design around.
+  await climb(page, 5);
+
+  await goToSection(page, 'Talents');
+  const talents = page.locator('[data-testid="talents"]');
+  await expect(talents).toBeVisible();
+
+  // A point per level, and somewhere to put every one of them.
+  await expect(talents).toContainText(/\d+ earned in all/);
+  const brawn = page.locator('[data-testid="talent-talent.warrior.brawn"]');
+  await expect(brawn).toContainText('Rank 0 of 5');
+
+  // The deepest row is shut, and says how far away it is rather than going grey
+  // in silence (§20.5).
+  const capstone = page.locator('[data-testid="talent-talent.warrior.warCry"]');
+  await expect(capstone).toContainText(/more points committed/);
+  await expect(capstone.getByRole('button', { name: /^Learn/ })).toBeDisabled();
+
+  // Spend the point.
+  await brawn.getByRole('button', { name: /^Learn/ }).click();
+  await expect(brawn).toContainText('Rank 1 of 5');
+  await expect(brawn).toContainText('+3% Strength');
+
+  // Unlearning is priced, confirmed, and gives the point back.
+  await page.locator('[data-testid="talent-respec"]').click();
+  await page.getByRole('button', { name: /^Unlearn ·/ }).click();
+  await expect(brawn).toContainText('Rank 0 of 5');
+  await expect(page.locator('[data-testid="talent-respec"]')).toContainText('Nothing learned yet');
+});
+
+test('the Spire sends a companion, and it fights beside you (Q42)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Nothing has followed the hero yet, and the sheet says where the first one
+  // comes from rather than showing an empty box (§20.5).
+  await goToSection(page, 'Character');
+  const roster = page.locator('[data-testid="pets"]');
+  await expect(roster).toBeVisible();
+  await expect(roster).toContainText(/first companion turns up on floor/i);
+
+  // Floor 5 frees the Emberling.
+  await goToSection(page, 'Tower');
+  await climb(page, 5);
+
+  await goToSection(page, 'Character');
+  const emberling = page.locator('[data-testid="pet-pet.emberling"]');
+  await expect(emberling).toBeVisible();
+  await expect(emberling).toContainText('Emberling');
+  await expect(emberling).toContainText(/Level \d+ of 50/);
+
+  // Send it out; the card says which one is with you.
+  await emberling.getByRole('button', { name: 'Send out' }).click();
+  await expect(emberling).toHaveAttribute('data-out', 'true');
+  await expect(emberling.getByRole('button', { name: 'Call back' })).toBeVisible();
+
+  // It takes the field: its own card, and its own blows in the log.
+  await goToSection(page, 'Tower');
+  await startFight(page);
+  await expect(page.locator('[data-testid="combat-card-pet"]')).toBeVisible();
+  // The log names it while the fight is still on the field — the aftermath
+  // replaces the stage, log and all.
+  await expect(page.locator('.fui-log')).toContainText('Emberling');
+  await skipToVerdict(page);
+  await expect(page.locator('.omf-combat__aftermath > *')).toBeVisible();
+
+  // And it grew for the floor it fought on: the roster is the account's, so the
+  // experience is there when the hero next looks.
+  const back = page.getByRole('button', { name: /Back to the Spire/i });
+  if (await back.isVisible().catch(() => false)) await back.click();
+  await goToSection(page, 'Character');
+  await expect(page.locator('[data-testid="pet-pet.emberling"]')).not.toContainText(/\b0 \//);
+});
+
+test('a party goes out on a route, and can be called back (Q37)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  await goToSection(page, 'Quests');
+  const board = page.locator('[data-testid="expeditions"]');
+  await expect(board).toBeVisible();
+
+  // One party from the start, waiting for orders.
+  const party = page.locator('[data-testid="party-1"]');
+  await expect(party).toHaveAttribute('data-state', 'idle');
+  await expect(party).toContainText('Waiting for orders');
+
+  // The deep routes are shut, and each says what opens it rather than going
+  // grey in silence (§20.5).
+  const deep = page.locator('[data-testid="route-expedition.descent"]');
+  await expect(deep).toBeDisabled();
+  await expect(party).toContainText(/Opens once the Spire has been climbed to floor 500/);
+
+  // Send the short one.
+  await page.locator('[data-testid="route-expedition.scavenge"]').click();
+  await expect(party).toHaveAttribute('data-state', 'away');
+  await expect(party).toContainText('Scavenging Run');
+
+  // Nothing else can be sent from a party that is already out.
+  await expect(page.locator('[data-testid="route-expedition.scavenge"]')).toHaveCount(0);
+
+  // Calling them back asks first, then frees the slot.
+  await party.getByRole('button', { name: 'Recall' }).click();
+  await page.getByRole('button', { name: 'Call them back' }).click();
+  await expect(party).toHaveAttribute('data-state', 'idle');
+  await expect(page.locator('[data-testid="route-expedition.scavenge"]')).toBeEnabled();
+});
+
+test('the boss rush runs the ten gates and says which one stopped it (Q39)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Shut before the first gate has been met, and it says what opens it (§20.5).
+  const card = page.locator('[data-testid="rush-card"]');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText('Never attempted');
+  await expect(page.locator('[data-testid="rush-enter"]')).toBeDisabled();
+  await expect(card).toContainText(/Opens once you have beaten the gate on floor 10/);
+
+  // Clear the gate on floor 10, and the rush opens. Climbed in bouts because the
+  // first gate can win — the hero comes back stronger and tries again, which is
+  // what a player does too.
+  const enter = page.locator('[data-testid="rush-enter"]');
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    if (await enter.isEnabled()) break;
+    await climb(page, 12);
+  }
+  await expect(enter, 'the hero never got past the gate on floor 10').toBeEnabled();
+
+  await page.locator('[data-testid="rush-enter"]').click();
+  const summary = page.locator('[data-testid="boss-rush"]');
+  await expect(summary).toBeVisible();
+
+  // The ladder names all ten gates, whether or not the run reached them.
+  const ladder = page.locator('[data-testid="rush-ladder"]');
+  await expect(ladder.locator('.omf-rush__gate')).toHaveCount(10);
+  // Exactly one gate stopped the run, or every one of them held.
+  const fell = ladder.locator('.omf-rush__gate[data-state="fell"]');
+  expect(await fell.count()).toBeLessThanOrEqual(1);
+
+  await page.getByRole('button', { name: /Back to the Spire/i }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  // The best is on the card now, and a second run pays nothing for the same depth.
+  await expect(page.locator('[data-testid="rush-card"]')).toContainText(/Best: \d+ of 10/);
+});
+
+test('the road forks every ten floors, and the choice holds (Q41)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Floor 1 opens a leg, so the tower asks before it lets anyone climb.
+  const fork = page.locator('[data-testid="fork"]');
+  await expect(fork).toHaveAttribute('data-open', 'true');
+  await expect(fork).toContainText('The road forks');
+  await expect(fork).toContainText('Floors 1 to 10');
+  await expect(page.getByRole('button', { name: /^Fight Floor 1/ })).toBeDisabled();
+
+  // Three roads, and the plain way is always one of them.
+  await expect(fork.locator('.omf-fork__road')).toHaveCount(3);
+  const plain = page.locator('[data-testid="road-path.evenRoad"]');
+  await expect(plain).toBeVisible();
+
+  await plain.click();
+
+  // Chosen: the block says which road and until where, and the climb opens.
+  await expect(fork).toHaveAttribute('data-open', 'false');
+  await expect(fork).toContainText('Walking: The Even Road');
+  await expect(fork).toContainText('Until floor 10');
+  await expect(page.getByRole('button', { name: /^Fight Floor 1/ })).toBeEnabled();
+
+  // It holds for the whole leg — no second fork on floor 2.
+  await climb(page, 1);
+  await expect(fork).toHaveAttribute('data-open', 'false');
+  await expect(fork).toContainText('Walking: The Even Road');
+});
+
+test('the ledger counts what the account does, and pays for it (Q40)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  await goToSection(page, 'Records');
+  const ledger = page.locator('[data-testid="deeds"]');
+  await expect(ledger).toBeVisible();
+  await expect(ledger.locator('.omf-deed')).toHaveCount(9);
+
+  // Nothing done yet, so nothing owed — and the rows say what they are counting
+  // towards rather than going blank (§20.5).
+  const deepest = page.locator('[data-testid="deed-deed.deepest"]');
+  await expect(deepest).toHaveAttribute('data-state', 'open');
+  await expect(deepest).toContainText('0 / 10');
+
+  // Climbing moves the ledger, without anything in it having to be told twice.
+  await goToSection(page, 'Tower');
+  await climb(page, 3);
+  await goToSection(page, 'Records');
+  await expect(page.locator('[data-testid="deed-deed.climber"]')).toContainText('3 / 10');
+  await expect(deepest).toContainText('3 / 10');
+
+  // Keep climbing until the first tier is reached. Counted in attempts rather
+  // than floors on purpose: a death resets the run, and the deed measures the
+  // deepest floor ever cleared rather than how many times it was tried.
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    if ((await deepest.getAttribute('data-state')) === 'claimable') break;
+    await goToSection(page, 'Tower');
+    await climb(page, 8);
+    await goToSection(page, 'Records');
+  }
+  await expect(deepest, 'forty-eight floors never reached floor ten').toHaveAttribute(
+    'data-state',
+    'claimable',
+  );
+  const gold = page.locator('[data-testid="wallet-gold"]');
+  const before = Number((await gold.innerText()).replace(/[^0-9.]/g, ''));
+
+  await page.locator('[data-testid="claim-deed.deepest"]').click();
+  await expect(deepest).not.toHaveAttribute('data-state', 'claimable');
+
+  // Paid once, and the row now counts towards the next tier.
+  await expect(deepest).toContainText('/ 200');
+  expect(Number((await gold.innerText()).replace(/[^0-9.]/g, ''))).toBeGreaterThan(before);
 });

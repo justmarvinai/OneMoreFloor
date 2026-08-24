@@ -39,6 +39,14 @@ const ACCOUNT: Account = {
   tutorialCompleted: true,
   backpackSlots: 20,
   bestiary: {},
+  echoes: 0,
+  echoesEarned: 0,
+  echoNodes: {},
+  deeds: {},
+  deedsClaimed: [],
+  bossRushBest: 0,
+  expeditions: {},
+  pets: {},
 };
 
 /** Thrown by the injected fault, so a real bug cannot masquerade as one. */

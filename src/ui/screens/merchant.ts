@@ -17,6 +17,7 @@
  * hiding the free one.
  */
 import {
+  Button,
   CostButton,
   CountdownTimer,
   InventoryGrid,
@@ -38,6 +39,8 @@ import {
   type MerchantId,
 } from '@/domain/merchants/merchants.ts';
 import { isActive } from '@/domain/potions/potions.ts';
+import { getMaterial } from '@/content/items/materials.ts';
+import { brewCost, canBrew, transmuteLadder } from '@/domain/items/workbench.ts';
 import { bracketForCharacter } from '@/domain/tower/run.ts';
 import type { UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
@@ -69,6 +72,10 @@ export interface MerchantScreenOptions {
   now: number;
   onBuy: (index: number) => void;
   onDrink: (stat: UpgradableStatId) => void;
+  /** Brew a draught from materials instead of gold (Q43). Alchemist only. */
+  onBrew: (stat: UpgradableStatId) => void;
+  /** Push one rung up the material ladder. Alchemist only. */
+  onTransmute: (materialId: string, times: number) => void;
   onReroll: () => void;
   onSelectItem: (uid: string) => void;
   /** Sell a backpack piece — the drop end of a drag onto the shelf. */
@@ -81,8 +88,19 @@ export interface MerchantScreen {
 }
 
 export function createMerchantScreen(options: MerchantScreenOptions): MerchantScreen {
-  const { character, capacity, merchantId, now, onBuy, onDrink, onReroll, onSelectItem, onSell } =
-    options;
+  const {
+    character,
+    capacity,
+    merchantId,
+    now,
+    onBuy,
+    onBrew,
+    onDrink,
+    onReroll,
+    onSelectItem,
+    onSell,
+    onTransmute,
+  } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -354,10 +372,146 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   if (shelfList) shop.el.insertBefore(restock, shelfList);
   else shop.el.appendChild(restock);
 
+  /**
+   * The workbench (Q43), on the Alchemist's counter and nowhere else.
+   *
+   * Two benches in one panel, because they answer the same question — *what do I
+   * do with the materials I have outgrown?* — and a player who has just seen the
+   * first is exactly the player who wants the second.
+   *
+   * Every rung of the ladder is drawn, not only the affordable ones. A bench
+   * that stays blank until you are rich enough to use it teaches nobody what it
+   * is for, and a row that says "you have 3 of 5" is the clearest possible
+   * statement of what to go and get.
+   */
+  function buildWorkbench(): HTMLElement | null {
+    if (merchantId !== 'magic') return null;
+
+    const bench = h('div', { class: 'omf-bench', dataset: { testid: 'workbench' } });
+
+    const ladder = h('ul', { class: 'omf-bench__ladder' });
+    for (const step of transmuteLadder(character.materials)) {
+      const ready = step.affordable > 0;
+      const row = h(
+        'li',
+        {
+          class: 'omf-bench__row',
+          dataset: { testid: `transmute-${step.from.id}`, ready: String(ready) },
+        },
+        h('span', {
+          class: 'omf-bench__from',
+          text: t('bench.from', {
+            count: step.cost,
+            name: t(step.from.nameKey as StringKey),
+          }),
+        }),
+        h('span', { class: 'omf-bench__arrow', attrs: { 'aria-hidden': 'true' }, text: '→' }),
+        h('span', {
+          class: 'omf-bench__to',
+          text: t('bench.to', { count: step.yield, name: t(step.to.nameKey as StringKey) }),
+        }),
+        h('span', {
+          class: 'omf-bench__held fui-num',
+          text: t('bench.held', { held: step.held }),
+        }),
+      );
+
+      const make = track(
+        new Button({
+          label: t('bench.make'),
+          size: 'sm',
+          variant: ready ? 'primary' : 'ghost',
+          disabled: !ready,
+        }),
+      );
+      // One press does one; the same press with the whole stack behind it is the
+      // difference between a bench and a chore, so it offers both.
+      make.on('click', () => onTransmute(step.from.id, 1));
+      setTip(
+        make.el,
+        ready
+          ? t('bench.makeTip', { name: t(step.to.nameKey as StringKey) })
+          : t('bench.short', { count: step.cost - (step.held % step.cost) }),
+      );
+      row.appendChild(make.el);
+
+      if (step.affordable > 1) {
+        const all = track(new Button({ label: t('bench.makeAll'), size: 'sm', variant: 'ghost' }));
+        all.on('click', () => onTransmute(step.from.id, step.affordable));
+        setTip(all.el, t('bench.makeAllTip', { count: step.affordable }));
+        row.appendChild(all.el);
+      }
+
+      ladder.appendChild(row);
+    }
+    bench.appendChild(ladder);
+
+    /**
+     * Brewing, under the ladder that feeds it.
+     *
+     * A draught brewed here is drunk on the spot, at the hero's own bracket,
+     * exactly like a bought one (Q29) — all that changes is which pocket pays.
+     */
+    const cost = brewCost(bracket.materialTier);
+    const affordable = canBrew(character.materials, bracket.materialTier);
+    bench.appendChild(
+      h('h4', {
+        class: 'omf-bench__subtitle fui-label',
+        text: t('bench.brew', {
+          count: cost.count,
+          name: t((getMaterial(cost.materialId)?.nameKey ?? cost.materialId) as StringKey),
+        }),
+      }),
+    );
+
+    const brews = h('div', { class: 'omf-bench__brews' });
+    for (const potion of potionStock(bracket)) {
+      const chip = h('button', {
+        class: 'omf-bench__brew',
+        attrs: { type: 'button' },
+        dataset: { testid: `brew-${potion.stat}` },
+        text: t(`stat.${potion.stat}` as StringKey),
+      });
+      if (!affordable) chip.disabled = true;
+      else chip.addEventListener('click', () => onBrew(potion.stat));
+      setTip(chip, {
+        title: t(potion.nameKey),
+        subtitle: t('bench.brewCost', {
+          count: cost.count,
+          name: t((getMaterial(cost.materialId)?.nameKey ?? cost.materialId) as StringKey),
+        }),
+        flavor: affordable
+          ? t('potion.effect', {
+              percent: Math.round(potion.magnitude * 100),
+              stat: t(`stat.${potion.stat}` as StringKey),
+            })
+          : t('bench.brewShort'),
+      });
+      brews.appendChild(chip);
+    }
+    bench.appendChild(brews);
+
+    // Framed like every other block on the screen: an unframed panel beside a
+    // framed one is the fastest way to make a game look like a web app (§20.1).
+    return track(
+      new Panel({
+        title: t('bench.title'),
+        subtitle: t('bench.hint'),
+        variant: 'alt',
+        width: '100%',
+        height: '100%',
+        scroll: true,
+        content: [bench],
+      }),
+    ).el;
+  }
+
+  const workbench = buildWorkbench();
+
   const el = h(
     'div',
     { class: 'omf-shop', dataset: { fuiTheme: 'stone-vine', testid: 'merchant' } },
-    h('div', { class: 'omf-shop__main' }, shop.el),
+    h('div', { class: 'omf-shop__main' }, shop.el, ...(workbench ? [workbench] : [])),
     h('div', { class: 'omf-shop__side' }, ...(runningLine ? [runningLine] : []), sellPanel.el),
   );
 

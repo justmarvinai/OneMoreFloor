@@ -11,6 +11,14 @@ function account(bestiary: Record<string, number> = {}): Account {
     tutorialCompleted: true,
     backpackSlots: 20,
     bestiary,
+    echoes: 0,
+    echoesEarned: 0,
+    echoNodes: {},
+    deeds: {},
+    deedsClaimed: [],
+    bossRushBest: 0,
+    expeditions: {},
+    pets: {},
   };
 }
 
