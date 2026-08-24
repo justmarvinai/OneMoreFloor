@@ -214,14 +214,19 @@ describe('climbing and death (Brief §3.3)', () => {
 
   it('destroys nothing owned when the hero dies — only the run resets', () => {
     // A deep floor against a level-1 hero is a certain loss.
-    const rich = applyClear({ ...hero(), tower: { ...hero().tower, currentRunFloor: 60 } }, 59, {
-      gold: 5_000,
-      xp: 400,
-      materials: { 'mat.spire-dust': 12 },
-      items: [],
-      tickets: 2,
-      luckyTickets: 1,
-    }).character;
+    const rich = applyClear(
+      { ...hero(), tower: { ...hero().tower, currentRunFloor: 60 } },
+      59,
+      {
+        gold: 5_000,
+        xp: 400,
+        materials: { 'mat.spire-dust': 12 },
+        items: [],
+        tickets: 2,
+        luckyTickets: 1,
+      },
+      NOW,
+    ).character;
 
     const result = fightFloor(rich, 60, NOW);
     expect(result.cleared).toBe(false);
@@ -242,14 +247,19 @@ describe('climbing and death (Brief §3.3)', () => {
       ...hero(),
       tower: { ...hero().tower, currentRunFloor: 3, highestFloorEverCleared: 41 },
     };
-    const cleared = applyClear(veteran, 3, {
-      gold: 1,
-      xp: 1,
-      materials: {},
-      items: [],
-      tickets: 0,
-      luckyTickets: 0,
-    }).character;
+    const cleared = applyClear(
+      veteran,
+      3,
+      {
+        gold: 1,
+        xp: 1,
+        materials: {},
+        items: [],
+        tickets: 0,
+        luckyTickets: 0,
+      },
+      NOW,
+    ).character;
     expect(cleared.tower.highestFloorEverCleared).toBe(41);
   });
 

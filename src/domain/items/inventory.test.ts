@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '@/app/rng.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+import { STARTING_BACKPACK_SLOTS as INVENTORY_CAPACITY } from '@/content/balance/account.ts';
 import { affixPool } from '@/content/items/affixPools.ts';
 import { ITEM_BASES, requireItemDef } from '@/content/items/index.ts';
 import { createCharacter } from '@/domain/character/character.ts';
@@ -58,23 +58,31 @@ describe('the backpack (Q16)', () => {
   it('holds the configured number of pieces and no more', () => {
     let character = hero();
     for (let index = 0; index < INVENTORY_CAPACITY; index += 1) {
-      const result = addToInventory(character, item(baseFor('helmet'), `f${index}`));
+      const result = addToInventory(
+        character,
+        item(baseFor('helmet'), `f${index}`),
+        INVENTORY_CAPACITY,
+      );
       expect(result.ok).toBe(true);
       if (result.ok) character = result.character;
     }
 
-    expect(isFull(character)).toBe(true);
-    expect(freeSlots(character)).toBe(0);
+    expect(isFull(character, INVENTORY_CAPACITY)).toBe(true);
+    expect(freeSlots(character, INVENTORY_CAPACITY)).toBe(0);
   });
 
   it('refuses a drop rather than swallowing it', () => {
     let character = hero();
     for (let index = 0; index < INVENTORY_CAPACITY; index += 1) {
-      const added = addToInventory(character, item(baseFor('helmet'), `g${index}`));
+      const added = addToInventory(
+        character,
+        item(baseFor('helmet'), `g${index}`),
+        INVENTORY_CAPACITY,
+      );
       if (added.ok) character = added.character;
     }
 
-    const overflow = addToInventory(character, item(baseFor('chest'), 'extra'));
+    const overflow = addToInventory(character, item(baseFor('chest'), 'extra'), INVENTORY_CAPACITY);
     expect(overflow.ok).toBe(false);
     if (!overflow.ok) expect(overflow.reason).toBe('full');
     // The pack is untouched, so the caller can open the resolution dialog.
@@ -106,7 +114,7 @@ describe('putting things on (Q15)', () => {
     const helmet = item(baseFor('helmet'));
     const character = hero({ inventory: [helmet] });
 
-    const result = equipFromInventory(character, helmet.uid);
+    const result = equipFromInventory(character, helmet.uid, INVENTORY_CAPACITY);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.character.equipment.helmet?.uid).toBe(helmet.uid);
@@ -118,7 +126,7 @@ describe('putting things on (Q15)', () => {
     const better = item(baseFor('helmet'), 'better');
     const character = hero({ inventory: [better], equipment: { helmet: worn } });
 
-    const result = equipFromInventory(character, better.uid);
+    const result = equipFromInventory(character, better.uid, INVENTORY_CAPACITY);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.character.equipment.helmet?.uid).toBe(better.uid);
@@ -146,7 +154,7 @@ describe('putting things on (Q15)', () => {
       inventory: [greatsword, ...filler],
     });
 
-    const result = equipFromInventory(character, greatsword.uid);
+    const result = equipFromInventory(character, greatsword.uid, INVENTORY_CAPACITY);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe('backpackFull');
   });
@@ -161,7 +169,7 @@ describe('putting things on (Q15)', () => {
     const greatsword = item(twoHander.id, 'gs');
     const character = hero({ equipment: { offhand: shield }, inventory: [greatsword] });
 
-    const result = equipFromInventory(character, greatsword.uid);
+    const result = equipFromInventory(character, greatsword.uid, INVENTORY_CAPACITY);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.character.equipment.offhand).toBeUndefined();
@@ -174,7 +182,7 @@ describe('putting things on (Q15)', () => {
     const trinket = item(ring.id, 'ring');
     const character = hero({ inventory: [trinket] });
 
-    const result = equipFromInventory(character, trinket.uid);
+    const result = equipFromInventory(character, trinket.uid, INVENTORY_CAPACITY);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe('slotLocked');
   });
@@ -183,7 +191,7 @@ describe('putting things on (Q15)', () => {
     const helmet = item(baseFor('helmet'));
     const character = hero({ equipment: { helmet } });
 
-    const result = unequip(character, 'helmet');
+    const result = unequip(character, 'helmet', INVENTORY_CAPACITY);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.character.equipment.helmet).toBeUndefined();

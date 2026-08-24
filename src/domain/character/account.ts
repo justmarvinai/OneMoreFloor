@@ -7,6 +7,7 @@
  * behind the player's back.
  */
 import { MAX_CHARACTER_SLOTS, STARTING_CHARACTER_SLOTS } from '@/content/balance/progression.ts';
+import { MAX_BACKPACK_SLOTS, STARTING_BACKPACK_SLOTS } from '@/content/balance/account.ts';
 import { SLOT_IDS, type Account, type SlotId } from './types.ts';
 
 export function createAccount(): Account {
@@ -15,6 +16,8 @@ export function createAccount(): Account {
     slotsUnlocked: STARTING_CHARACTER_SLOTS,
     activeSlotId: null,
     tutorialCompleted: false,
+    backpackSlots: STARTING_BACKPACK_SLOTS,
+    bestiary: {},
   };
 }
 
@@ -70,4 +73,18 @@ export function setActiveSlot(account: Account, slotId: SlotId | null): Account 
  */
 export function afterCharacterReset(account: Account, slotId: SlotId): Account {
   return account.activeSlotId === slotId ? setActiveSlot(account, null) : account;
+}
+
+/**
+ * How many backpack sockets this account has bought.
+ *
+ * Every path that checks whether the bag is full reads this rather than a
+ * constant — the size is an upgrade now (§15, Q30), and a constant would be a
+ * second answer waiting to disagree with the save.
+ */
+export function backpackCapacity(account: Pick<Account, 'backpackSlots'>): number {
+  return Math.max(
+    STARTING_BACKPACK_SLOTS,
+    Math.min(MAX_BACKPACK_SLOTS, Math.floor(account.backpackSlots)),
+  );
 }

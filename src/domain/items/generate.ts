@@ -198,6 +198,50 @@ export function rollAscensionAffix(
   return { stat, value: Math.max(1, Math.round(statPointsFor(stat, share))) };
 }
 
+/**
+ * Reroll a piece's affixes in place (fifth polish round).
+ *
+ * Everything that identifies the piece survives — its uid, base, rarity, gear
+ * level and stars — and only *which* stats it carries and how the budget splits
+ * between them changes. The number of lines it may carry comes from its
+ * ascension rather than from a fresh rarity roll, because a five-star piece has
+ * five sockets no matter what the dice think.
+ *
+ * The budget is redrawn inside the same window the piece was born in, which is
+ * what keeps a reforge from ever overshooting the bracket that produced the item
+ * (§13) while still letting a player who keeps paying reach the budget the
+ * luckiest possible drop would have had (BALANCE §10).
+ */
+export function rerollAffixes(input: {
+  item: ItemInstance;
+  weights: AffixWeights;
+  bracket: Bracket;
+  rng: Rng;
+}): ItemInstance {
+  const { item, weights, bracket, rng } = input;
+
+  const range = budgetRangeFor(bracket, item.rarity);
+  const rolled = rng.range(range.min, range.max);
+
+  const slots = Math.max(1, Math.min(affixSlotsAt(item.ascension), Object.keys(weights).length));
+  const stats = pickStats(weights, slots, rng);
+  const shares = splitBudget(rolled, stats.length, rng);
+
+  const affixes = fitUnderCeiling(
+    stats.map((stat, index) => ({
+      stat,
+      value: Math.max(1, Math.round(statPointsFor(stat, shares[index] ?? 0))),
+    })),
+    bracket.window.max,
+  );
+
+  return {
+    ...item,
+    affixes,
+    budget: affixes.reduce((total, affix) => total + budgetOfStat(affix.stat, affix.value), 0),
+  };
+}
+
 /** Base types eligible at a bracket, so a rusty dagger stops dropping on floor 400. */
 /**
  * The item bases a bracket may roll.

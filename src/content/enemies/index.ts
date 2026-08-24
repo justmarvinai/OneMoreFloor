@@ -50,7 +50,8 @@ import {
   WELLSPRING,
   WITHERING,
 } from './effects.ts';
-import type { BossDef, EnemyDef } from './types.ts';
+import type { BossDef, EnemyDef, EnemyFamily } from './types.ts';
+import type { StringKey } from '@/strings/index.ts';
 
 /** The fallback every enemy without fitting art falls back to (Brief §4.3). */
 const SILHOUETTE = 'silhouette-warrior-m';
@@ -509,6 +510,26 @@ export const BOSSES: readonly BossDef[] = [
 
 export { ENEMY_MODIFIERS } from './modifiers.ts';
 export type { BossDef, EnemyDef, EnemyFamily } from './types.ts';
+
+/**
+ * What a family is called out loud.
+ *
+ * The families were load-bearing data long before anything showed them to a
+ * player; the bestiary is the first screen that has to name one, and a name is
+ * text, so it goes through `src/strings/` like every other word in the game
+ * (Q24). The map lives here rather than in the UI because *which* families exist
+ * is content's business.
+ */
+export const FAMILY_NAMES: Readonly<Record<EnemyFamily, StringKey>> = {
+  vermin: 'family.vermin',
+  brigand: 'family.brigand',
+  beast: 'family.beast',
+  construct: 'family.construct',
+  arcane: 'family.arcane',
+  undead: 'family.undead',
+  infernal: 'family.infernal',
+  aberration: 'family.aberration',
+};
 
 export function enemiesForFloor(floor: number): EnemyDef[] {
   return ENEMIES.filter((enemy) => floor >= enemy.floors[0] && floor <= enemy.floors[1]);

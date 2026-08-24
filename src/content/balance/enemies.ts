@@ -62,3 +62,40 @@ export const MODIFIER_STRENGTH = 0.3;
 
 /** Chance a normal floor's enemy carries a modifier, once past the authored band. */
 export const MODIFIER_CHANCE = 0.35;
+
+/**
+ * Curses (fifth polish round) — enemy affixes the *player* switches on.
+ *
+ * The procedural modifiers above trade one stat for another, which is what makes
+ * a deep floor varied rather than merely bigger. A curse does the opposite on
+ * purpose: it only ever raises, so choosing one is choosing a harder tower, and
+ * the tower pays for it. That trade is the whole feature, so both halves are
+ * numbers here rather than shapes in content.
+ *
+ * A curse that raises three or more stats is the broad one: it costs more per
+ * fight than any single-stat curse and pays more than any of them, which is what
+ * keeps it a real choice rather than a strictly-worse bundle.
+ */
+export const CURSE_STAT_BONUS = 0.4;
+export const CURSE_BROAD_STAT_BONUS = 0.18;
+export const CURSE_REWARD_BONUS = 0.28;
+export const CURSE_BROAD_REWARD_BONUS = 0.45;
+
+/**
+ * Hero level that opens them (owner's instruction, fifth polish round).
+ *
+ * Late, and deliberately: a curse is a choice a player makes about a tower they
+ * already understand, and offering it at level 5 would just be a difficulty
+ * setting with a reward attached.
+ */
+export const CURSE_UNLOCK_LEVEL = 100;
+
+/** How many can run at once. Three, so the choice stays a choice. */
+export const MAX_ACTIVE_CURSES = 3;
+
+/** What one curse is worth, given how many stats it touches. */
+export function curseMagnitude(statCount: number): { stat: number; reward: number } {
+  return statCount >= 3
+    ? { stat: CURSE_BROAD_STAT_BONUS, reward: CURSE_BROAD_REWARD_BONUS }
+    : { stat: CURSE_STAT_BONUS, reward: CURSE_REWARD_BONUS };
+}

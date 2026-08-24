@@ -23,7 +23,7 @@ import type { FloorResult } from '@/domain/tower/run.ts';
 import { BATTLE_SPEED_BY_TIER } from '@/content/balance/account.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { CombatStage } from '@/ui/combat/combatStage.ts';
-import { lootCards, rewardChips } from '@/ui/loot.ts';
+import { lootCards, rewardChips, tipRewardChips } from '@/ui/loot.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
@@ -173,6 +173,10 @@ export function createCombatScreen(options: CombatScreenOptions): CombatScreen {
       else onBackToTower();
     });
 
+    // Most materials are met for the first time here, which makes the aftermath
+    // the place "what is this?" gets asked (§20.4).
+    if (reward) tipRewardChips(screen.el, reward);
+
     if (items.length === 0) return screen.el;
 
     const loot = track(
@@ -203,13 +207,32 @@ export function createCombatScreen(options: CombatScreenOptions): CombatScreen {
           h('p', { class: 'omf-death__kept fui-title', text: t('death.kept') }),
           h('p', { class: 'omf-death__detail', text: t('death.keptDetail') }),
         ],
-        quitLabel: best > 0 ? t('death.raid', { floor: best }) : t('death.raidNone'),
+        /**
+         * Two ways out, because there are two things a player wants after a
+         * fall. The Quick-Raid is the fast one and leads the pair; walking back
+         * into the Spire at Floor 1 is the other, and it is not a lesser choice
+         * — gold and materials from the run are spendable *now*, the trail from
+         * down there shows how far the last climb reached, and any cleared
+         * floor on it is a raid target of its own. A single button would have
+         * decided for the player which of those they wanted.
+         */
+        ...(best > 0
+          ? {
+              revives: [
+                {
+                  id: 'raid',
+                  label: t('death.raid', { floor: best }),
+                  glyph: 'glyph-hourglass',
+                  primary: true,
+                },
+              ],
+            }
+          : {}),
+        quitLabel: best > 0 ? t('death.continue') : t('death.raidNone'),
       }),
     );
-    screen.on('death:quit', () => {
-      if (best > 0) onRaid(best);
-      else onBackToTower();
-    });
+    screen.on('death:revive', () => onRaid(best));
+    screen.on('death:quit', () => onBackToTower());
     return screen.el;
   }
 

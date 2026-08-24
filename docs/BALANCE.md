@@ -73,6 +73,45 @@ Merchant stock (§11/§12) and gacha (§16.2) call the same `bracketOf` — one 
 
 Per floor clear: guaranteed Gold + XP (curve §3), then weighted rolls from the floor band's **loot table** (content data): equipment (slot-weighted), materials (tiered by band), potions? (no — potions are merchant-only per §12), Tickets/Lucky Tickets at very low weights (§16.1), and relic/artifact items only for characters whose corresponding slot is already unlocked (Q22: gated on hero ascension 4/5 — the same gate applies to merchant stock). Boss floors: multiplied payout + improved rarity weights + a guaranteed "boss chest" roll (§3.2 "extra rewards"). Rarity weights per band implement §9.2's arc (early tables simply carry ~0 Legendary/Mythical weight; deeper bands introduce Legendary; Mythical weight stays vanishingly small everywhere — event-rare, and *never* bracket-breaking per §6 above).
 
+### The drop economy, retuned (fifth polish round)
+
+**The tower pays in currency; gear is an event.** Equipment fell on about a third of all floors, which quietly broke §10: whatever the tower handed over next was likely to beat anything already owned, so levels, stars and materials were money spent on a piece about to be thrown away. A loop with no reason to touch it is not a loop.
+
+Four numbers moved together, and they only work together:
+
+| Constant | Was | Now | Why |
+|---|---|---|---|
+| `EQUIPMENT_DROP_CHANCE` | 0.34 | **0.06** | An ordinary floor almost never hands over gear. |
+| `BOSS_EQUIPMENT_DROP_CHANCE` (+ `BOSS_EQUIPMENT_SECOND_CHANCE` 0.35) | 1 | **0.9** | A boss is where gear arrives, and sometimes brings two. |
+| `FLOOR_GOLD.base` | 14 | **24** | What the floor pays instead — gold buys gear from the merchants *by choice*. |
+| `MATERIAL_DROP_CHANCE` / `BOSS_MATERIAL_COUNT` | 0.42 / 3–6 | **0.58 / 4–8** | Ascension is the main way a piece improves now, and a path needs fuel. |
+| `BUDGET_WINDOW` | 0.55–2.4 | **0.72–1.58** | One drop is at most ~2.2× another of its bracket, instead of 4.4×. |
+| `GEAR_LEVEL_STAT_BONUS_PER_LEVEL` | 0.04 | **0.06** | Level 15 is +90%, not +60%. |
+| `GEAR_ASCENSION_STAT_BONUS` (5 stars) | +0.60 | **+0.95** | Five stars nearly doubles a piece. |
+
+The arithmetic that matters: a fully built piece is worth about **3.7×** its base (1.9 × 1.95), against a drop spread of **2.2×**. **Investment beats luck**, which is what §10 was written for and what the shipped numbers contradicted.
+
+Two consequences were accepted deliberately:
+
+- **Rarity earns less of its keep through raw budget.** The anti-overshoot suite's "mythic beats common by 3×" became 1.5×; rarity's remaining job is the affix count and where in the window a piece lands. A wider window is the thing that made finding gear the whole game.
+- **The v5 save fixture was recaptured.** v1–v4 are historical blobs and never change; v5 is *what this build writes*, and item generation moved. Nobody's saved items changed — an item stores the budget it was rolled with (SAVE_SCHEMA §4).
+
+All §10 gates still pass unchanged: first wall floor 12–28, first-session depth, re-climb time, class parity within 15 points, signature uptime, gold shortage, gear cost shape.
+
+### Curses, salvage and reforge (fifth polish round)
+
+**Curses** (Q35) are the enemy affix system turned around: the procedural modifiers trade one stat for another so a deep floor is *varied*, a curse only ever raises so a chosen tower is *harder*. Six of them, three at once (`MAX_ACTIVE_CURSES`), opening at level `CURSE_UNLOCK_LEVEL` (100). A single-stat curse is +40% to that stat on every enemy and +28% to what every floor pays; the broad one (Dominion) is +18% to everything and +45% pay, which is what keeps it a real choice rather than a strictly-worse bundle. Two invariants are load-bearing and tested: a curse never widens the **bracket** a drop comes from, so §13 holds with a full set on — it buys gold, experience and materials, never loot the player has not earned — and it never touches the **seed**, so a cursed floor is the same enemy with harder numbers and the run stays replayable.
+
+**Salvage** is deliberately deterministic. It returns `SALVAGE_BASE_COUNT` plus a rarity bonus, a quarter of the gear levels put in, and two per star of the piece's own material plus one per star of the tier above — roughly the shape of what ascending it consumed, minus a change-of-mind cost. No dice, so the button can print exactly what it gives before it is pressed, which is what makes it comparable to the gold beside it.
+
+**Reforge** rerolls a piece's affixes for `REFORGE_GOLD_MULTIPLIER` (0.55) of its worth plus `REFORGE_MATERIAL_COUNT` of its own tier. The budget is redrawn inside the window the piece was born in, so a reroll can never overshoot the bracket that produced it (§13) while a player who keeps paying converges on the budget the luckiest possible drop would have had — investment reaching what luck could, which is what §10 asks for. Its affix count comes from the piece's stars, not from a fresh rarity roll: a five-star piece has five sockets whatever the dice think.
+
+### Milestones and auto-climb (fifth polish round)
+
+**Milestones** sit on every 25th floor (`MILESTONE_EVERY`) and are claimed once ever, per character — `milestonesClaimed` is a list, not a counter, so a re-climb through floor 25 pays nothing a second time and a floor that is somehow reached out of order is still paid for. What a milestone hands over is the ordinary floor reward scaled up (`MILESTONE_GOLD_MULTIPLIER` 14, `MILESTONE_XP_MULTIPLIER` 6), a fistful of materials (6–12) and a Lucky Ticket on every fourth one. It deliberately pays **no gear**: the whole point of the retune above is that the tower funds the pieces you choose rather than replacing them, and a guaranteed drop every 25 floors would have walked most of that back.
+
+**Auto-climb** brakes *between* floors, never inside one: `AUTO_CLIMB_FLOOR_DELAY_MS` is 20 seconds per floor, and Battle Speed still owns how fast a fight resolves. That ordering is what keeps auto-climb from ever being the fastest way to play — a player at the keyboard beats the timer at every floor — while still being worth switching on for a long session. Background climbing unlocks at level `BACKGROUND_AUTO_CLIMB_LEVEL` (500), by which point the floors it resolves are far behind the hero's power and the mode is a convenience rather than progression. Both modes stop dead on a death, because a run that continues after the player has lost is a run they did not choose.
+
 ## 8. Gacha odds (§16)
 
 Two banners, single pulls only, every pull pays something, no pity counter — all confirmed by Q20. Provisional shape, tuned in M9: Ticket banner — jackpot (Legendary-at-bracket) low single-digit %; the rest of the table pays Rare/Epic gear and material/gold bundles (the *animation* sells the near-miss, §16.3). Lucky banner — Mythical jackpot ≪1%; floor of the table is Epic/Legendary. Ticket faucets (rare drops §16.1 + hard quests §17 + tutorial's single Lucky Ticket §18) are throttled so pulls are *events* — provisional target: a Ticket every day-or-two of normal play, Lucky Tickets ~weekly from the hard weekly (Q21's guaranteed hard slot).

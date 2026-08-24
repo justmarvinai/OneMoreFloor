@@ -26,6 +26,7 @@ import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
 import { grantReward } from '../rewards/grant.ts';
 import { emptyReward, mergeRewards, rollFloorReward, type FloorReward } from './rewards.ts';
+import { milestoneUnclaimed, rollMilestoneReward } from './milestones.ts';
 
 export interface FloorResult {
   floor: number;
@@ -35,6 +36,8 @@ export interface FloorResult {
   cleared: boolean;
   /** Null when the hero lost: no reward for a floor you did not clear. */
   reward: FloorReward | null;
+  /** A milestone chest, when this was the first ever clear of a milestone floor. */
+  milestone: FloorReward | null;
   /** The character after the fight — rewards applied, or the run reset. */
   character: Character;
   /** Levels gained from the floor's experience, for the UI to celebrate. */
@@ -92,7 +95,7 @@ export function bracketForCharacter(character: Character) {
  * and a watched one produce identical loot (Q8) — the property test asserts it.
  */
 export function fightFloor(character: Character, floor: number, now: number): FloorResult {
-  const generated = generateFloor(character.tower.runSeed, floor);
+  const generated = generateFloor(character.tower.runSeed, floor, character.curses);
   const seed = `${character.tower.runSeed}/combat:${floor}`;
 
   const script = resolveCombat({
@@ -112,7 +115,8 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
       script,
       cleared: false,
       reward: null,
-      character: applyDeath(character),
+      milestone: null,
+      character: applyDeath(character, { floor, killedBy: generated.enemy.id, now }),
       levelsGained: 0,
     };
   }
@@ -123,10 +127,11 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
     bracket: bracketForCharacter(character),
     classId: character.identity.classId,
     ascension: character.progression.ascension,
+    curses: character.curses,
     rng: createRng(`${seed}/reward`),
   });
 
-  const cleared = applyClear(character, floor, reward);
+  const cleared = applyClear(character, floor, reward, now);
   return {
     floor,
     isBoss: generated.isBoss,
@@ -134,6 +139,7 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
     script,
     cleared: true,
     reward,
+    milestone: cleared.milestone,
     character: cleared.character,
     levelsGained: cleared.levelsGained,
   };
@@ -142,6 +148,8 @@ export function fightFloor(character: Character, floor: number, now: number): Fl
 export interface ClearResult {
   character: Character;
   levelsGained: number;
+  /** The milestone chest this clear paid, if it paid one. */
+  milestone: FloorReward | null;
 }
 
 /**
@@ -153,19 +161,52 @@ export interface ClearResult {
  * remember: leaving it raw invites exactly the double-counting bug the balance
  * simulator caught the first time it ran.
  */
-export function applyClear(character: Character, floor: number, reward: FloorReward): ClearResult {
+export function applyClear(
+  character: Character,
+  floor: number,
+  reward: FloorReward,
+  now: number,
+): ClearResult {
+  /**
+   * A milestone chest, if this is the first time this hero has ever stood here.
+   *
+   * Rolled before the clear is applied, because `milestoneUnclaimed` asks about
+   * the record as it was — once the floor is banked it is claimed, and the
+   * chest would never pay.
+   */
+  const earned = milestoneUnclaimed(character, floor);
+  const milestone = earned
+    ? rollMilestoneReward({
+        floor,
+        bracket: bracketForCharacter(character),
+        rng: createRng(`${character.tower.runSeed}/milestone:${floor}`),
+      })
+    : null;
+
   const climbed: Character = {
     ...character,
     tower: {
       ...character.tower,
       currentRunFloor: floor + 1,
       highestFloorEverCleared: Math.max(character.tower.highestFloorEverCleared, floor),
+      ...(earned ? { milestonesClaimed: [...character.tower.milestonesClaimed, floor] } : {}),
+      // What the run has banked so far, for the record it becomes when it ends.
+      runGold: character.tower.runGold + reward.gold + (milestone?.gold ?? 0),
+      runFights: character.tower.runFights + 1,
     },
   };
 
   // Every reward in the game is banked by the same function, so a quest payout
   // and a floor payout can never drift apart in what they actually give.
-  return grantReward(climbed, reward);
+  const banked = grantReward(climbed, reward);
+  const withChest = milestone ? grantReward(banked.character, milestone) : banked;
+
+  void now;
+  return {
+    character: withChest.character,
+    levelsGained: banked.levelsGained + (milestone ? withChest.levelsGained : 0),
+    milestone,
+  };
 }
 
 /**
@@ -181,13 +222,55 @@ export function applyClear(character: Character, floor: number, reward: FloorRew
  * death would make the re-climb a memory test. The new seed is derived from the
  * old one, so the whole chain stays deterministic and replayable.
  */
-export function applyDeath(character: Character): Character {
+export interface DeathContext {
+  /** The floor the fatal fight was on. */
+  floor: number;
+  /** Enemy id that ended it. */
+  killedBy: string;
+  now: number;
+}
+
+/**
+ * How many finished runs are kept.
+ *
+ * A history list is for seeing whether you are getting further, and twenty runs
+ * is more than enough to see that. An unbounded list is a save that grows
+ * forever for a screen nobody scrolls to the bottom of.
+ */
+export const RUN_HISTORY_LIMIT = 20;
+
+export function applyDeath(character: Character, context?: DeathContext): Character {
+  /**
+   * The run becomes a record.
+   *
+   * Written on death rather than accumulated live, so a crash mid-run costs a
+   * line in a list rather than corrupting the one being written. Newest first,
+   * capped: the list exists to show a trend, and a trend needs twenty runs, not
+   * four hundred.
+   */
+  const history = context
+    ? [
+        {
+          floor: Math.max(0, context.floor - 1),
+          diedOn: context.floor,
+          endedAt: context.now,
+          killedBy: context.killedBy,
+          gold: character.tower.runGold,
+          fights: character.tower.runFights + 1,
+        },
+        ...character.tower.history,
+      ].slice(0, RUN_HISTORY_LIMIT)
+    : character.tower.history;
+
   return {
     ...character,
     tower: {
       ...character.tower,
       currentRunFloor: 1,
       runSeed: nextRunSeed(character.tower.runSeed),
+      history,
+      runGold: 0,
+      runFights: 0,
     },
   };
 }

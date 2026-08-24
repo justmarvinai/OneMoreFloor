@@ -58,10 +58,25 @@
 | **Q26** | Class special mechanics | **Direction approved as proposed** — per-class resource fill rules + signature moves table (now the design of record in COMBAT.md §5; tuning values follow in M9). Includes: no baseline dodge stat — dodge exists only as an effect. | COMBAT.md §5 (table), §3 |
 | **Q27** | Item art source | **Hybrid (c), details my call:** 0.1 ships on curated FantasyUI icons (spell-icons / line-glyphs / generic icons) inside rarity `TintFrame`s, ~3 icon variants per slot family across depth bands (weapons ≥3 per class); every base type binds art by one `icon` id field so real art later is a data change, mirroring §4.3's avatar rule. | CONTENT_PIPELINE.md §2–3; UI_FANTASYUI_MAP.md §9 |
 
+### Part 4 — decisions taken after release, in the polish rounds
+
+These change what the brief says. They are recorded here rather than folded silently into the code, because §0.3 makes the brief the source of truth and a contradiction the owner *chose* is still a contradiction someone will find in six months and wonder about.
+
+| # | Question | Decision | Specified in |
+|---|---|---|---|
+| **Q28** | *(answered in the M10 round — see git history)* | — | — |
+| **Q29** | *(answered in the M10 round — see git history)* | — | — |
+| **Q30** | Backpack size as a third account upgrade | **Owner's instruction, fifth polish round: add it.** §15 says "exactly two account upgrades exist in EA 0.1. Do not add more"; the backpack makes three. It is bought with gold from the playing character's purse like the other two, belongs to the account and survives a reset (Q4), and runs 20 → 50 sockets in steps of five. What §15 was protecting is protected the same way it always was: the upgrade kind stays a closed union in `domain/account/upgrades.ts`, so a fourth cannot appear without an edit there and a line here. | `content/balance/account.ts`; `domain/account/upgrades.ts`; SAVE_SCHEMA v6 |
+| **Q31** | The drop economy | **Owner's instruction, fifth polish round: the tower should mainly pay currency, with one or two gear pieces on boss floors, and gear should stop improving much per drop so that upgrading and ascending become the way a piece gets better.** Implemented as six numbers moving together — see BALANCE.md "The drop economy, retuned". No brief line is contradicted; §3.6 never specified a rate. | BALANCE.md §7 |
+| **Q32** | Auto-climb | **Owner's instruction, fifth polish round: add it, deliberately slow, and a background mode at hero level 500.** §3.1's "one more floor" press stays the default and the manual path is untouched; auto-climb is an opt-in that presses it for you. | BALANCE.md; `domain/tower/autoClimb.ts` |
+| **Q33** | Where the fifth round's new features live | **Owner's instruction, fifth polish round: add a best-floor ghost, loadout presets, a bestiary, run history, milestone rewards, reforge, salvage, a pity-free gacha wish list, and player-side enemy affixes at level 100.** Each is placed where its question is already asked rather than on a screen of its own: the ghost and milestones on the tower trail, run history and the bestiary on one new Records destination, presets on the Character sheet, salvage and reforge in the gear dialog beside sell and ascend, and the wish list under the rates it must not contradict. | `docs/UI_FANTASYUI_MAP.md` §2, §8 |
+| **Q34** | Whether a wish list touches the printed odds | **No, and it is built so it cannot.** The wish steers *which slot* a gear prize fills and nothing else — not its rarity, not its budget, not whether a pull pays gear. Every number on the rates card is about rarity, so a wish moves none of them, and §16.2's "no overshooting" still runs through the one generator. Pity-free by construction: there is no counter to keep. | `domain/gacha/gacha.ts` |
+| **Q35** | Player-chosen enemy affixes ("curses") | **Owner's instruction, fifth polish round: add an enemy affix system on the player's side, unlocked at level 100.** Six curses, three at once. Each raises stats on every enemy — never trades, unlike the procedural modifiers — and multiplies what every floor pays in gold, experience and materials. Two things it must never touch, and the tests say so: the **bracket** a drop comes from, so §13 holds with a full set on; and the **seed**, so a cursed floor is the same fight with harder numbers and a run stays replayable. | `content/enemies/curses.ts`; `domain/tower/curses.ts`; BALANCE.md |
+
 ### Part 3 — working assumptions A1–A15
 
 **All confirmed** (the silence-equals-consent window closed with the Q1–Q27 answers; several were explicitly ratified by them: A7/A8 via Q11/Q14, A12 via Q2). The assumption texts remain in git history; the ones with ongoing design weight are restated in the docs they govern (A1 → ARCHITECTURE.md §2, A5/A6 → BALANCE.md §5–6, A7 → UI_FANTASYUI_MAP.md §11, A10 → UI_FANTASYUI_MAP.md §8, A11 → COMBAT.md §1, A12 → SAVE_SCHEMA.md §8).
 
 ---
 
-*Phase 2 is complete. Phase 3 (the owner's explicit "start development") is pending — until it is given, no game code is written (Brief §22; CLAUDE.md phase gate).*
+*Phase 2 is complete; development was approved on 2026-08-22 and EA 0.1 is built. New decisions taken after that point live in Part 4 above.*

@@ -5,6 +5,156 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning fol
 
 ## [Unreleased]
 
+### Added
+
+- **Curses: the enemy affix system, on the player's side.** From level 100 a hero
+  can take up to three, and each raises a stat on *every* enemy in the Spire
+  while raising what every floor pays. It is the mirror of the procedural
+  modifiers, which trade one stat for another so a deep floor is varied: a curse
+  only ever raises, because the point is to choose a harder tower and be paid for
+  it. Two things it never touches, and the tests hold it to both: the **bracket**
+  a drop comes from — so §13's anti-overshoot rule survives a full set of curses,
+  and what they buy is gold, experience and materials rather than loot nobody
+  earned — and the **seed**, so a cursed floor is the same enemy with harder
+  numbers and the run stays replayable.
+- **A wish list for the rites.** Aim the gear a summoning hands over at one
+  socket. It is pity-free by construction — no counter, no escalating promise —
+  and it moves *where* a prize lands, never *whether* one comes: not its rarity,
+  not its budget, not whether the pull pays gear at all. Every number on the
+  rates table is about rarity, so the wish sits directly under that table without
+  making a liar of it. A socket the hero has not unlocked is shown, disabled, and
+  says what opens it (§20.5).
+- **Salvage, beside Sell.** A piece you do not want can be broken into the
+  materials ascension eats instead of sold for gold. The two sit side by side
+  because they are the same decision asked in two currencies — and salvage is
+  deliberately not a roll, so the button can print exactly what it gives before
+  it is pressed. After this round's drop retune the pieces that arrive are often
+  worth more as fuel for what you are building than as another line in the purse.
+- **Reforge, as a third tab on a piece you are keeping.** Rerolls *which* stats
+  it carries, for gold and the materials of the depth it came from. The budget is
+  redrawn inside the window the piece was born in, so a reforge can never
+  overshoot the bracket that produced it (§13) while a player willing to keep
+  paying can reach the budget the luckiest possible drop would have had —
+  investment reaching what luck could. A five-star piece rerolls with five lines,
+  because its sockets come from its stars rather than from a fresh rarity roll.
+- **Saved gear sets, three per hero.** The set that clears floors fastest is
+  rarely the set that survives a gatekeeper, and swapping eight pieces by hand
+  every ten floors is the kind of tax that makes players stop swapping at all.
+  A preset stores *which pieces*, not copies of them, so a piece levelled or
+  ascended after the set was saved comes back improved — and a piece that was
+  sold is simply reported missing rather than quietly replaced. Wearing one is a
+  single whole-state swap: it either happens completely or is refused with a
+  reason, never half of one set and half of another.
+- **A bestiary, on the Records screen.** Every authored creature has an entry
+  from the first visit, and an unmet one shows as a gap rather than being absent:
+  a list that grows out of nothing says nothing about how much tower is left, and
+  the gaps are the reason to keep climbing. What a gap withholds is the name —
+  that is the reward for the first kill — while its family and the floors it
+  lives on stay visible, because a bestiary that will not say *where* is a list of
+  things you cannot go and find. Kills belong to the **account**, so a hero's
+  reset does not unlearn what the player has seen.
+- **Milestone rewards every 25 floors.** A floor whose number divides by 25 pays
+  a chest on top of its ordinary reward — gold and XP many times a normal
+  floor's, a fistful of materials, and a lucky ticket every fourth one. It is
+  claimed once ever, per character, and the trail draws the marks ahead so the
+  next one is always a visible reason to keep going. Milestones deliberately pay
+  no gear: the tower's job after this round's retune is to fund the pieces you
+  choose, not to hand you another one.
+- **Run history, on a Records screen.** The last twenty runs, newest first: the
+  floor each one ended on, what killed it, the gold it earned and the fights it
+  took. A roguelike whose runs leave no trace is a game with no memory of the
+  player, and the record floor in the rail was the only thing the old build
+  remembered.
+- **The ghost of your best climb.** The trail marks the highest floor ever
+  cleared, and — when that record is within reach — climbs all the way to it, so
+  the mark is a place on the path you can walk to rather than a number in a chip.
+- **Auto-climb, deliberately slow.** Three states in the tower's footer: off,
+  *watching* (the game plays the floors for you, one every 20 seconds, with the
+  fights on screen), and *background* (the climb continues while you shop, gear
+  up or pull, unlocked at level 500). The brake sits *between* floors and never
+  inside a fight, so auto-climb can never be the fastest way to play — Battle
+  Speed still owns how quickly a fight resolves. Both modes stop dead on a death.
+- **A second way out of a death.** The fall used to offer one button, the
+  Quick-Raid, which decided for the player that the next thing they wanted was
+  to be back at the top. "Climb again" puts them in the Spire at Floor 1
+  instead, where the run's gold and materials are spendable now, the trail shows
+  how far the last climb reached, and any cleared floor on it is a raid target of
+  its own.
+- **Backpack size is an account upgrade.** 20 sockets up to 50, in steps of
+  five, bought with gold from the playing character's purse like the other two
+  and kept by the account through a reset. §15 said "exactly two account
+  upgrades, do not add more"; the owner asked for a third and the decision is
+  recorded as Q30 in `USER_QUESTIONS.md` rather than folded in silently. What
+  that brief line was protecting still holds: the upgrade kind is a closed union,
+  so a fourth cannot appear without an edit in one file and a line in the ledger.
+
+### Changed
+
+- Save schema **v6**. One bump carries the whole polish round's new state:
+  accounts gained a backpack size and a bestiary; characters gained saved
+  loadouts, a rite wish list, curses, and — inside `tower` — milestones claimed,
+  run history, the auto-climb mode and the run's running totals. Every default is
+  the honest one for a save that predates the feature: nothing is guessed, and a
+  returning player's next milestone is waiting rather than already spent.
+- The backpack's size is passed to the code that enforces it rather than read
+  from a constant, so every call site says *which* bag it means.
+
+### Changed — the drop economy
+
+- **The tower pays in currency; gear is an event.** Equipment fell on about a
+  third of every floor, which quietly broke the whole point of gear levels and
+  ascension: whatever the tower handed over next was likely to beat anything
+  already owned, so money spent improving a piece was money spent on something
+  about to be thrown away. An ordinary floor now almost never drops gear (6%), a
+  boss almost always does (90%) and can hand over two, and what every floor pays
+  instead is gold and materials — which buy gear from the merchants *by choice*,
+  and improve the piece already worn.
+- **One drop is no longer worth four of another.** The budget window a piece may
+  occupy inside its bracket narrowed from 0.55–2.4 to 0.72–1.58, so two drops of
+  the same depth are within about 2.2× of each other. Meanwhile a piece taken to
+  level 15 and five stars is worth about 3.7× its base — level bonuses rose from
+  +60% to +90%, stars from +60% to +95%. **Investment beats luck**, which is the
+  shape the design was written for.
+- Rarity earns less of its keep through raw budget as a result, and more through
+  affix count. That is deliberate: a four-fold budget spread is what made finding
+  gear the entire game.
+
+### Fixed
+
+- **A flaky shop test made honest.** "Buy a piece, wear it, hit harder" bought
+  whatever was affordable and asserted the power rose — a coin flip on a
+  bracketed shelf, and one this round's narrower budget window made worse. It now
+  buys until the backpack marks a piece as an upgrade and wears *that* one, which
+  is the game's own answer to the question the test is asking.
+- **Dialogs showed the browser's own tooltips (§20.4).** The tooltip service
+  listened on the app node, and modals mount themselves on the document body —
+  outside it. Every `title` a vendored component put inside a dialog therefore
+  survived unadopted, and the browser drew its own grey box over the game: the
+  bare "Iron Sigil" over the Ascend dialog's materials was this, and no amount of
+  giving those cells a real card could have fixed it. The service now listens at
+  the document, and the §20.4 sweep opens a dialog rather than only checking a
+  screen. Toasts expiring no longer take a tooltip the player is reading with
+  them, which the wider root would otherwise have caused.
+- **The floor preview folded in on itself on a short screen.** Every section of
+  the tower's side panel is a flex child that may shrink so the panel can own its
+  own height — and a flex child shrinks past its own content rather than pushing
+  the box, without clipping what spills out. On a 1280x720 laptop that drew the
+  reward chips straight through the stat comparison. The sections now stop
+  shrinking at their content and the panel scrolls, centred *safely* so the top
+  of it can still be scrolled back to.
+- **Buffs and debuffs were drawn twice in every fight.** The engine states the
+  opening board on its `fightStart` event *and* emits an `effectApplied` for each
+  floor effect; the choreographer drew both, so every floor debuff appeared as
+  two identical chips on the card. The events win — one code path for every
+  effect, whenever it lands — and the opening keeps its slower beat.
+- **Materials and balances say what they are.** Hovering a material in the Ascend
+  dialog produced the word "Iron Sigil" and nothing else, which tells a player
+  neither what it is nor where the next one comes from. Gold, both ticket kinds
+  and every material now carry a real card — what it is, what it is for, where it
+  comes from — served from one place (`src/ui/wallet.ts`) to the rail, the
+  merchants' counters, the Ascend dialog, the summoning lobby and the fight
+  aftermath, which is where most materials are met for the first time.
+
 ### Changed — the tower, and telling good gear from bad
 
 - **The floor preview answers the question the screen exists to ask.** It listed

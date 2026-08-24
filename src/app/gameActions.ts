@@ -18,7 +18,15 @@ import {
   gearLevelCost,
   levelUp,
 } from '@/domain/items/upgrade.ts';
+import { backpackCapacity } from '@/domain/character/account.ts';
+import { availableSlots } from '@/domain/items/equip.ts';
 import { equipFromInventory, unequip, type LoadoutRefusal } from '@/domain/items/loadout.ts';
+import {
+  applyLoadout,
+  captureLoadout,
+  type ApplyRefusal as PresetApplyRefusal,
+  type CaptureRefusal as PresetCaptureRefusal,
+} from '@/domain/items/presets.ts';
 import {
   addToInventory,
   findInInventory,
@@ -27,14 +35,14 @@ import {
 } from '@/domain/items/inventory.ts';
 import { rollAscensionAffix } from '@/domain/items/generate.ts';
 import { affixCapacity } from '@/domain/items/upgrade.ts';
-import type { ItemInstance } from '@/domain/items/types.ts';
+import type { ItemInstance, MaterialCost } from '@/domain/items/types.ts';
 import { affixPool } from '@/content/items/affixPools.ts';
 import { materialIdForTier, requireItemDef } from '@/content/items/index.ts';
 import { potionFor } from '@/content/items/potions.ts';
 import { buyStatPoints } from '@/domain/economy/statUpgrades.ts';
 import { ascendHero } from '@/domain/progression/xp.ts';
 import { canAscend } from '@/domain/character/character.ts';
-import type { Character, EquipSlotId, SlotId } from '@/domain/character/types.ts';
+import type { AutoClimbMode, Character, EquipSlotId, SlotId } from '@/domain/character/types.ts';
 import { drink } from '@/domain/potions/potions.ts';
 import {
   needsRestock,
@@ -44,6 +52,7 @@ import {
   type MerchantId,
 } from '@/domain/merchants/merchants.ts';
 import { bracketForCharacter, fightFloor, quickRaid } from '@/domain/tower/run.ts';
+import { canAutoClimb } from '@/domain/tower/autoClimb.ts';
 import type { FloorResult, QuickRaidResult } from '@/domain/tower/run.ts';
 import {
   claimableCount,
@@ -56,6 +65,9 @@ import {
 import type { QuestCadence } from '@/content/quests/types.ts';
 import { grantReward } from '@/domain/rewards/grant.ts';
 import { buyUpgrade, type UpgradeId } from '@/domain/account/upgrades.ts';
+import { recordKills } from '@/domain/account/bestiary.ts';
+import { toggleCurse, type CurseRefusal } from '@/domain/tower/curses.ts';
+import { reforge, salvageFromInventory } from '@/domain/items/salvage.ts';
 import {
   canPull,
   pull,
@@ -74,6 +86,9 @@ import { clock } from './time.ts';
 /** Everything that can stop an action, in one vocabulary the UI can translate. */
 export type Refusal =
   | LoadoutRefusal
+  | CurseRefusal
+  | PresetApplyRefusal
+  | PresetCaptureRefusal
   | 'notEnoughGold'
   | 'notEnoughMaterials'
   | 'maxLevel'
@@ -90,11 +105,22 @@ export type Outcome<T = undefined> =
 
 export interface GameActions {
   fight(floor: number): Promise<FloorResult>;
+  /** Turn auto-climb on, off, or on in the background (Q32). */
+  setAutoClimb(mode: AutoClimbMode): Promise<Outcome>;
   raid(throughFloor: number): Promise<QuickRaidResult>;
 
   equip(uid: string): Promise<Outcome<ItemInstance[]>>;
+  /** Save what the hero is wearing into preset `index` (fifth polish round). */
+  saveLoadout(index: number, name: string): Promise<Outcome>;
+  /** Wear preset `index`; the value is how many of its pieces are gone. */
+  wearLoadout(index: number): Promise<Outcome<number>>;
   unequipSlot(slot: EquipSlotId): Promise<Outcome<ItemInstance[]>>;
   sell(uid: string): Promise<Outcome<number>>;
+
+  /** Break a backpack piece into ascension materials (fifth polish round). */
+  salvage(uid: string): Promise<Outcome<MaterialCost>>;
+  /** Reroll a piece's affixes for gold and materials (fifth polish round). */
+  reforgeGear(uid: string): Promise<Outcome<ItemInstance>>;
 
   upgradeGear(uid: string): Promise<Outcome>;
   ascendGearPiece(uid: string): Promise<Outcome>;
@@ -110,6 +136,14 @@ export interface GameActions {
   /** Bring both quest boards up to date for the current period (Q10). */
   visitQuests(): Promise<Character>;
   claimQuest(cadence: QuestCadence, index: number): Promise<Outcome<number>>;
+  /** Take a curse, or lift one (Q35). */
+  toggleCurse(id: string): Promise<Outcome>;
+  /**
+   * Aim what the rites hand over at one slot, or clear the wish (Q33).
+   * Refuses a slot the hero has not unlocked, rather than wishing into a
+   * socket that does not exist yet.
+   */
+  setWishlist(slot: EquipSlotId | null): Promise<Outcome>;
   /** Buy one of the two account upgrades (Brief §15). */
   buyUpgrade(id: UpgradeId): Promise<Outcome<number>>;
 
@@ -177,6 +211,31 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
     ];
   }
 
+  /**
+   * Write what the hero killed into the account's bestiary.
+   *
+   * Only cleared floors count — an enemy that killed you is one you met, but a
+   * bestiary that fills up from losing would be a list of what has beaten you.
+   * Kills belong to the account rather than the character (Q4): what a player
+   * has seen of the tower is knowledge, and a reset does not unlearn it.
+   */
+  async function recordSightings(floors: readonly FloorResult[]): Promise<void> {
+    const account = store.get().account;
+    if (!account) return;
+
+    const killed = floors.filter((floor) => floor.cleared).map((floor) => floor.generated.enemy.id);
+    const updated = recordKills(account, killed);
+    if (updated === account) return;
+
+    await save.saveAccount(updated);
+    accountLoaded(store, updated);
+  }
+
+  /** The bag's size right now — an account upgrade, so it is read, not assumed. */
+  function capacity(): number {
+    return backpackCapacity(store.get().account ?? { backpackSlots: 0 });
+  }
+
   function active(): Character {
     const character = store.get().activeCharacter;
     if (!character) throw new Error('[actions] no active character');
@@ -238,7 +297,23 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const result = fightFloor(active(), floor, clock().now());
       const character = withQuests(result.character, floorEvents(result));
       await commit(character);
+      await recordSightings([result]);
       return { ...result, character };
+    },
+
+    async setAutoClimb(mode) {
+      const character = active();
+      // A mode the hero has not unlocked is refused rather than silently
+      // downgraded — the control has to be able to say why (§20.5).
+      if (!canAutoClimb(mode, character)) return { ok: false, reason: 'notAtLevelCap' };
+      return {
+        ok: true,
+        value: undefined,
+        character: await commit({
+          ...character,
+          tower: { ...character.tower, autoClimb: mode },
+        }),
+      };
     },
 
     async raid(throughFloor) {
@@ -246,17 +321,31 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       const events = result.floors.flatMap(floorEvents);
       const character = withQuests(result.character, events);
       await commit(character);
+      // One account write for the whole raid rather than one per floor.
+      await recordSightings(result.floors);
       return { ...result, character };
     },
 
     async equip(uid) {
-      const result = equipFromInventory(active(), uid);
+      const result = equipFromInventory(active(), uid, capacity());
       if (!result.ok) return { ok: false, reason: result.reason };
       return { ok: true, value: result.displaced, character: await commit(result.character) };
     },
 
+    async saveLoadout(index, name) {
+      const saved = captureLoadout(active(), index, name);
+      if (typeof saved === 'string') return { ok: false, reason: saved };
+      return { ok: true, value: undefined, character: await commit(saved) };
+    },
+
+    async wearLoadout(index) {
+      const result = applyLoadout(active(), index, capacity());
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: result.missing, character: await commit(result.character) };
+    },
+
     async unequipSlot(slot) {
-      const result = unequip(active(), slot);
+      const result = unequip(active(), slot, capacity());
       if (!result.ok) return { ok: false, reason: result.reason };
       return { ok: true, value: result.displaced, character: await commit(result.character) };
     },
@@ -269,6 +358,24 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
         { kind: 'goldEarned', amount: sale.gold },
       ]);
       return { ok: true, value: sale.gold, character: await commit(character) };
+    },
+
+    async salvage(uid) {
+      const broken = salvageFromInventory(active(), uid);
+      if (!broken) return { ok: false, reason: 'notFound' };
+      // Salvage is a piece leaving the pack the same way a sale is, and the
+      // quest board counts pieces parted with rather than gold taken for them.
+      const character = withQuests(broken.character, [{ kind: 'itemSold' }]);
+      return { ok: true, value: broken.materials, character: await commit(character) };
+    },
+
+    async reforgeGear(uid) {
+      const result = reforge(active(), uid);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      const character = withQuests(result.character, [
+        { kind: 'goldSpent', amount: result.cost.gold },
+      ]);
+      return { ok: true, value: result.item, character: await commit(character) };
     },
 
     async upgradeGear(uid) {
@@ -367,9 +474,9 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       if (!entry) return { ok: false, reason: 'notFound' };
       if (entry.sold) return { ok: false, reason: 'soldOut' };
       if (character.currencies.gold < entry.price) return { ok: false, reason: 'notEnoughGold' };
-      if (isFull(character)) return { ok: false, reason: 'backpackFull' };
+      if (isFull(character, capacity())) return { ok: false, reason: 'backpackFull' };
 
-      const added = addToInventory(spendGold(character, entry.price), entry.item);
+      const added = addToInventory(spendGold(character, entry.price), entry.item, capacity());
       if (!added.ok) return { ok: false, reason: 'backpackFull' };
 
       const next = withQuests(
@@ -446,6 +553,24 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
       };
     },
 
+    async toggleCurse(id) {
+      const result = toggleCurse(active(), id);
+      if (typeof result === 'string') return { ok: false, reason: result };
+      return { ok: true, value: undefined, character: await commit(result) };
+    },
+
+    async setWishlist(slot) {
+      const character = active();
+      if (slot !== null && !availableSlots(character.progression.ascension).includes(slot)) {
+        return { ok: false, reason: 'slotLocked' };
+      }
+      return {
+        ok: true,
+        value: undefined,
+        character: await commit({ ...character, wishlist: slot }),
+      };
+    },
+
     async buyUpgrade(id) {
       const character = active();
       const account = store.get().account;
@@ -465,7 +590,7 @@ export function createGameActions(save: SaveLayer, store: AppStore): GameActions
 
     async pullBanner(banner) {
       const character = active();
-      const refusal = canPull(character, banner);
+      const refusal = canPull(character, banner, capacity());
       if (refusal !== true) {
         return { ok: false, reason: refusal === 'noCurrency' ? 'noCurrency' : 'backpackFull' };
       }

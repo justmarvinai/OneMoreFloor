@@ -12,7 +12,6 @@
  */
 import type { Character, EquipSlotId } from '../character/types.ts';
 import { requireItemDef } from '@/content/items/index.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
 import { canEquip, isOffhandBlocked, type EquipRefusal } from './equip.ts';
 import { findInInventory } from './inventory.ts';
 import type { ItemInstance } from './types.ts';
@@ -30,7 +29,11 @@ export type LoadoutResult =
  * there is nothing for a caller to get wrong and no way to ask for a slot the
  * piece does not fit.
  */
-export function equipFromInventory(character: Character, uid: string): LoadoutResult {
+export function equipFromInventory(
+  character: Character,
+  uid: string,
+  capacity: number,
+): LoadoutResult {
   const item = findInInventory(character, uid);
   if (!item) return { ok: false, reason: 'notFound' };
 
@@ -62,7 +65,7 @@ export function equipFromInventory(character: Character, uid: string): LoadoutRe
   }
 
   const inventory = character.inventory.filter((entry) => entry.uid !== uid);
-  if (inventory.length + displaced.length > INVENTORY_CAPACITY) {
+  if (inventory.length + displaced.length > capacity) {
     return { ok: false, reason: 'backpackFull' };
   }
 
@@ -74,10 +77,10 @@ export function equipFromInventory(character: Character, uid: string): LoadoutRe
 }
 
 /** Take a piece off and put it in the backpack, if there is room for it. */
-export function unequip(character: Character, slot: EquipSlotId): LoadoutResult {
+export function unequip(character: Character, slot: EquipSlotId, capacity: number): LoadoutResult {
   const worn = character.equipment[slot];
   if (!worn) return { ok: false, reason: 'notFound' };
-  if (character.inventory.length >= INVENTORY_CAPACITY) {
+  if (character.inventory.length >= capacity) {
     return { ok: false, reason: 'backpackFull' };
   }
 

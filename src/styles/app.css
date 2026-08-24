@@ -952,11 +952,24 @@ body > .fui-tooltip .fui-tooltip__price {
   display: none;
 }
 
-/* The preview sits in the middle of its panel rather than clinging to the top. */
+/**
+ * The preview sits in the middle of its panel rather than clinging to the top —
+ * and on a short screen it scrolls rather than folding in on itself.
+ *
+ * Everything inside it is a flex child with `min-height: 0`, which is what lets
+ * the panel own its own height; the cost is that those children will happily
+ * shrink *past their own content*, and a flex box does not clip what spills out.
+ * On a 1280x720 laptop that put the reward chips straight through the stat
+ * comparison. `min-height: min-content` further down stops the shrinking at the
+ * content, and this scroller is where the leftover goes.
+ */
 .omf-tower__side .fui-panel__body {
   display: flex;
+  overflow-y: auto;
   flex-direction: column;
-  justify-content: center;
+  /* `safe` matters once this scrolls: plain centring overflows *both* ends of a
+     scroll container and the top one cannot be scrolled back to. */
+  justify-content: safe center;
 }
 
 /**
@@ -1038,7 +1051,7 @@ body > .fui-tooltip .fui-tooltip__price {
 .omf-tower__preview {
   display: flex;
   flex: 1;
-  min-height: 0;
+  min-height: min-content;
   flex-direction: column;
   gap: 14px;
 }
@@ -1084,7 +1097,7 @@ body > .fui-tooltip .fui-tooltip__price {
 .omf-tower__compare {
   display: flex;
   flex: 1;
-  min-height: 0;
+  min-height: min-content;
   flex-direction: column;
   /* The rows share out the panel's slack rather than clustering in the middle of
      it — five rows and a band of nothing above and below reads as a bug. */
@@ -1284,6 +1297,226 @@ body > .fui-tooltip .fui-tooltip__price {
 
 .omf-tower__trail .omf-tower__boss .fui-trail__note {
   color: var(--fui-gold, #d8b26a);
+}
+
+/* --- Records: what this hero has done ------------------------------------- */
+
+.omf-records {
+  display: flex;
+  flex-direction: column;
+  gap: var(--omf-gap);
+  height: 100%;
+  min-height: 0;
+  padding: var(--omf-gap);
+  box-sizing: border-box;
+}
+
+/**
+ * Runs on the left, the bestiary on the right.
+ *
+ * The two lists answer the same question from opposite ends — *how far have I
+ * got* and *what is up there* — so they share a screen; they get their own
+ * columns rather than stacking because a run list is short and wide and a
+ * bestiary is long and narrow, and stacked they would each waste the other's
+ * space. `minmax(0, …)` on both so a long enemy name cannot push the grid wider
+ * than the frame.
+ */
+.omf-records__body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: var(--omf-gap);
+}
+
+/* Below a wide desktop the pair stacks: two narrow columns squeeze the run
+   lines into ellipses and the bestiary into a single file. */
+@media (width <= 1500px) {
+  .omf-records__body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  }
+}
+
+.omf-records__best {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.omf-records__empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-records__runs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/**
+ * One run per row.
+ *
+ * Ordered by what a player wants from the list — how far first, since that is
+ * the number they are trying to beat — then what it paid and what stopped it.
+ * A grid rather than flex so the floor numbers line up down the column and the
+ * trend is readable without reading a word.
+ */
+.omf-records__run {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  font-size: 0.86rem;
+  cursor: default;
+}
+
+.omf-records__run:nth-child(odd) {
+  background: rgb(255 255 255 / 3%);
+}
+
+.omf-records__run-floor {
+  font-weight: 700;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-records__run-died {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fui-ink-dim);
+}
+
+.omf-records__run-gold,
+.omf-records__run-fights {
+  text-align: right;
+  color: var(--fui-ink-faint);
+}
+
+/* --- Auto-climb, milestones and the record line --------------------------- */
+
+/**
+ * Auto-climb sits under the button it replaces.
+ *
+ * Three states, so three segments rather than a checkbox — a control that could
+ * only say on or off would be lying about one of them. The locked segment stays
+ * visible and disabled, because a player at level 40 should know background
+ * climbing exists and what reaches it (§20.5).
+ */
+/* `Panel` lays its footer out as a row, which put the auto-climb picker beside
+   the fight button and left both squeezed. The tower's footer is a column. */
+.omf-tower__side .fui-panel__foot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.omf-tower__auto {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.omf-tower__auto-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  color: var(--fui-accent-soft);
+}
+
+.omf-tower__auto-row {
+  display: flex;
+  gap: 4px;
+}
+
+.omf-tower__auto-mode {
+  flex: 1;
+  padding: 6px 4px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 4px;
+  background: rgb(0 0 0 / 34%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+  transition:
+    background 140ms ease-out,
+    color 140ms ease-out;
+}
+
+.omf-tower__auto-mode:hover:not(:disabled) {
+  background: rgb(255 255 255 / 8%);
+  color: var(--fui-ink);
+}
+
+.omf-tower__auto-mode.is-on {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 70%, transparent);
+  background: color-mix(in srgb, var(--fui-gold, #d8b26a) 18%, transparent);
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-tower__auto-mode:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* A milestone floor is the one thing on the path that pays for arriving, so it
+   is lit like a reward rather than like a fight. */
+.omf-tower__trail .omf-tower__milestone .fui-trail__disc {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--fui-accent, #6fb3a8) 78%, transparent),
+    0 0 20px color-mix(in srgb, var(--fui-accent, #6fb3a8) 34%, transparent);
+}
+
+.omf-tower__trail .omf-tower__milestone .fui-trail__note {
+  color: var(--fui-accent-soft);
+}
+
+/* Once taken it is history, and history should not keep asking for attention. */
+.omf-tower__trail .omf-tower__milestone.is-taken .fui-trail__disc {
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 14%);
+}
+
+.omf-tower__trail .omf-tower__milestone.is-taken .fui-trail__note {
+  color: var(--fui-ink-faint);
+}
+
+/**
+ * The ghost of your best.
+ *
+ * Everything above this line is ground nobody has stood on, and a climber with
+ * no marker for that has nothing to aim at but a number in the rail. Drawn on
+ * the record floor itself so it reads as "you got *here*", not as a fence.
+ */
+.omf-tower__record-mark .fui-trail__disc {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--fui-gold-soft, #f0d9a0) 60%, transparent),
+    0 0 22px color-mix(in srgb, var(--fui-gold, #d8b26a) 28%, transparent);
+}
+
+.omf-tower__ghost {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 12px);
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--fui-gold, #d8b26a) 55%, transparent);
+  border-radius: 9px;
+  background: rgb(10 8 6 / 82%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--fui-gold-soft, #f0d9a0);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 /* --- Gear that beats what you are wearing --------------------------------- */
@@ -2150,9 +2383,12 @@ body > .fui-tooltip .fui-tooltip__price {
   overflow-y: auto;
 }
 
+/* Three cards since Q30 added the backpack. `auto-fit` rather than a fixed
+   three, so the rack still reads on a narrow window and would take a fourth
+   without a second edit here. */
 .omf-upgrades__cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--omf-gap);
   align-items: start;
 }
@@ -2493,4 +2729,306 @@ body > .fui-tooltip .fui-tooltip__price {
   margin: 0;
   max-width: 46ch;
   opacity: 0.8;
+}
+
+/* --- The bestiary -------------------------------------------------------- */
+
+/**
+ * One card per creature, met or not.
+ *
+ * `auto-fill` rather than `auto-fit`: an almost-empty bestiary should read as a
+ * grid with gaps in it, not as two cards stretched across the panel — the shape
+ * of what is still missing is the point of the screen.
+ */
+.omf-records__beasts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.omf-records__beast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 7px;
+  border: 1px solid rgb(255 255 255 / 6%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 22%);
+}
+
+/* A gatekeeper is a different kind of thing, and the frame says so. */
+.omf-records__beast[data-boss='true'] {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 42%, transparent);
+  background: linear-gradient(180deg, rgb(58 42 16 / 34%), rgb(0 0 0 / 26%));
+}
+
+/* Unmet: the silhouette is the invitation, so it stays — quietly. */
+.omf-records__beast[data-seen='false'] {
+  border-style: dashed;
+  border-color: rgb(255 255 255 / 8%);
+  background: rgb(0 0 0 / 12%);
+}
+
+.omf-records__beast-art {
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.omf-records__beast[data-seen='false'] .omf-records__beast-art {
+  opacity: 0.5;
+}
+
+.omf-records__beast-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.omf-records__beast-name {
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fui-ink);
+}
+
+.omf-records__beast[data-seen='false'] .omf-records__beast-name {
+  letter-spacing: 0.22em;
+  color: var(--fui-ink-faint);
+}
+
+.omf-records__beast-family {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+}
+
+.omf-records__beast[data-boss='true'] .omf-records__beast-family {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-records__beast-floors {
+  font-size: 0.7rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-records__beast-kills {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 0.92rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-records__beast-kills-label {
+  font-family: var(--fui-font-ui);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+/* --- Saved gear sets ------------------------------------------------------ */
+
+/**
+ * Three cards under the paperdoll that fills them.
+ *
+ * `auto-fit` here rather than `auto-fill`: three is the whole shelf, so they
+ * should share the width they are given instead of leaving a gap where a fourth
+ * would go.
+ */
+.omf-loadouts {
+  margin-top: 14px;
+}
+
+.omf-loadouts__cards {
+  display: grid;
+  /* Narrow enough that all three fit across the sheet's column: a shelf of three
+     that wraps to 2 + 1 reads as a list that ran out of room. */
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  gap: 8px;
+}
+
+.omf-loadouts__card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 24%);
+}
+
+.omf-loadouts__card[data-empty='true'] {
+  border-style: dashed;
+  background: rgb(0 0 0 / 12%);
+}
+
+.omf-loadouts__card .fui-input {
+  width: 100%;
+}
+
+.omf-loadouts__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.omf-loadouts__actions .fui-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.omf-loadouts__count {
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+/* --- The summoning wish list ---------------------------------------------- */
+
+/**
+ * Under both rate tables rather than inside either: the wish applies to every
+ * rite, and a copy on each card would read as two different settings.
+ */
+.omf-wish {
+  padding: 12px 14px 14px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 8px;
+  background: rgb(0 0 0 / 22%);
+}
+
+.omf-wish__title {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-wish__hint {
+  margin: 4px 0 10px;
+  max-width: 62ch;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-wish__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.omf-wish__chip {
+  padding: 5px 11px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+}
+
+.omf-wish__chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--fui-gold, #d8b26a) 46%, transparent);
+  color: var(--fui-ink);
+}
+
+.omf-wish__chip.is-on {
+  border-color: var(--fui-gold, #d8b26a);
+  background: color-mix(in srgb, var(--fui-gold, #d8b26a) 22%, transparent);
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-wish__chip:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+/* --- Curses: the tower, made harder on purpose ---------------------------- */
+
+/**
+ * Under the preview rather than in the footer: the preview already says what the
+ * floor imposes and what it pays, and a curse changes both — so the control that
+ * changes them belongs beside those two lines, not beside the fight button.
+ */
+.omf-curses {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+}
+
+.omf-curses__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.omf-curses__count {
+  font-family: var(--fui-font-ui);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fui-ink-faint);
+}
+
+.omf-curses__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.omf-curses__chip {
+  padding: 4px 9px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 4%);
+  font-family: var(--fui-font-ui);
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fui-ink-dim);
+  cursor: pointer;
+}
+
+.omf-curses__chip:hover:not(:disabled) {
+  border-color: rgb(196 74 62 / 70%);
+  color: var(--fui-ink);
+}
+
+/* Taken: red rather than gold, because this one costs you something. */
+.omf-curses__chip.is-on {
+  border-color: #b8231a;
+  background: rgb(184 35 26 / 26%);
+  color: #f0b7ae;
+}
+
+.omf-curses__chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.omf-curses__hint {
+  margin: 8px 0 0;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: var(--fui-ink-faint);
+}
+
+.omf-curses[data-unlocked='false'] .omf-curses__hint {
+  opacity: 0.7;
 }

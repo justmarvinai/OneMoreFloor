@@ -60,11 +60,15 @@ export function currencyHeld(character: Character, banner: BannerId): number {
   return character.currencies[bannerConfig(banner).currency];
 }
 
-export function canPull(character: Character, banner: BannerId): true | PullRefusal {
+export function canPull(
+  character: Character,
+  banner: BannerId,
+  capacity: number,
+): true | PullRefusal {
   if (currencyHeld(character, banner) < 1) return 'noCurrency';
   // Gear has to land somewhere, and a pull that quietly evaporated would be the
   // worst possible way to spend the rarest currency in the game (Q16).
-  if (isFull(character)) return 'backpackFull';
+  if (isFull(character, capacity)) return 'backpackFull';
   return true;
 }
 
@@ -162,7 +166,22 @@ function rollGear(
   );
   if (candidates.length === 0) return null;
 
-  const def = rng.pick(candidates);
+  /**
+   * The wish list (fifth polish round).
+   *
+   * It steers **which slot** a gear prize arrives in and nothing else: not its
+   * rarity, not where in the window its budget lands, not whether this pull pays
+   * gear at all. That is what keeps it pity-free and keeps the printed table
+   * honest — every number on the rates card is about rarity, and none of them
+   * moves. A wish for a slot this bracket cannot fill is simply not applied,
+   * rather than turning the prize into nothing.
+   */
+  const wished = character.wishlist
+    ? candidates.filter((def) => def.slot === character.wishlist)
+    : [];
+  const pool = wished.length > 0 ? wished : candidates;
+
+  const def = rng.pick(pool);
   return generateItem({
     def,
     rarity,

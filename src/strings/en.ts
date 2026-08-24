@@ -36,10 +36,18 @@ export const en = {
   'rail.noClimb': 'Not yet',
   'rail.running': 'Running',
   'rail.noPotions': 'No draughts running',
-  'rail.walletGold': 'Gold — what merchants, stat points and rerolls cost.',
-  'rail.walletTickets': 'Summon Tickets — one rite each at the Rite of Embers.',
-  'rail.walletLucky':
-    'Lucky Tickets — one rite each at the Rite of Fortune, where the odds are kinder.',
+  'currency.gold.what': 'Gold',
+  'currency.gold.use': 'What merchants, stat points, gear levels and restocks cost.',
+  'currency.gold.where':
+    'Every floor pays it, and every piece you sell or salvage adds to it. It is the ' +
+    'only money in the game.',
+  'currency.tickets.what': 'Summon Ticket',
+  'currency.tickets.use': 'One rite each at the Rite of Embers.',
+  'currency.tickets.where': 'Dropped by floors and bosses, and paid out by quests.',
+  'currency.luckyTickets.what': 'Lucky Ticket',
+  'currency.luckyTickets.use': 'One rite each at the Rite of Fortune, where the odds are kinder.',
+  'currency.luckyTickets.where':
+    'Rare from floors, likelier from bosses, and the reward the tour pays on completion.',
 
   'nav.hero.toCharacter': 'Open the character sheet',
   'nav.hero.here': 'You are looking at the character sheet',
@@ -49,6 +57,7 @@ export const en = {
   'nav.section.magicMerchant': 'Alchemist',
   'nav.section.quests': 'Quests',
   'nav.section.gacha': 'Summoning',
+  'nav.section.records': 'Records',
   'nav.section.upgrades': 'Account',
 
   'save.status.created': 'New save created.',
@@ -258,6 +267,16 @@ export const en = {
   'item.artifact.sunSigil': 'Sun Sigil',
 
   // --- Materials (Brief §10.2) ---
+  // What a material is, said once and derived from its own data — a blurb per
+  // material would be eight sentences that all say the same thing (§2.3).
+  'material.kind': 'Ascension material',
+  'material.tier': 'Tier',
+  'material.tierValue': '{tier} of {max}',
+  'material.held': 'You hold',
+  'material.use': 'Spent on ascending a piece of gear to its next star.',
+  'material.where':
+    'Found in the tower and in the rites by heroes of about {power} Power Level and up. ' +
+    'Climbing deeper is the only way to reach the next tier.',
   'material.spireDust': 'Spire Dust',
   'material.ironSigil': 'Iron Sigil',
   'material.emberCore': 'Ember Core',
@@ -457,6 +476,141 @@ export const en = {
   'tower.stat.speed': 'SPD',
   'tower.stat.luck': 'LCK',
   'tower.cleared': 'Cleared',
+  // --- Records: run history and the bestiary ---
+  'records.title': 'Records',
+  'records.subtitle': 'What this hero has done, and what it cost.',
+  'records.runs': 'Recent runs',
+  'records.runsEmpty': 'No run has ended yet. The list fills the first time you fall.',
+  'records.run.reached': 'Floor {floor}',
+  'records.run.died': 'Fell on floor {floor} to {name}',
+  'records.run.gold': '{gold} gold',
+  'records.run.fights': '{fights} fights',
+  'records.run.when': '{when}',
+  'records.run.tip':
+    'Reached floor {floor}, banked {gold} gold across {fights} fights, and ended on floor ' +
+    '{died} against {name}.',
+  'records.best': 'Best ever',
+  'records.runsHint': 'The last {count} runs, newest first.',
+
+  // Curses: enemy affixes the player switches on (Q35).
+  'curse.title': 'Curses',
+  'curse.hint':
+    'Make every enemy in the Spire harder, and every floor pay more for it. Loot is still sized to you — a curse buys gold, experience and materials, never gear you have not earned.',
+  'curse.locked': 'Curses open at level {level}. Climb.',
+  'curse.lockedChip': 'Level {level}',
+  'curse.full': 'Three at once is the limit. Switch one off to take another.',
+  'curse.reward': '+{percent}% from every floor',
+  'curse.active': '{count} of {max} active',
+  'curse.on': 'Curse taken',
+  'curse.off': 'Curse lifted',
+  'curse.refused.notUnlocked': 'Not yet',
+  'curse.refused.notUnlockedBody': 'Curses open at level {level}.',
+  'curse.refused.tooMany': 'Three is the limit',
+  'curse.refused.tooManyBody': 'Switch one off before taking another.',
+
+  'curse.wrath': 'Wrath',
+  'curse.wrath.desc': 'Everything in the Spire hits harder.',
+  'curse.bulwark': 'Bulwark',
+  'curse.bulwark.desc': 'Everything in the Spire turns more of your blow aside.',
+  'curse.vigour': 'Vigour',
+  'curse.vigour.desc': 'Everything in the Spire takes longer to put down.',
+  'curse.swiftness': 'Swiftness',
+  'curse.swiftness.desc': 'Everything in the Spire moves first more often.',
+  'curse.cunning': 'Cunning',
+  'curse.cunning.desc': 'Everything in the Spire lands the lucky blow more often.',
+  'curse.dominion': 'Dominion',
+  'curse.dominion.desc':
+    'Everything in the Spire is greater in every way. The Spire pays most for this one.',
+
+  // The summoning wish list.
+  'gacha.wish.title': 'Wish list',
+  'gacha.wish.hint':
+    'Aim the gear the rites hand over at one socket. It changes where a prize lands, never how likely one is — the rates above stay exactly as printed.',
+  'gacha.wish.none': 'No wish',
+  'gacha.wish.noneTip': 'Let the rites give whatever they like.',
+  'gacha.wish.tip': 'Gear from a rite arrives as {slot}, when the depth has one to give.',
+  'gacha.wish.locked': '{slot} is not open on this hero yet. Ascend to unlock it.',
+  'gacha.wish.set': 'Wishing for {slot}',
+  'gacha.wish.cleared': 'Wish cleared',
+
+  // Saved gear sets, on the Character screen.
+  'loadout.title': 'Saved sets',
+  'loadout.wear': 'Wear',
+  'loadout.save': 'Save',
+  'loadout.namePlaceholder': 'Set {index}',
+  'loadout.empty': 'Empty',
+  'loadout.holds': '{count} pieces',
+  'loadout.wearEmpty': 'Nothing is saved here yet. Press Save to keep what you are wearing.',
+  'loadout.wearTip': 'Put these {count} pieces back on. Anything they replace goes to the pack.',
+  'loadout.saveTip': 'Keep what you are wearing right now, under the name in the field.',
+  'loadout.saveOverTip': 'Replace this set with what you are wearing right now.',
+  'loadout.saved': 'Set saved',
+  'loadout.savedBody': 'What you are wearing is kept here until you save over it.',
+  'loadout.worn': 'Set worn',
+  'loadout.wornMissing': '{count} of its pieces are gone, so their sockets stayed as they were.',
+  'loadout.refused.nothingWorn': 'Nothing to save',
+  'loadout.refused.nothingWornBody': 'The hero is wearing nothing, so there is no set to keep.',
+  'loadout.refused.empty': 'Nothing saved here',
+  'loadout.refused.emptyBody': 'Press Save first, and this set will have something to put back on.',
+  'loadout.refused.alreadyWorn': 'Already wearing it',
+  'loadout.refused.alreadyWornBody': 'Every piece in this set is already on the hero.',
+  'loadout.refused.backpackFull': 'No room to swap',
+  'loadout.refused.backpackFullBody':
+    'What this set takes off has nowhere to go. Sell something, or buy more sockets.',
+
+  // The bestiary: what the account has met, and what it has not.
+  'bestiary.title': 'Bestiary',
+  'bestiary.hint': '{seen} of {total} met. What the account has seen stays seen.',
+  'bestiary.unknown': '?????',
+  'bestiary.unknownTip':
+    'Nothing has met this one yet. Climb to floors {from}–{to} and it will name itself.',
+  'bestiary.unknownTipOpen': 'Nothing has met this one yet. It waits from floor {from} upward.',
+  'bestiary.killsLabel': 'slain',
+  'bestiary.floors': 'Floors {from}–{to}',
+  'bestiary.floorsOpen': 'Floor {from} and above',
+  'bestiary.floorsLabel': 'Found on',
+  'bestiary.boss': 'Gatekeeper',
+  'bestiary.slain': 'Slain',
+  'bestiary.inflicts': 'Inflicts',
+
+  // Enemy families, named for the first time by the bestiary.
+  'family.vermin': 'Vermin',
+  'family.brigand': 'Brigands',
+  'family.beast': 'Beasts',
+  'family.construct': 'Constructs',
+  'family.arcane': 'Arcane',
+  'family.undead': 'Undead',
+  'family.infernal': 'Infernal',
+  'family.aberration': 'Aberrations',
+
+  // --- Auto-climb (Q32) ---
+  'tower.auto.label': 'Auto-climb',
+  'tower.auto.off': 'Off',
+  'tower.auto.watching': 'Watching',
+  'tower.auto.background': 'In the background',
+  'tower.auto.offTip':
+    'You press the button. Every floor, exactly as the tower was built to be climbed.',
+  'tower.auto.watchingTip':
+    'Climbs a floor every {seconds} seconds while this screen is open, and stops the moment you ' +
+    'die or walk away. Deliberately slower than climbing it yourself.',
+  'tower.auto.backgroundTip':
+    'Keeps climbing wherever you are in the game, one floor every {seconds} seconds, resolving ' +
+    'each fight without showing it. Stops on a death.',
+  'tower.auto.lockedTip': 'Background climbing opens at level {level}.',
+  'tower.auto.on': 'Auto-climb is on — next floor in about {seconds}s.',
+  'tower.auto.cleared': 'Auto-climb cleared floor {floor}',
+  'tower.auto.died': 'Auto-climb stopped — {name} fell on floor {floor}',
+  // --- Milestones ---
+  'tower.milestone.node': 'Milestone',
+  'tower.milestone.tip':
+    'Every {every} floors pays a chest the first time you ever clear it — gold, materials and a ' +
+    'ticket. Once per record, never again on the way back up.',
+  'tower.milestone.claimed': 'Milestone taken',
+  'tower.milestone.toast': 'Milestone — floor {floor}',
+  'tower.milestone.body': 'A chest for the depth, not for the fight.',
+  'tower.ghost': 'Your record',
+  'tower.ghostTip':
+    'The deepest floor you have ever cleared: {floor}. Everything above it is new ground.',
 
   // --- The fight (Brief §4.1–§4.2, COMBAT.md §7) ---
   'combat.round': 'Round {round}',
@@ -592,6 +746,19 @@ export const en = {
   'item.unequip': 'Unequip',
   'item.sell': 'Sell',
   'item.sellFor': 'Sell for {gold}',
+  'item.salvage': 'Salvage',
+  'item.salvageHint': 'Break it down for materials instead of gold',
+  'item.salvageFlavor': 'Gone for good, like a sale — but the pieces feed what you are building.',
+  'item.salvaged': 'Broken down',
+  'item.salvagedBody': '{name} is gone. What it was made of is in the pouch.',
+  'item.reforge': 'Reforge',
+  'item.reforgeFrom': 'These lines',
+  'item.reforgeTo': 'New ones',
+  'item.reforged': 'Reforged',
+  'item.reforgedBody': '{name} carries different lines now.',
+  'item.reforgeShort': 'Not enough to reforge',
+  'item.reforgeShortBody':
+    'A reroll costs gold and the materials of the depth the piece came from.',
   'item.upgrade': 'Upgrade',
   'item.upgradeCost': '{cost} gold',
   'item.upgradeMax': 'Fully upgraded',
@@ -783,6 +950,11 @@ export const en = {
     'Fights play at x{rate}. Speed changes the animation, never the outcome.',
   'upgrades.battleSpeedNext': 'Raise to x{rate}',
   'upgrades.battleSpeedMax': 'Fights already play at x8.',
+  'upgrades.backpack': 'Backpack',
+  'upgrades.backpackDetail': '{slots} of {max} backpack sockets.',
+  'upgrades.backpackNext': 'Widen the pack to {slots} sockets',
+  'upgrades.backpackMax': 'The pack holds as much as it ever will.',
+  'upgrades.backpackBought': '{slots} of {max} backpack sockets.',
   'upgrades.slots': 'Account Slots',
   'upgrades.slotsDetail': '{unlocked} of {max} character slots unlocked.',
   'upgrades.slotsNext': 'Unlock slot {slot}',

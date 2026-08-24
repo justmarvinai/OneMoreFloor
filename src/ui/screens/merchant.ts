@@ -28,7 +28,7 @@ import {
   type SlotItem,
 } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+
 import type { Character } from '@/domain/character/types.ts';
 import {
   nextRestockAt,
@@ -51,6 +51,7 @@ import {
   statLine,
 } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
+import { currencyTooltip } from '@/ui/wallet.ts';
 import { makeDropTarget, makeItemDraggable } from '@/ui/dragItem.ts';
 import { openSellDialog } from '@/ui/sellDialog.ts';
 import { refuse } from '@/ui/toasts.ts';
@@ -60,6 +61,8 @@ import { t, type StringKey } from '@/strings/index.ts';
 const POTION_PREFIX = 'potion:';
 
 export interface MerchantScreenOptions {
+  /** Backpack size — an account upgrade, so the screen is told rather than assuming. */
+  capacity: number;
   character: Character;
   /** Which counter this is. The rail chose it; the screen does not offer a swap. */
   merchantId: MerchantId;
@@ -78,7 +81,8 @@ export interface MerchantScreen {
 }
 
 export function createMerchantScreen(options: MerchantScreenOptions): MerchantScreen {
-  const { character, merchantId, now, onBuy, onDrink, onReroll, onSelectItem, onSell } = options;
+  const { character, capacity, merchantId, now, onBuy, onDrink, onReroll, onSelectItem, onSell } =
+    options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -256,12 +260,17 @@ export function createMerchantScreen(options: MerchantScreenOptions): MerchantSc
   reroll.on('cost:buy', () => onReroll());
   setTip(reroll.el, t('merchant.rerollHint'));
 
+  // The counter's purse says what gold is and where it comes from, like every
+  // other balance in the game (`wallet.ts`).
+  const purse = shop.el.querySelector<HTMLElement>('.fui-shop__purse');
+  if (purse) setTip(purse, currencyTooltip('gold', gold));
+
   // --- the backpack, for selling -------------------------------------------
 
   const backpack = track(
     new InventoryGrid({
       cols: 4,
-      size: INVENTORY_CAPACITY,
+      size: capacity,
       items: character.inventory.map((item) => itemSlot(item)),
       slotSize: 'md',
       draggable: false,

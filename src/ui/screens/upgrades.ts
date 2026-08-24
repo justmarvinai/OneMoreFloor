@@ -11,10 +11,16 @@
  */
 import { CostButton, OrnateHeader, Panel, StatChip, h } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
-import { BATTLE_SPEED_BY_TIER, MAX_ACCOUNT_SLOTS } from '@/content/balance/account.ts';
+import {
+  BATTLE_SPEED_BY_TIER,
+  MAX_ACCOUNT_SLOTS,
+  MAX_BACKPACK_SLOTS,
+} from '@/content/balance/account.ts';
 import type { Account, Character } from '@/domain/character/types.ts';
 import {
+  backpackCost,
   battleSpeedCost,
+  nextBackpackSize,
   nextBattleSpeedTier,
   nextSlot,
   slotCost,
@@ -151,11 +157,31 @@ export function createUpgradesScreen(options: UpgradesScreenOptions): UpgradesSc
     }),
   );
 
+  /**
+   * The third upgrade (Q30).
+   *
+   * §15 said two and no more; the owner added this one in the fifth polish
+   * round, and it belongs beside the other two rather than on a screen of its
+   * own — it is bought with the same gold, from the same purse, for the same
+   * account.
+   */
+  const bag = card(
+    'backpack',
+    t('upgrades.backpack'),
+    t('upgrades.backpackDetail', { slots: account.backpackSlots, max: MAX_BACKPACK_SLOTS }),
+    `${account.backpackSlots} / ${MAX_BACKPACK_SLOTS}`,
+    backpackCost(account),
+    nextBackpackSize(account) === null
+      ? ''
+      : t('upgrades.backpackNext', { slots: nextBackpackSize(account) ?? 0 }),
+    t('upgrades.backpackMax'),
+  );
+
   const el = h(
     'div',
     { class: 'omf-upgrades', dataset: { fuiTheme: 'stone-vine', testid: 'upgrades' } },
     track(new OrnateHeader({ title: t('upgrades.title'), subtitle: t('upgrades.subtitle') })).el,
-    h('div', { class: 'omf-upgrades__cards' }, speed, slots),
+    h('div', { class: 'omf-upgrades__cards' }, speed, slots, bag),
     h('div', { class: 'omf-credits', dataset: { testid: 'credits' } }, credits.el),
   );
 

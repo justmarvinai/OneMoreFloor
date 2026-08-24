@@ -5,10 +5,16 @@ import {
   BATTLE_SPEED_PRICE,
   MAX_ACCOUNT_SLOTS,
 } from '@/content/balance/account.ts';
-import { createAccount } from '@/domain/character/account.ts';
+import { backpackCapacity, createAccount } from '@/domain/character/account.ts';
 import { createCharacter } from '@/domain/character/character.ts';
 import type { Account, Character } from '@/domain/character/types.ts';
-import { battleSpeedOf, buyUpgrade, offersFor } from './upgrades.ts';
+import {
+  backpackCost,
+  battleSpeedOf,
+  buyUpgrade,
+  nextBackpackSize,
+  offersFor,
+} from './upgrades.ts';
 
 function hero(gold: number): Character {
   const base = createCharacter({
@@ -21,9 +27,13 @@ function hero(gold: number): Character {
   return { ...base, currencies: { ...base.currencies, gold } };
 }
 
-describe('the two account upgrades (Brief §15)', () => {
-  it('offers exactly two, and no mechanism for a third', () => {
-    expect(offersFor(createAccount(), 0)).toHaveLength(2);
+describe('the account upgrades (Brief §15, Q30)', () => {
+  it('offers exactly three, and no mechanism for a fourth', () => {
+    // §15 said two; the owner added the backpack in the fifth polish round
+    // (Q30). What the brief was protecting is still protected: the set is a
+    // closed union, not a registry, so a fourth cannot appear without an edit
+    // here and a decision recorded in USER_QUESTIONS.
+    expect(offersFor(createAccount(), 0)).toHaveLength(3);
   });
 
   it('starts every account at x1 and one slot', () => {
@@ -98,5 +108,48 @@ describe('the two account upgrades (Brief §15)', () => {
 
   it('maps every tier to a playback rate the fight can use (§3.5)', () => {
     expect(Object.values(BATTLE_SPEED_BY_TIER)).toEqual([1, 2, 4, 8]);
+  });
+});
+
+describe('the backpack upgrade (Q30)', () => {
+  it('widens the pack five sockets at a time, up to fifty', () => {
+    let account = createAccount();
+    expect(backpackCapacity(account)).toBe(20);
+
+    // Walk the whole ladder, paying each price out of a purse that can afford it.
+    const sizes: number[] = [];
+    for (let step = 0; step < 10; step += 1) {
+      const cost = backpackCost(account);
+      if (cost === null) break;
+      const outcome = buyUpgrade(account, hero(cost), 'backpack');
+      expect(typeof outcome).not.toBe('string');
+      if (typeof outcome === 'string') return;
+      account = outcome.account;
+      sizes.push(account.backpackSlots);
+    }
+
+    expect(sizes).toEqual([25, 30, 35, 40, 45, 50]);
+    expect(backpackCost(account), 'fifty is the ceiling').toBeNull();
+    expect(nextBackpackSize(account)).toBeNull();
+  });
+
+  it('refuses a purchase the purse cannot cover, without changing anything', () => {
+    const account = createAccount();
+    const cost = backpackCost(account) ?? 0;
+    expect(buyUpgrade(account, hero(cost - 1), 'backpack')).toBe('notEnoughGold');
+  });
+
+  it('gets dearer every step, so fifty sockets is a goal', () => {
+    let account = createAccount();
+    const prices: number[] = [];
+    for (let step = 0; step < 6; step += 1) {
+      const cost = backpackCost(account);
+      if (cost === null) break;
+      prices.push(cost);
+      account = { ...account, backpackSlots: nextBackpackSize(account)! };
+    }
+    for (let index = 1; index < prices.length; index += 1) {
+      expect(prices[index]!, `step ${index}`).toBeGreaterThan(prices[index - 1]!);
+    }
   });
 });

@@ -46,7 +46,7 @@ import {
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
 import { potionFor } from '@/content/items/potions.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+import { backpackCapacity } from '@/domain/character/account.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { equippedItems, totalStatsOf } from '@/domain/character/character.ts';
 import { activePotions, remainingMs } from '@/domain/potions/potions.ts';
@@ -58,6 +58,7 @@ import type { Screen } from '@/app/router.ts';
 import { clock } from '@/app/time.ts';
 import { computeBadges, type Badges } from '@/ui/badges.ts';
 import { shortDuration } from '@/ui/format.ts';
+import { currencyTooltip, type CurrencyId } from '@/ui/wallet.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { t } from '@/strings/index.ts';
 
@@ -71,7 +72,14 @@ import { t } from '@/strings/index.ts';
  * saved (§20.5, §11).
  */
 export type ShellSection =
-  'tower' | 'character' | 'equipmentMerchant' | 'magicMerchant' | 'gacha' | 'quests' | 'upgrades';
+  | 'tower'
+  | 'character'
+  | 'equipmentMerchant'
+  | 'magicMerchant'
+  | 'gacha'
+  | 'quests'
+  | 'records'
+  | 'upgrades';
 
 /** Rail order, which is also the order the component renders them in. */
 const NAV_ORDER: readonly ShellSection[] = [
@@ -81,6 +89,7 @@ const NAV_ORDER: readonly ShellSection[] = [
   'magicMerchant',
   'gacha',
   'quests',
+  'records',
   'upgrades',
 ];
 
@@ -144,6 +153,7 @@ export function createShell(options: ShellOptions): Shell {
         magicMerchant: false,
         gacha: false,
         quests: false,
+        records: false,
         upgrades: false,
       };
 
@@ -268,20 +278,17 @@ export function createShell(options: ShellOptions): Shell {
 
   // `CurrencyBar` labels each balance with a native `title` — which the tooltip
   // service would adopt and serve as the name alone. What the player wants to
-  // know is what the balance is *for*.
-  const WALLET_TIPS: Record<string, string> = {
-    gold: t('rail.walletGold'),
-    tickets: t('rail.walletTickets'),
-    luckyTickets: t('rail.walletLucky'),
-  };
+  // know is what the balance is *for*, and where more of it comes from; that
+  // card is built once in `wallet.ts` and served by every surface that shows a
+  // balance, so the rail and the shop counter never disagree.
+  const shown: CurrencyId[] = [
+    'gold',
+    ...((character?.currencies.tickets ?? 0) > 0 ? (['tickets'] as const) : []),
+    ...((character?.currencies.luckyTickets ?? 0) > 0 ? (['luckyTickets'] as const) : []),
+  ];
   currencies.el.querySelectorAll<HTMLElement>('.fui-currency__item').forEach((item, index) => {
-    const id = ['gold', 'tickets', 'luckyTickets'].filter(
-      (candidate) =>
-        candidate === 'gold' ||
-        (candidate === 'tickets' && (character?.currencies.tickets ?? 0) > 0) ||
-        (candidate === 'luckyTickets' && (character?.currencies.luckyTickets ?? 0) > 0),
-    )[index];
-    if (id && WALLET_TIPS[id]) setTip(item, WALLET_TIPS[id]);
+    const id = shown[index];
+    if (id) setTip(item, currencyTooltip(id, character?.currencies[id] ?? 0));
   });
 
   const nav = track(
@@ -318,6 +325,7 @@ export function createShell(options: ShellOptions): Shell {
           glyph: 'glyph-arcane-symbol',
           ...(badges.quests ? { dot: true } : {}),
         },
+        { id: 'records', label: t('nav.section.records'), glyph: 'glyph-spell-book' },
         {
           id: 'upgrades',
           label: t('nav.section.upgrades'),
@@ -420,8 +428,9 @@ export function createShell(options: ShellOptions): Shell {
     );
 
     const used = current.inventory.length;
-    const full = used >= INVENTORY_CAPACITY;
-    bagChip.set(`${used} / ${INVENTORY_CAPACITY}`);
+    const capacity = backpackCapacity(store.get().account ?? { backpackSlots: 0 });
+    const full = used >= capacity;
+    bagChip.set(`${used} / ${capacity}`);
     bagChip.el.dataset.tone = full ? 'bad' : 'neutral';
     setTip(
       bagChip.el,
@@ -429,8 +438,8 @@ export function createShell(options: ShellOptions): Shell {
         ? t('rail.bagFullTip')
         : t('rail.bagTip', {
             used,
-            capacity: INVENTORY_CAPACITY,
-            free: INVENTORY_CAPACITY - used,
+            capacity,
+            free: capacity - used,
           }),
     );
 

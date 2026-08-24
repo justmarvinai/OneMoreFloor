@@ -52,6 +52,44 @@ export const ACCOUNT_SLOT_PRICE: readonly number[] = [0, 0, 900, 120_000, 900_00
 export const MAX_ACCOUNT_SLOTS = 5;
 
 /**
+ * Backpack size, and what widening it costs.
+ *
+ * A third account upgrade, added by the owner in the fifth polish round — §15
+ * said "exactly two, do not add more", and this supersedes that line for the
+ * backpack only (USER_QUESTIONS Q30). It is priced like the other two: the first
+ * step is close to free, and the last one is a goal.
+ *
+ * Sold in steps of five so a purchase is a visible row of new sockets rather
+ * than one more square.
+ */
+export const STARTING_BACKPACK_SLOTS = 20;
+export const MAX_BACKPACK_SLOTS = 50;
+export const BACKPACK_SLOT_STEP = 5;
+
+/**
+ * Saved gear sets (fifth polish round).
+ *
+ * Three, and not a growing list: a preset is worth having because it is a
+ * *decision* — the climbing set, the boss set, the one built for a floor
+ * modifier — and a shelf of twenty is a second inventory to manage rather than
+ * a shortcut past the first one.
+ */
+export const LOADOUT_PRESETS = 3;
+
+/**
+ * Gold to reach each backpack size, keyed by the size it buys. Sizes not listed
+ * cannot be bought — which is what makes 50 the ceiling rather than a check.
+ */
+export const BACKPACK_SLOT_PRICE: Readonly<Record<number, number>> = {
+  25: 2_500,
+  30: 30_000,
+  35: 180_000,
+  40: 900_000,
+  45: 3_500_000,
+  50: 14_000_000,
+};
+
+/**
  * What finishing the tutorial pays (Brief §18: "1 Lucky Ticket + starting
  * Gold"). The gold is sized to cover a first stat point and a cheap piece from
  * the Equipment Merchant, so the tour ends with something to *do* rather than a

@@ -31,6 +31,11 @@ describe('createCharacter', () => {
       currentRunFloor: 1,
       highestFloorEverCleared: 0,
       runSeed: 'seed:1',
+      milestonesClaimed: [],
+      history: [],
+      autoClimb: 'off',
+      runGold: 0,
+      runFights: 0,
     });
     expect(hero.purchasedStats).toEqual({
       strength: 0,
@@ -135,7 +140,16 @@ describe('summarize', () => {
   it('carries what a slot card needs to render', () => {
     const hero = newHero({
       progression: { level: 12, xp: 40, ascension: 1 },
-      tower: { currentRunFloor: 5, highestFloorEverCleared: 21, runSeed: 's' },
+      tower: {
+        currentRunFloor: 5,
+        highestFloorEverCleared: 21,
+        runSeed: 's',
+        milestonesClaimed: [],
+        history: [],
+        autoClimb: 'off',
+        runGold: 0,
+        runFights: 0,
+      },
     });
     expect(summarize(hero)).toEqual({
       slotId: 1,

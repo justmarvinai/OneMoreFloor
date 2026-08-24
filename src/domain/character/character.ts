@@ -48,7 +48,16 @@ export function createCharacter(input: CreateCharacterInput): Character {
     },
     progression: { level: 1, xp: 0, ascension: 0 },
     purchasedStats: { strength: 0, defense: 0, hp: 0, resource: 0, luck: 0 },
-    tower: { currentRunFloor: 1, highestFloorEverCleared: 0, runSeed: input.runSeed },
+    tower: {
+      currentRunFloor: 1,
+      highestFloorEverCleared: 0,
+      runSeed: input.runSeed,
+      milestonesClaimed: [],
+      history: [],
+      autoClimb: 'off',
+      runGold: 0,
+      runFights: 0,
+    },
     equipment: createStartingEquipment(input.classId, rng),
     inventory: [],
     currencies: { gold: 0, tickets: 0, luckyTickets: 0 },
@@ -59,6 +68,9 @@ export function createCharacter(input: CreateCharacterInput): Character {
     // depth, and at creation they have not climbed anything yet.
     quests: emptyQuests(),
     gachaPulls: 0,
+    loadouts: [],
+    wishlist: null,
+    curses: [],
   };
 }
 

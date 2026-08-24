@@ -37,6 +37,8 @@ const ACCOUNT: Account = {
   battleSpeedTier: 0,
   activeSlotId: 1,
   tutorialCompleted: true,
+  backpackSlots: 20,
+  bestiary: {},
 };
 
 /** Thrown by the injected fault, so a real bug cannot masquerade as one. */

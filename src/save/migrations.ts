@@ -15,6 +15,7 @@ import { createStartingEquipment } from '@/domain/items/starting.ts';
 import { createMerchants } from '@/domain/merchants/merchants.ts';
 import { emptyQuests } from '@/domain/quests/quests.ts';
 import { isClassId } from '@/content/classes/index.ts';
+import { STARTING_BACKPACK_SLOTS } from '@/content/balance/account.ts';
 import { CURRENT_SCHEMA_VERSION, type StoredRecord } from './schema.ts';
 
 export type Migration = (record: StoredRecord) => StoredRecord;
@@ -116,12 +117,76 @@ const v4ToV5: Migration = (record) => {
   };
 };
 
+/**
+ * v5 → v6: the fifth polish round's whole shelf of new state, in one step.
+ *
+ * Seven fields across two records, added together on purpose. Each of the
+ * features that lands on them — presets, the bestiary, run history, milestones,
+ * the wish list, curses, auto-climb, and the backpack upgrade — is its own
+ * commit, but a schema bump per feature would be seven migrations and seven
+ * captured blobs for what is, from a save's point of view, one shape change.
+ *
+ * Every default is the honest one for a save that predates the feature:
+ *
+ *  - `backpackSlots` starts at the size every account already had, so nobody
+ *    silently gains or loses a socket.
+ *  - `bestiary` starts empty. It could be *guessed* from how deep the account
+ *    has been, and that guess would be a lie — a collection has to be earned.
+ *  - `milestonesClaimed` starts empty, so a returning player's next milestone
+ *    is waiting for them rather than already spent. Milestones are per record,
+ *    and their record is intact.
+ *  - `history` starts empty: past runs were never written down, and inventing
+ *    them would put fiction in a list whose whole value is that it is true.
+ *  - `runGold`/`runFights` start at zero — the run in progress is only partly
+ *    measured, and a low number is better than a made-up one.
+ *  - `autoClimb` starts off, `wishlist` unset, `curses` and `loadouts` empty:
+ *    all four are choices, and a migration does not get to make them.
+ */
+const v5ToV6: Migration = (record) => {
+  const account = record['account'];
+  if (account !== null && typeof account === 'object') {
+    return {
+      ...record,
+      account: {
+        ...(account as Record<string, unknown>),
+        backpackSlots: STARTING_BACKPACK_SLOTS,
+        bestiary: {},
+      },
+    };
+  }
+
+  const character = record['character'];
+  if (character === null || typeof character !== 'object') return record;
+
+  const existing = character as Record<string, unknown>;
+  const tower = (existing['tower'] ?? {}) as Record<string, unknown>;
+
+  return {
+    ...record,
+    character: {
+      ...existing,
+      tower: {
+        ...tower,
+        milestonesClaimed: [],
+        history: [],
+        autoClimb: 'off',
+        runGold: 0,
+        runFights: 0,
+      },
+      loadouts: [],
+      wishlist: null,
+      curses: [],
+    },
+  };
+};
+
 /** Keyed by the version being migrated *from*: `1` upgrades v1 → v2. */
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: v1ToV2,
   2: v2ToV3,
   3: v3ToV4,
   4: v4ToV5,
+  5: v5ToV6,
 };
 
 export class FutureSaveError extends Error {

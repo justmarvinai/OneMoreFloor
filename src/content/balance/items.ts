@@ -55,11 +55,20 @@ export const BRACKET_BUDGET_FACTOR = 1.42;
 
 /**
  * The window an item's budget may occupy, as multiples of the bracket's
- * reference budget. The spread is what gives rarity room to matter: a mythic at
- * the top of a bracket is worth roughly four times a common at the bottom, and
- * both are still that bracket's items.
+ * reference budget.
+ *
+ * **Narrowed deliberately.** At 0.55–2.4 a lucky drop was worth four times an
+ * unlucky one *of the same bracket*, which made finding gear the whole game:
+ * whatever fell out of the tower next was likely to beat anything already owned,
+ * so the levels and stars in §10 were money spent on something about to be
+ * thrown away. At 0.72–1.58 one drop is at most a bit over twice another, while
+ * a piece taken to level 15 and five stars is worth about 3.7× its base — so
+ * **investment beats luck**, which is the shape §10 was written for.
+ *
+ * Rarity still matters; it just stops mattering mostly through raw budget. Its
+ * job is the affix count and where inside this window a piece lands.
  */
-export const BUDGET_WINDOW = { min: 0.55, max: 2.4 } as const;
+export const BUDGET_WINDOW = { min: 0.72, max: 1.58 } as const;
 
 /**
  * Where each rarity sits inside the window, as a fraction of it. Ranges overlap
@@ -113,15 +122,20 @@ export const STAT_BUDGET_COST: Readonly<Record<StatId, number>> = {
 
 /**
  * Multiplier on an item's affix values from gear level (Brief §10.1). Level 15
- * is worth about +60% over level 0 — a real reason to push, not a second item.
+ * is worth about +90% over level 0 — a real reason to push, not a second item,
+ * and since the drop window narrowed it is *the* reason a piece gets better.
  */
-export const GEAR_LEVEL_STAT_BONUS_PER_LEVEL = 0.04;
+export const GEAR_LEVEL_STAT_BONUS_PER_LEVEL = 0.06;
 
 /**
  * Multiplier from gear ascension stars (Brief §10.2: "increases its stats by more
  * than a normal level-up does"), plus the extra affix slots above.
+ *
+ * Five stars nearly doubles a piece. Together with level 15 that is about 3.7×
+ * its base — comfortably more than the 2.2× spread the drop window now allows,
+ * which is what makes keeping one piece and building it the winning play.
  */
-export const GEAR_ASCENSION_STAT_BONUS: readonly number[] = [0, 0.08, 0.18, 0.3, 0.44, 0.6];
+export const GEAR_ASCENSION_STAT_BONUS: readonly number[] = [0, 0.12, 0.27, 0.45, 0.68, 0.95];
 
 /**
  * Gold cost to take a piece from `level` to `level + 1`, **as a multiple of the
@@ -184,3 +198,52 @@ export const GEAR_ASCENSION_COST: readonly {
  * Gold must stay the thing the player is always slightly short of (Brief §14).
  */
 export const SELL_VALUE_FRACTION = 0.18;
+
+/**
+ * Salvage (fifth polish round) — the other thing to do with a piece you do not
+ * want.
+ *
+ * Selling pays gold; salvaging pays the materials that ascension eats. The two
+ * are deliberately not interchangeable: after this round's drop retune the
+ * tower hands over gold and materials rather than gear, so the pieces that do
+ * arrive are worth *more* as fuel for what you are already building than as one
+ * more line in the purse. There is no roll — a player deciding between two
+ * irreversible options deserves to be told exactly what each one gives.
+ */
+export const SALVAGE_BASE_COUNT = 2;
+
+/** Extra material per rarity: a mythic was worth more to break than a common. */
+export const SALVAGE_RARITY_BONUS: Readonly<Record<Rarity, number>> = {
+  common: 0,
+  uncommon: 1,
+  rare: 2,
+  epic: 3,
+  legendary: 5,
+  mythic: 8,
+};
+
+/** Gear levels give a fraction of their gold back as material, rounded down. */
+export const SALVAGE_LEVEL_BONUS = 0.25;
+
+/**
+ * Each star returns two of the piece's own tier and one of the tier above,
+ * because that is roughly the shape of what ascending it consumed. Not all of
+ * it: salvage is a change of mind, and a change of mind costs something.
+ */
+export const SALVAGE_ASCENSION_BONUS = 2;
+export const SALVAGE_ASCENSION_HIGH_TIER_PER_STAR = 1;
+
+/**
+ * Reforge (fifth polish round) — reroll which stats a piece carries.
+ *
+ * The gamble is *which* affixes and how the budget splits, inside the same
+ * window the piece was born in. Two consequences, both deliberate: a reforge can
+ * never overshoot the bracket that produced the item (§13), and a player willing
+ * to spend can eventually reach the budget the luckiest possible drop would have
+ * had — investment reaching what luck could, which is the shape §10 asks for.
+ *
+ * Priced as a real sink rather than a formality: over half the piece's worth in
+ * gold, plus materials that only the depth it came from yields.
+ */
+export const REFORGE_GOLD_MULTIPLIER = 0.55;
+export const REFORGE_MATERIAL_COUNT = 3;

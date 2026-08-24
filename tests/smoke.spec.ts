@@ -411,20 +411,31 @@ test('closes the loop: buy a piece, wear it, hit harder (ROADMAP M5)', async ({ 
   }
   expect(await buyButtons.count(), 'nothing on the shelf was ever affordable').toBeGreaterThan(0);
 
-  await goToSection(page, 'Character');
   const power = page.locator('[data-testid="character"] .fui-power__value');
-  const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
 
-  await goToSection(page, 'Equipment');
-  await buyButtons.first().click();
+  /**
+   * Buy until the pack holds a piece the game itself calls an upgrade.
+   *
+   * The shelf is bracketed, so any single purchase may be worse than what is
+   * already worn — buying one and asserting the power rose is a coin flip. The
+   * chevron the backpack draws on an upgrade (round four) is the game's own
+   * answer to "is this better", so the test buys until that mark appears and
+   * wears *that* piece.
+   */
+  const marked = page.locator('[data-testid="character"] .fui-inv .fui-slot.omf-upgrade');
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await goToSection(page, 'Character');
+    if ((await marked.count()) > 0) break;
+    await goToSection(page, 'Equipment');
+    if ((await buyButtons.count()) === 0) break;
+    await buyButtons.first().click();
+  }
 
-  // The piece is in the backpack; wearing it is the point of buying it.
   await goToSection(page, 'Character');
-  // The purchase lands at the end of the pack, behind whatever the climb dropped.
-  await page
-    .locator('[data-testid="character"] .fui-inv .fui-slot:not(.fui-slot--empty)')
-    .last()
-    .click();
+  expect(await marked.count(), 'the shelf never sold an upgrade').toBeGreaterThan(0);
+
+  const before = Number((await power.innerText()).replace(/[^\d]/g, ''));
+  await marked.first().click();
   await expect(page.locator('[data-testid="gear-dialog"]')).toBeVisible();
   await page.getByRole('button', { name: /^Equip$/ }).click();
 
@@ -520,7 +531,9 @@ test('puts three dailies and three weeklies up, one of them hard (Q21)', async (
   await expect(moved.first()).toBeVisible();
 });
 
-test('sells the two account upgrades, and only those two (Brief §15)', async ({ page }) => {
+test('sells the three account upgrades, and only those three (Brief §15, Q30)', async ({
+  page,
+}) => {
   test.slow();
   await enterSelect(page);
   await createHero(page, 'Grimhild', 'Warrior');
@@ -532,8 +545,10 @@ test('sells the two account upgrades, and only those two (Brief §15)', async ({
   // Scoped to the upgrade rack, not the whole screen: §15's guarantee is that
   // there are exactly two things to *buy*, and the screen also carries the
   // credits panel, which sells nothing.
+  await expect(screen.getByRole('heading', { name: 'Backpack' })).toBeVisible();
+  // Three since Q30 added the backpack; still a closed set, not a registry.
   const cards = screen.locator('.omf-upgrades__cards .fui-panel');
-  await expect(cards).toHaveCount(2);
+  await expect(cards).toHaveCount(3);
 
   // Earn until the cheap upgrade is within reach, then buy it. A `CostButton`
   // that cannot be paid for stays pressable and says how short you are, so the
@@ -650,6 +665,25 @@ test('shows no native tooltip in the lobby or the rite either (§20.4)', async (
     await page.$$eval('[title]', (nodes) => nodes.map((node) => node.tagName)),
     'the summoning lobby',
   ).toEqual([]);
+
+  // Dialogs mount on the document body rather than inside the app node, which is
+  // the one place a vendored component's `title` could survive unadopted.
+  await goToSection(page, 'Character');
+  await page.locator('.omf-character__doll .fui-slot:not(.fui-slot--empty)').first().click();
+  const dialog = page.locator('[data-testid="gear-dialog"]');
+  await expect(dialog).toBeVisible();
+  // The Ascend tab is where the material cells live, and each one arrives from
+  // the vendored panel carrying a native `title`.
+  await dialog.getByRole('tab', { name: /Ascend/i }).click();
+  await expect(dialog.locator('.fui-upgrade__mat').first()).toBeVisible();
+  expect(
+    await page.$$eval('[title]', (nodes) => nodes.map((node) => node.tagName)),
+    'the gear dialog',
+  ).toEqual([]);
+
+  // And the material says what it is rather than repeating its own name.
+  await dialog.locator('.fui-upgrade__mat').first().hover();
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/ascend/i);
 });
 
 /* --- M10: the §2.1 / §20.5 sweep ------------------------------------------ */
@@ -1390,4 +1424,222 @@ test('marks the bag pieces worth wearing without being hovered', async ({ page }
   if ((await marked.count()) > 0) {
     await expect(marked).toContainText(/Upgrade/i);
   }
+});
+
+/**
+ * Round five, the tower half: the climb keeps a record of itself, marks what it
+ * has already reached, and can be handed over to a timer.
+ */
+test('the trail marks the milestones ahead of the hero', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // The trail draws ahead only (Q23), so the first milestone at floor 25 comes
+  // into view once the hero is deep enough for it to be within the look-ahead.
+  await climb(page, 8);
+  await expect(page.locator('.omf-tower__milestone').first()).toBeVisible();
+});
+
+test('auto-climb offers three states and refuses the one not yet earned (§20.5)', async ({
+  page,
+}) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  const auto = page.locator('[data-testid="auto-climb"]');
+  await expect(auto).toBeVisible();
+  await expect(auto.locator('button')).toHaveCount(3);
+
+  // Background climbing is level-gated, and a gate has to say what opens it
+  // rather than hiding the door.
+  const background = page.locator('[data-testid="auto-background"]');
+  await expect(background).toBeDisabled();
+  await background.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/level/i);
+
+  // Watching is available from the first floor, and switching it on sticks.
+  await page.locator('[data-testid="auto-watching"]').click();
+  await expect(page.locator('[data-testid="auto-watching"]')).toHaveClass(/is-on/);
+});
+
+test('curses are offered long before they can be taken (§20.5)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // The one thing in the game that makes the tower harder on purpose is shown to
+  // a level-1 hero rather than hidden, with the level that opens it.
+  const curses = page.locator('[data-testid="curses"]');
+  await expect(curses).toBeVisible();
+  await expect(curses).toHaveAttribute('data-unlocked', 'false');
+  await expect(curses).toContainText(/Level 100/i);
+
+  // And it says what the trade is, including what it will not do to the loot.
+  await expect(curses).toContainText(/never gear you have not earned/i);
+
+  const wrath = page.locator('[data-testid="curse-curse.wrath"]');
+  await expect(wrath).toBeDisabled();
+  await wrath.hover({ force: true });
+  const tip = page.locator('body > .fui-tooltip');
+  await expect(tip).toContainText(/Curses open at level 100/i);
+  // The reward half of the trade is on the chip too, not only the cost.
+  await expect(tip).toContainText(/from every floor/i);
+});
+
+test('the rites take a wish for a socket, and refuse a locked one (§20.5)', async ({ page }) => {
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Summoning');
+
+  const wish = page.locator('[data-testid="wishlist"]');
+  await expect(wish).toBeVisible();
+  // The wish is under both tables and says outright that it moves nothing on them.
+  await expect(wish).toContainText(/rates above stay exactly as printed/i);
+
+  // A socket a fresh hero has not unlocked is shown, disabled, and says why.
+  const artifact = page.locator('[data-testid="wish-artifact"]');
+  await expect(artifact).toBeDisabled();
+  await artifact.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/Ascend to unlock/i);
+
+  // One that is open takes the wish, and the wish sticks.
+  await page.locator('[data-testid="wish-helmet"]').click();
+  await expect(page.locator('[data-testid="wish-helmet"]')).toHaveClass(/is-on/);
+  await goToSection(page, 'Tower');
+  await goToSection(page, 'Summoning');
+  await expect(page.locator('[data-testid="wish-helmet"]')).toHaveClass(/is-on/);
+});
+
+test('a piece can be broken down or reforged, not only sold', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Climb until the tower hands over a piece — gear is an event now, so this
+  // takes a while and the loop says so rather than assuming one floor is enough.
+  const bag = page.locator('.omf-character__side .fui-inv .fui-slot:not(.fui-slot--empty)');
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await climb(page, 5);
+    await goToSection(page, 'Character');
+    if ((await bag.count()) > 0) break;
+    await goToSection(page, 'Tower');
+  }
+  expect(await bag.count(), 'forty floors dropped nothing').toBeGreaterThan(0);
+
+  await bag.first().click();
+  const dialog = page.locator('[data-testid="gear-dialog"]');
+  await expect(dialog).toBeVisible();
+
+  // Reforge is the third thing you do to a piece you are keeping.
+  await dialog.getByRole('tab', { name: /Reforge/i }).click();
+  await expect(dialog.locator('.fui-upgrade')).toContainText(/Reforge/i);
+
+  // Salvage sits beside Sell, and says what it gives before it is pressed.
+  const salvage = dialog.getByRole('button', { name: /^Salvage$/ });
+  await expect(salvage).toBeVisible();
+  await salvage.hover();
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/materials/i);
+
+  await salvage.click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.fui-toast').last()).toContainText(/Broken down/i);
+});
+
+test('a gear set can be kept and put back on (fifth polish round)', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+  await goToSection(page, 'Character');
+
+  const first = page.locator('[data-testid="loadout-0"]');
+  await expect(first).toBeVisible();
+  await expect(first).toHaveAttribute('data-empty', 'true');
+  // An empty set cannot be worn, and the button says why rather than going grey.
+  const wear = first.getByRole('button', { name: 'Wear' });
+  await expect(wear).toBeDisabled();
+  await wear.hover({ force: true });
+  await expect(page.locator('body > .fui-tooltip')).toContainText(/Press Save/i);
+
+  // Keep what the starting kit is wearing.
+  await first.locator('input').fill('Climbing');
+  await first.getByRole('button', { name: 'Save' }).click();
+  await expect(first).toHaveAttribute('data-empty', 'false');
+  await expect(first).toContainText(/pieces/i);
+  await expect(first.locator('input')).toHaveValue('Climbing');
+
+  // Wearing what is already worn is refused in words (§20.5).
+  await first.getByRole('button', { name: 'Wear' }).click();
+  await expect(page.locator('.fui-toast').last()).toContainText(/Already wearing it/i);
+});
+
+test('the bestiary fills in as the tower is met, and keeps its gaps', async ({ page }) => {
+  test.slow();
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  // Nothing met yet: every entry is a gap, and a gap does not give its name away.
+  await goToSection(page, 'Records');
+  const bestiary = page.locator('[data-testid="bestiary"]');
+  await expect(bestiary).toBeVisible();
+  await expect(bestiary.locator('[data-seen="true"]')).toHaveCount(0);
+  await expect(bestiary.locator('[data-seen="false"]').first()).toContainText('?????');
+
+  // Four floors is four kills, and the roster starts naming itself.
+  await goToSection(page, 'Tower');
+  await climb(page, 4);
+  await goToSection(page, 'Records');
+  const met = bestiary.locator('[data-seen="true"]');
+  expect(await met.count(), 'four floors met nothing').toBeGreaterThan(0);
+  await expect(met.first()).toContainText(/slain/i);
+  // And the tower it has not seen is still shown, because the gaps are the point.
+  expect(await bestiary.locator('[data-seen="false"]').count()).toBeGreaterThan(0);
+});
+
+test('a finished run becomes a line in the records, and the record gets a ghost', async ({
+  page,
+}) => {
+  test.slow();
+  await enterSelect(page);
+  // The Swashbuckler dies shallowest in the balance sim, which is what makes her
+  // the right hero for a test that has to actually die.
+  await createHero(page, 'Grimhild', 'Swashbuckler');
+
+  await goToSection(page, 'Records');
+  await expect(page.locator('[data-testid="records"]')).toContainText(/No run has ended yet/i);
+  await goToSection(page, 'Tower');
+
+  const death = page.getByText('The Spire Takes You');
+  const oneMore = page.getByRole('button', { name: /One More Floor/i });
+  await startFight(page);
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await skipToVerdict(page);
+    // The aftermath holds exactly one thing at a time: the level-up celebration
+    // first when there is one, then the verdict.
+    const aftermath = page.locator('.omf-combat__aftermath > *');
+    await expect(aftermath).toBeVisible();
+
+    const levelUp = page.getByRole('button', { name: /^Continue$/ });
+    if (await levelUp.isVisible().catch(() => false)) {
+      await levelUp.click();
+      await expect(aftermath).toBeVisible();
+    }
+
+    if (await death.isVisible().catch(() => false)) break;
+    await oneMore.click();
+    await expect(page.locator('[data-testid="combat-screen"]')).toBeVisible();
+  }
+  await expect(death).toBeVisible();
+  // Walking back in rather than raiding: the Spire at Floor 1, below the record.
+  await page.getByRole('button', { name: /Climb again/i }).click();
+  await expect(page.locator('[data-testid="tower"]')).toBeVisible();
+
+  // From down here the trail marks where the last climb reached.
+  await expect(page.locator('[data-testid="best-floor-ghost"]')).toBeVisible();
+
+  // The run that just ended is written down.
+  await goToSection(page, 'Records');
+  const row = page.locator('[data-testid="run-0"]');
+  await expect(row, 'the run that just ended').toBeVisible();
+  await expect(row).toContainText(/Floor \d+/);
+  await expect(row).toContainText(/gold/i);
 });

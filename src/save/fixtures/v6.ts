@@ -1,34 +1,28 @@
 /**
- * Captured save blobs, schema version 5.
+ * Captured save blobs, schema version 6.
  *
- * v5 gave characters their gacha pull counter (Brief §16). Captured by running
- * the real v4 → v5 migration over `V4_CHARACTER` and stamping the result, so it
- * is exactly what a player's save looks like after updating — checksum included.
+ * v6 is the fifth polish round's whole shelf of new state in one step: accounts
+ * gained a backpack size and a bestiary; characters gained saved loadouts, a
+ * rite wish list, curses, and — inside `tower` — milestones claimed, run
+ * history, the auto-climb mode and the run's running totals.
  *
- * The counter starts at zero for an existing hero, which is the honest answer:
- * it is a seed input, not a statistic, and a save that predates the gacha has
- * made no pulls to reproduce (ARCHITECTURE §5).
+ * Both blobs were captured by running the real migration ladder over the v1
+ * fixtures and re-stamping, so they are exactly what a player's save looks like
+ * after updating from any earlier version — checksum included.
  *
- * The meta and account shapes did not change in v5, so `v1.ts` still covers them.
- *
- * **The starting loadout's numbers moved in the fifth polish round**, when the
- * item budget window narrowed (`BUDGET_WINDOW`, balance/items). That is expected
- * and the reason this capture is regenerated rather than hand-held: v1–v4 are
- * historical blobs and must never change, but v5 is *what this build writes*,
- * and a balance change to item generation changes it. The migration itself is
- * untouched — an existing player's saved items keep the budget they were rolled
- * with (SAVE_SCHEMA §4).
+ * The account record changes in v6, which is why this file carries one: v1.ts
+ * has covered the account shape since M1 and no longer does.
  */
 import type { StoredRecord } from '../schema.ts';
 
-export const V5_CHARACTER: StoredRecord = {
-  schemaVersion: 5,
+export const V6_CHARACTER: StoredRecord = {
+  schemaVersion: 6,
   character: {
     slotId: 1,
     identity: {
       name: 'Grimhild',
       classId: 'warrior',
-      createdAt: 1_700_000_000_000,
+      createdAt: 1700000000000,
     },
     progression: {
       level: 1,
@@ -46,6 +40,11 @@ export const V5_CHARACTER: StoredRecord = {
       currentRunFloor: 1,
       highestFloorEverCleared: 0,
       runSeed: 'run:1:8f2c1a0b',
+      milestonesClaimed: [],
+      history: [],
+      autoClimb: 'off',
+      runGold: 0,
+      runFights: 0,
     },
     equipment: {
       mainhand: {
@@ -118,8 +117,26 @@ export const V5_CHARACTER: StoredRecord = {
       },
     },
     gachaPulls: 0,
+    loadouts: [],
+    wishlist: null,
+    curses: [],
   },
   integrity: {
-    crc32: 'ae5a7577',
+    crc32: '66a6d517',
+  },
+};
+
+export const V6_ACCOUNT: StoredRecord = {
+  schemaVersion: 6,
+  account: {
+    battleSpeedTier: 0,
+    slotsUnlocked: 1,
+    activeSlotId: 1,
+    tutorialCompleted: false,
+    backpackSlots: 20,
+    bestiary: {},
+  },
+  integrity: {
+    crc32: 'addea5cb',
   },
 };

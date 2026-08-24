@@ -28,7 +28,7 @@ import {
   levelUp,
   sellValue,
 } from '@/domain/items/upgrade.ts';
-import { INVENTORY_CAPACITY } from '@/domain/items/inventory.ts';
+import { STARTING_BACKPACK_SLOTS } from '@/content/balance/account.ts';
 import {
   affordableStatPoints,
   buyStatPoints,
@@ -431,7 +431,7 @@ function wearBetterDrops(character: Character): Character {
 
 /** Keep the bag from filling up, which is what a real player does (Q16). */
 function sellSpares(character: Character, wallet: Wallet): Character {
-  if (character.inventory.length < INVENTORY_CAPACITY - 4) return character;
+  if (character.inventory.length < STARTING_BACKPACK_SLOTS - 4) return character;
   const keep = character.inventory.slice(-4);
   const sold = character.inventory.slice(0, -4);
   const gold = sold.reduce((total, item) => total + sellValue(item), 0);

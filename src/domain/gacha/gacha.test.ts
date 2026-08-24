@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BANNERS, bannerConfig, bannerOdds } from '@/content/balance/gacha.ts';
-import { INVENTORY_CAPACITY } from '@/domain/items/inventory.ts';
+import { STARTING_BACKPACK_SLOTS as INVENTORY_CAPACITY } from '@/content/balance/account.ts';
 import { createCharacter } from '@/domain/character/character.ts';
 import { availableSlots } from '@/domain/items/equip.ts';
 import { requireItemDef } from '@/content/items/index.ts';
@@ -161,8 +161,8 @@ describe('gacha pulls', () => {
 
   it('refuses without the currency, and says which one is missing', () => {
     const broke = hero({ currencies: { gold: 10_000, tickets: 0, luckyTickets: 3 } });
-    expect(canPull(broke, 'ticket')).toBe('noCurrency');
-    expect(canPull(broke, 'lucky')).toBe(true);
+    expect(canPull(broke, 'ticket', INVENTORY_CAPACITY)).toBe('noCurrency');
+    expect(canPull(broke, 'lucky', INVENTORY_CAPACITY)).toBe(true);
     expect(currencyHeld(broke, 'lucky')).toBe(3);
   });
 
@@ -175,7 +175,7 @@ describe('gacha pulls', () => {
         uid: `filler-${index}`,
       })),
     };
-    expect(canPull(stuffed, 'ticket')).toBe('backpackFull');
+    expect(canPull(stuffed, 'ticket', INVENTORY_CAPACITY)).toBe('backpackFull');
   });
 
   it('spends the banner’s own currency and nothing else', () => {
@@ -201,6 +201,63 @@ describe('gacha pulls', () => {
     };
 
     expect(goldOf(deep)).toBeGreaterThan(goldOf(shallow) * 10);
+  });
+});
+
+describe('the wish list (fifth polish round)', () => {
+  /** Pull until the rites hand over gear, and report what slot it filled. */
+  function slotsFrom(character: Character, rounds: number): string[] {
+    const slots: string[] = [];
+    for (let index = 0; index < rounds; index += 1) {
+      for (const banner of BANNERS) {
+        const result = pull({ character, banner: banner.id, bracket: BRACKET, pullNumber: index });
+        if (result.item) slots.push(requireItemDef(result.item.defId).slot);
+      }
+    }
+    return slots;
+  }
+
+  it('lands every gear prize in the wished socket', () => {
+    const wished = hero({ wishlist: 'helmet' });
+    const slots = slotsFrom(wished, 60);
+
+    expect(slots.length, 'sixty rounds paid no gear at all').toBeGreaterThan(0);
+    expect(new Set(slots)).toEqual(new Set(['helmet']));
+  });
+
+  it('leaves the odds exactly as printed — it moves where, never whether', () => {
+    const plain = hero();
+    const wished = hero({ wishlist: 'helmet' });
+
+    for (const banner of BANNERS) {
+      for (let index = 0; index < 40; index += 1) {
+        const a = pull({
+          character: plain,
+          banner: banner.id,
+          bracket: BRACKET,
+          pullNumber: index,
+        });
+        const b = pull({
+          character: wished,
+          banner: banner.id,
+          bracket: BRACKET,
+          pullNumber: index,
+        });
+        // Same entry, same rarity, same consolation: only the base differs.
+        expect(b.entryId).toBe(a.entryId);
+        expect(b.rarity).toBe(a.rarity);
+        expect(b.reward.gold).toBe(a.reward.gold);
+      }
+    }
+  });
+
+  it('ignores a wish the hero cannot wear yet rather than paying nothing', () => {
+    const locked = availableSlots(0);
+    const wished = hero({ progression: { level: 60, xp: 0, ascension: 0 }, wishlist: 'artifact' });
+    expect(locked).not.toContain('artifact');
+
+    const slots = slotsFrom(wished, 40);
+    expect(slots.length, 'a wish for a locked socket stopped the gear').toBeGreaterThan(0);
   });
 });
 

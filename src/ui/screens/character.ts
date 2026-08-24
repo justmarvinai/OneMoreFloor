@@ -26,13 +26,14 @@ import {
   PowerRating,
   StarRating,
   StatBar,
+  TextInput,
   h,
   type EquipSlotDef,
   type SlotItem,
 } from '@/ui/fui/index.ts';
 import type { FuiComponent } from '@/ui/fui/index.ts';
 import { CLASSES } from '@/content/classes/index.ts';
-import { INVENTORY_CAPACITY } from '@/content/balance/merchants.ts';
+
 import { potionFor } from '@/content/items/potions.ts';
 import { statReadouts } from '@/domain/combat/readouts.ts';
 import {
@@ -51,6 +52,7 @@ import { xpToNextLevel } from '@/domain/progression/xp.ts';
 import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
+import { LOADOUT_NAME_MAX, isEmptyLoadout, loadoutsOf } from '@/domain/items/presets.ts';
 import { compareGear, isUpgrade, itemSlot, itemTooltip } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { shortDuration } from '@/ui/format.ts';
@@ -84,6 +86,8 @@ const SLOT_LAYOUT: Readonly<Record<EquipSlotId, 'left' | 'right' | 'bottom'>> = 
 };
 
 export interface CharacterScreenOptions {
+  /** Backpack size — an account upgrade, so the screen is told rather than assuming. */
+  capacity: number;
   character: Character;
   /** Wall-clock time, for potion timers (Q9). */
   now: number;
@@ -94,6 +98,10 @@ export interface CharacterScreenOptions {
   onUnequip: (slot: EquipSlotId) => void;
   onBuyStat: (stat: UpgradableStatId) => void;
   onAscend: () => void;
+  /** Store what is worn into preset `index` under `name` (fifth polish round). */
+  onSaveLoadout: (index: number, name: string) => void;
+  /** Wear preset `index`. */
+  onWearLoadout: (index: number) => void;
 }
 
 export interface CharacterScreen {
@@ -102,7 +110,18 @@ export interface CharacterScreen {
 }
 
 export function createCharacterScreen(options: CharacterScreenOptions): CharacterScreen {
-  const { character, now, onSelectItem, onEquip, onUnequip, onBuyStat, onAscend } = options;
+  const {
+    character,
+    capacity,
+    now,
+    onSelectItem,
+    onEquip,
+    onUnequip,
+    onBuyStat,
+    onAscend,
+    onSaveLoadout,
+    onWearLoadout,
+  } = options;
   const parts: FuiComponent[] = [];
   const track = <T extends FuiComponent>(component: T): T => {
     parts.push(component);
@@ -367,7 +386,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
   const backpack = track(
     new InventoryGrid({
       cols: 5,
-      size: INVENTORY_CAPACITY,
+      size: capacity,
       items: character.inventory.map((item) => itemSlot(item)),
       slotSize: 'md',
       draggable: false,
@@ -463,7 +482,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
       accepts: (drag) => drag.from === 'worn',
       onDrop: (drag) => {
         if (drag.from !== 'worn' || !drag.slot) return;
-        if (character.inventory.length >= INVENTORY_CAPACITY) {
+        if (character.inventory.length >= capacity) {
           refuse(t('item.bagFull'), t('item.bagFullHint'));
           return;
         }
@@ -490,11 +509,81 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     });
   }
 
+  /**
+   * Saved gear sets, under the paperdoll that fills them.
+   *
+   * Three cards, each with a name, a **Wear** and a **Save**. Two explicit
+   * buttons rather than one clever gesture: a click that overwrites a saved set
+   * when you meant to put it on is the kind of loss the game has no undo for,
+   * and §20.5 wants every refusal to be able to say what it wanted instead — an
+   * empty preset's Wear says so on the button itself.
+   */
+  function buildLoadouts(): HTMLElement {
+    const row = h('div', { class: 'omf-loadouts', dataset: { testid: 'loadouts' } });
+    row.appendChild(
+      h('h3', { class: 'omf-character__section fui-title', text: t('loadout.title') }),
+    );
+
+    const cards = h('div', { class: 'omf-loadouts__cards' });
+    loadoutsOf(character).forEach((preset, index) => {
+      const empty = isEmptyLoadout(preset);
+      const field = track(
+        new TextInput({
+          value: preset.name,
+          placeholder: t('loadout.namePlaceholder', { index: index + 1 }),
+          maxLength: LOADOUT_NAME_MAX,
+          width: '100%',
+        }),
+      );
+
+      const wear = track(
+        new Button({
+          label: t('loadout.wear'),
+          size: 'sm',
+          variant: empty ? 'ghost' : 'primary',
+          disabled: empty,
+        }),
+      );
+      wear.on('click', () => onWearLoadout(index));
+      setTip(
+        wear.el,
+        empty
+          ? t('loadout.wearEmpty')
+          : t('loadout.wearTip', { count: Object.keys(preset.equipment).length }),
+      );
+
+      const store = track(new Button({ label: t('loadout.save'), size: 'sm', variant: 'ghost' }));
+      store.on('click', () => onSaveLoadout(index, field.input.value));
+      setTip(store.el, empty ? t('loadout.saveTip') : t('loadout.saveOverTip'));
+
+      cards.appendChild(
+        h(
+          'div',
+          {
+            class: 'omf-loadouts__card',
+            dataset: { testid: `loadout-${index}`, empty: String(empty) },
+          },
+          field.el,
+          h('div', { class: 'omf-loadouts__actions' }, wear.el, store.el),
+          h('span', {
+            class: 'omf-loadouts__count',
+            text: empty
+              ? t('loadout.empty')
+              : t('loadout.holds', { count: Object.keys(preset.equipment).length }),
+          }),
+        ),
+      );
+    });
+
+    row.appendChild(cards);
+    return row;
+  }
+
   const backpackPanel = track(
     new Panel({
       title: t('character.backpack', {
         used: character.inventory.length,
-        capacity: INVENTORY_CAPACITY,
+        capacity,
       }),
       variant: 'default',
       width: '100%',
@@ -533,6 +622,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
           }),
           h('div', { class: 'omf-character__doll' }, paperdoll.el),
           heroStrip,
+          buildLoadouts(),
         ),
         statsBlock,
       ],
