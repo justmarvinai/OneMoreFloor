@@ -36,7 +36,7 @@ import { affixPool } from '@/content/items/affixPools.ts';
 import { ITEM_BASES, materialIdForTier } from '@/content/items/index.ts';
 import { unlockedSlotsAt } from '../character/character.ts';
 import type { AscensionTier } from '../character/types.ts';
-import { defsForBracket, generateItem } from '../items/generate.ts';
+import { defsForBracket, generateItem, pickBase } from '../items/generate.ts';
 import { RARITIES, type ItemInstance, type Rarity } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
 import { curseRewardMultiplier } from './curses.ts';
@@ -210,8 +210,11 @@ export function rollItem(input: RollRewardInput): ItemInstance | null {
   );
   if (candidates.length === 0) return null;
 
-  const def = rng.pick(candidates);
+  // Rarity first, because the unique gate reads it: a named piece is not in the
+  // pool until the roll has already come up legendary or better (Q45).
   const rarity = rng.weighted(rarityWeightsFor(bracket.index));
+  const def = pickBase(candidates, rarity, rng);
+  if (!def) return null;
 
   // The one door every item comes through (Brief §13, BALANCE.md §6).
   return generateItem({

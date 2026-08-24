@@ -3225,3 +3225,62 @@ body > .fui-tooltip .fui-tooltip__price {
 .omf-tower__matchup[data-elite='true'] .omf-tower__face:last-child .fui-portrait {
   box-shadow: 0 0 0 2px rgb(196 69 58 / 55%);
 }
+
+/* --- Sets, on the character sheet ----------------------------------------- */
+
+/**
+ * What the worn sets are giving, and what the next piece would add.
+ *
+ * A live threshold is gold and a sleeping one is faint, because the whole value
+ * of the block is answering "how far off am I?" at a glance — a player who has
+ * to read three lines to find out is a player who stops reading them.
+ */
+.omf-sets {
+  margin-top: 14px;
+}
+
+.omf-sets__card {
+  margin-bottom: 8px;
+  padding: 9px 11px;
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 6px;
+  background: rgb(0 0 0 / 24%);
+}
+
+.omf-sets__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.omf-sets__name {
+  font-size: 0.86rem;
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-sets__count {
+  font-size: 0.72rem;
+  color: var(--fui-ink-faint);
+}
+
+.omf-sets__bonus {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--fui-ink-faint);
+}
+
+.omf-sets__bonus[data-active='true'] {
+  color: var(--fui-gold-soft, #f0d9a0);
+}
+
+.omf-sets__bonus[data-active='true']::before {
+  content: '● ';
+  color: var(--fui-gold, #d8b26a);
+}
+
+.omf-sets__bonus[data-active='false']::before {
+  content: '○ ';
+}

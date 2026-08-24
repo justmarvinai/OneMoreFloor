@@ -9,6 +9,7 @@ import { createRng } from '@/app/rng.ts';
 import { ASCENSION_STEPS, MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { getClass } from '@/content/classes/index.ts';
 import { equipmentStats } from '../items/derive.ts';
+import { setBonusStats } from '../items/sets.ts';
 import { createStartingEquipment } from '../items/starting.ts';
 import type { ItemInstance } from '../items/types.ts';
 import { createMerchants } from '../merchants/merchants.ts';
@@ -142,7 +143,11 @@ export function baseStatsOf(character: Character): StatBlock {
  * `combatStatsOf`.
  */
 export function totalStatsOf(character: Character): StatBlock {
-  return addStats(baseStatsOf(character), equipmentStats(equippedItems(character)));
+  const worn = equippedItems(character);
+  const durable = addStats(baseStatsOf(character), equipmentStats(worn));
+  // Set bonuses are a percentage *of* the durable total, so they are folded in
+  // last and never compound with each other (Q45).
+  return addStats(durable, setBonusStats(durable, worn));
 }
 
 /**

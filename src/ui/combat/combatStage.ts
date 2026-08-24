@@ -28,6 +28,7 @@ import type { FuiComponent } from '@/ui/fui/index.ts';
 import type { CombatScript, EffectDef, UnitId } from '@/domain/combat/types.ts';
 import type { StatBlock } from '@/domain/stats.ts';
 import { bandForFloor } from '@/content/floors/index.ts';
+import { UNIQUE_POWERS } from '@/content/items/uniques.ts';
 import { t, type StringKey } from '@/strings/index.ts';
 import { choreograph, floatLifeFor, TIMING, type Beat, type Step } from './choreography.ts';
 import { effectChip, tipEffects } from './effectChips.ts';
@@ -367,6 +368,29 @@ export class CombatStage {
         this.animate(this.cards[step.target], recoilFrames(step.crit), MOTION.recoil);
         if (step.crit) this.impact.setTone('crit', step.heavy ? 1 : 0.7).play(t('combat.critical'));
         if (step.target === 'hero' && step.heavy) this.vignette.flash('damage', 0.7);
+        break;
+      }
+
+      case 'heal': {
+        this.frames[step.unit].setHealth(step.unitHp);
+        this.log.push(
+          {
+            kind: 'buff',
+            actor: this.names[step.unit],
+            text: t('combat.log.heal', {
+              amount: step.amount,
+              power: t(UNIQUE_POWERS[step.source].nameKey),
+            }),
+            turn: this.round,
+          },
+          { silent },
+        );
+        if (silent) break;
+        this.floatAbove(step.unit, {
+          value: `+${step.amount}`,
+          kind: 'heal',
+          life: floatLifeFor(false, this.rate),
+        });
         break;
       }
 

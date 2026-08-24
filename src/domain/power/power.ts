@@ -15,6 +15,8 @@ import {
   POWER_WEIGHTS,
 } from '@/content/balance/power.ts';
 import { affixBudget, upgradeMultiplier } from '../items/derive.ts';
+import { UNIQUE_POWER_LEVEL } from '@/content/balance/uniques.ts';
+import { wornPowers } from '../items/sets.ts';
 import type { ItemInstance } from '../items/types.ts';
 import type { StatBlock } from '../stats.ts';
 import { STAT_IDS } from '../stats.ts';
@@ -34,6 +36,15 @@ export interface PowerBreakdown {
   stats: number;
   ascension: number;
   tower: number;
+  /**
+   * What the named uniques on the hero are worth (Q45).
+   *
+   * A unique's power is a *rule*, not a stat, so it contributes nothing through
+   * the stat path — and a piece whose whole value is invisible to the bracket
+   * would let a hero in five of them draw drops sized for someone weaker. This
+   * line is what keeps §13 honest about them.
+   */
+  uniques: number;
   total: number;
 }
 
@@ -70,13 +81,15 @@ export function powerBreakdown(inputs: PowerInputs): PowerBreakdown {
   const ascension = inputs.ascension * POWER_PER_ASCENSION * POWER_WEIGHTS.ascension;
   const tower =
     evaluate(POWER_TOWER_CURVE, Math.max(0, inputs.highestFloorEverCleared)) * POWER_WEIGHTS.tower;
+  const uniques = wornPowers(inputs.equipped).length * UNIQUE_POWER_LEVEL;
 
   return {
     gear,
     stats,
     ascension,
     tower,
-    total: Math.round(gear + stats + ascension + tower),
+    uniques,
+    total: Math.round(gear + stats + ascension + tower + uniques),
   };
 }
 

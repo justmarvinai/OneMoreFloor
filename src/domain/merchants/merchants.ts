@@ -26,7 +26,7 @@ import { ITEM_BASES } from '@/content/items/index.ts';
 import { potionsForBracket, type PotionDef } from '@/content/items/potions.ts';
 import type { Character } from '../character/types.ts';
 import { availableSlots } from '../items/equip.ts';
-import { defsForBracket, generateItem } from '../items/generate.ts';
+import { defsForBracket, generateItem, pickBase } from '../items/generate.ts';
 import { itemGoldValue } from '../items/upgrade.ts';
 import type { ItemInstance } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
@@ -171,10 +171,14 @@ export function stockOf(
   for (let index = 0; index < size; index += 1) {
     // One stream per slot on the shelf, so buying entry 3 cannot change entry 4.
     const rng: Rng = createRng(`${state.stockSeed}/slot:${index}`);
-    const def = rng.pick(candidates);
+    // Rarity first, because the unique gate reads it (Q45).
+    const rarity = rng.weighted(rarityWeightsFor(bracket.index));
+    const def = pickBase(candidates, rarity, rng);
+    if (!def) continue;
+
     const item = generateItem({
       def,
-      rarity: rng.weighted(rarityWeightsFor(bracket.index)),
+      rarity,
       bracket,
       weights: affixPool(def.affixPool),
       rng: rng.fork('item'),

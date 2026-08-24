@@ -22,6 +22,7 @@ import { combatStatsOf, equippedItems, totalStatsOf } from '../character/charact
 import type { Character } from '../character/types.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { bracketFor } from '../power/brackets.ts';
+import { wornPowers } from '../items/sets.ts';
 import { powerLevel } from '../power/power.ts';
 import { enemyCombatant, generateFloor, type GeneratedFloor } from './floors.ts';
 import { grantReward } from '../rewards/grant.ts';
@@ -61,6 +62,10 @@ export function heroCombatant(character: Character, now: number): Combatant {
 
   return {
     id: 'hero',
+    // Rules carried by named uniques the hero is wearing (Q45). Collected here
+    // rather than read from the character inside the engine, because the engine
+    // must never know what a character is.
+    powers: wornPowers(equippedItems(character)),
     nameKey: definition.nameKey,
     sourceId: character.identity.classId,
     avatar: definition.art.portrait,

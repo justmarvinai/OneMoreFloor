@@ -26,7 +26,7 @@ import { ITEM_BASES } from '@/content/items/index.ts';
 import { materialIdForTier } from '@/content/items/materials.ts';
 import type { Character } from '../character/types.ts';
 import { availableSlots } from '../items/equip.ts';
-import { defsForBracket, generateItem } from '../items/generate.ts';
+import { defsForBracket, generateItem, pickBase } from '../items/generate.ts';
 import { isFull } from '../items/inventory.ts';
 import { rarityIndex, type ItemInstance, type Rarity } from '../items/types.ts';
 import type { Bracket } from '../power/brackets.ts';
@@ -181,7 +181,9 @@ function rollGear(
     : [];
   const pool = wished.length > 0 ? wished : candidates;
 
-  const def = rng.pick(pool);
+  const def = pickBase(pool, rarity, rng);
+  if (!def) return null;
+
   return generateItem({
     def,
     rarity,

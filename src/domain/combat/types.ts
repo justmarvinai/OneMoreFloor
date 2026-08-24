@@ -8,6 +8,7 @@
  * reports, and a balance simulator that runs the real engine at full speed.
  */
 import type { ClassId, ResourceKind } from '../character/types.ts';
+import type { UniquePowerId } from '@/content/items/uniques.ts';
 import type { StatBlock, StatId } from '../stats.ts';
 
 export type UnitId = 'hero' | 'enemy';
@@ -59,6 +60,12 @@ export interface CombatantResource {
 /** A unit as the engine tracks it through a fight. */
 export interface Combatant {
   id: UnitId;
+  /**
+   * Rules this unit carries from named uniques (Q45). Absent is the same as
+   * empty; enemies never have any, which is why it is optional rather than a
+   * field every enemy definition has to remember to leave blank.
+   */
+  powers?: readonly UniquePowerId[];
   nameKey: string;
   /** Class for the hero, enemy definition id otherwise — for the UI's art. */
   sourceId: ClassId | string;
@@ -112,6 +119,16 @@ export type CombatEvent =
       targetHp: number;
     }
   | { type: 'dodged'; unit: UnitId; source: UnitId }
+  | {
+      /** Health returned rather than taken — lifesteal, and later a companion. */
+      type: 'heal';
+      unit: UnitId;
+      amount: number;
+      /** Health after it, so the performer never recomputes. */
+      unitHp: number;
+      /** Which rule paid for it, so the stage can name it. */
+      source: UniquePowerId;
+    }
   | { type: 'resource'; unit: UnitId; from: number; to: number; full: boolean }
   | { type: 'effectApplied'; unit: UnitId; effect: EffectDef }
   | { type: 'effectExpired'; unit: UnitId; effectId: string }

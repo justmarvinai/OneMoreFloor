@@ -8,6 +8,7 @@
  * patch applies to gear people already own without a migration (SAVE_SCHEMA §3).
  */
 import type { ClassId, EquipSlotId } from '../character/types.ts';
+import type { UniquePowerId } from '@/content/items/uniques.ts';
 import type { StatId } from '../stats.ts';
 
 /** Rarity tiers (Brief §9.2). `mythic` matches FantasyUI's own rarity ids. */
@@ -58,6 +59,28 @@ export interface ItemDef {
    * dagger stops dropping once the player is fighting on floor 400.
    */
   brackets: [number, number];
+  /**
+   * The set this base belongs to (Q45), if any.
+   *
+   * On the *base* rather than rolled onto an instance, so an Ironbound Helm
+   * found on floor 12 and one found on floor 1,200 are the same piece sized for
+   * different depths — which is what lets a set stay worth chasing in a tower
+   * with no top.
+   */
+  setId?: string;
+  /**
+   * The rules this base carries (Q45). A base with one is a *unique*: it comes
+   * through the same generator as everything else, so §13 binds it, but it is
+   * not in the pool until the rarity roll has already reached
+   * `UNIQUE_MIN_RARITY` — which keeps the printed rate table true.
+   */
+  unique?: UniquePowerId;
+  /**
+   * Relative likelihood against the other bases eligible for the same slot.
+   * Absent means one. Set pieces and uniques sit below it so a named piece stays
+   * something you remember finding.
+   */
+  weight?: number;
 }
 
 export type AffixPoolId =

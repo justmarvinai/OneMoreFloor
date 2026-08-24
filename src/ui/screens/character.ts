@@ -53,6 +53,7 @@ import { MAX_ASCENSION } from '@/content/balance/progression.ts';
 import { UPGRADABLE_STAT_IDS, type UpgradableStatId } from '@/domain/stats.ts';
 import { requireItemDef } from '@/content/items/index.ts';
 import { LOADOUT_NAME_MAX, isEmptyLoadout, loadoutsOf } from '@/domain/items/presets.ts';
+import { SET_SIZE, setOf, setStatuses, wornSetCounts } from '@/domain/items/sets.ts';
 import { compareGear, isUpgrade, itemSlot, itemTooltip } from '@/ui/itemView.ts';
 import { setTip } from '@/ui/tooltips.ts';
 import { shortDuration } from '@/ui/format.ts';
@@ -130,6 +131,17 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
 
   const definition = CLASSES[character.identity.classId];
   const durable = totalStatsOf(character);
+  /**
+   * How many pieces of a piece's set the hero already wears (Q45).
+   *
+   * Counted once for the whole screen: every socket and every bag slot asks,
+   * and the answer is the same for all of them.
+   */
+  const setCounts = wornSetCounts(equippedItems(character));
+  const wornOfSetFor = (item: { defId: string }): number | undefined => {
+    const set = setOf(item as never);
+    return set ? (setCounts.get(set.id) ?? 0) : undefined;
+  };
   const withPotions = combatStatsOf(character, now);
   const unlocked = new Set<EquipSlotId>(availableSlots(character.progression.ascension));
   const floor = Math.max(1, character.tower.currentRunFloor);
@@ -206,7 +218,12 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     setTip(
       cell,
       worn
-        ? itemTooltip(worn, { worn: true, showSellValue: true, hint: t('item.wornHint') })
+        ? itemTooltip(worn, {
+            worn: true,
+            showSellValue: true,
+            hint: t('item.wornHint'),
+            ...(wornOfSetFor(worn) === undefined ? {} : { wornOfSet: wornOfSetFor(worn) }),
+          })
         : `${t(`slot.${slot}` as StringKey)} — ${t('item.emptySlotHint')}`,
     );
   }
@@ -421,6 +438,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
         showSellValue: true,
         compareTo: character.equipment[slot] ?? null,
         hint: t('item.dragToEquip'),
+        ...(wornOfSetFor(item) === undefined ? {} : { wornOfSet: wornOfSetFor(item) }),
       }),
     );
 
@@ -579,6 +597,66 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
     return row;
   }
 
+  /**
+   * What the worn sets are giving, and what the next piece would add (Q45).
+   *
+   * Only sets the hero owns a piece of are listed. A panel showing all three
+   * with zeros beside them is a list of things that have not happened, and the
+   * bestiary is already the screen for that — here the question is "what am I
+   * building?", which is only about what is on.
+   */
+  function buildSets(): HTMLElement | null {
+    const statuses = setStatuses(equippedItems(character));
+    if (statuses.length === 0) return null;
+
+    const block = h('section', { class: 'omf-sets', dataset: { testid: 'sets' } });
+    block.appendChild(h('h3', { class: 'omf-character__section fui-title', text: t('set.title') }));
+
+    for (const status of statuses) {
+      const card = h(
+        'div',
+        { class: 'omf-sets__card', dataset: { testid: `set-${status.set.id}` } },
+        h(
+          'div',
+          { class: 'omf-sets__head' },
+          h('span', { class: 'omf-sets__name fui-title', text: t(status.set.nameKey) }),
+          h('span', {
+            class: 'omf-sets__count fui-num',
+            text: t('set.progress', { worn: status.worn, total: SET_SIZE }),
+          }),
+        ),
+      );
+      setTip(card, {
+        title: t(status.set.nameKey),
+        subtitle: t('set.progress', { worn: status.worn, total: SET_SIZE }),
+        flavor: t(status.set.descKey),
+      });
+
+      for (const bonus of status.bonuses) {
+        const stat = t(`stat.${bonus.stat}` as StringKey);
+        const percent = Math.round(bonus.magnitude * 100);
+        card.appendChild(
+          h('p', {
+            class: 'omf-sets__bonus',
+            dataset: { active: String(bonus.active) },
+            text: bonus.active
+              ? t('set.bonusActive', { pieces: bonus.pieces, percent, stat })
+              : t('set.bonusIdle', {
+                  pieces: bonus.pieces,
+                  percent,
+                  stat,
+                  missing: bonus.pieces - status.worn,
+                }),
+          }),
+        );
+      }
+
+      block.appendChild(card);
+    }
+
+    return block;
+  }
+
   const backpackPanel = track(
     new Panel({
       title: t('character.backpack', {
@@ -595,6 +673,8 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
           : [backpack.el],
     }),
   );
+
+  const sets = buildSets();
 
   /**
    * The sheet: one framed window, everything about the hero inside it. Scrolls
@@ -622,6 +702,7 @@ export function createCharacterScreen(options: CharacterScreenOptions): Characte
           }),
           h('div', { class: 'omf-character__doll' }, paperdoll.el),
           heroStrip,
+          ...(sets ? [sets] : []),
           buildLoadouts(),
         ),
         statsBlock,

@@ -19,6 +19,7 @@ import type {
   SignatureKind,
   UnitId,
 } from '@/domain/combat/types.ts';
+import type { UniquePowerId } from '@/content/items/uniques.ts';
 
 /**
  * Presentation timing, in milliseconds at x1. These are pacing, not balance:
@@ -37,6 +38,8 @@ export const TIMING = {
   afterHit: 240,
   afterCrit: 340,
   afterDodge: 260,
+  /** Health coming back reads as a smaller beat than a blow landing. */
+  afterHeal: 200,
   effect: 150,
   resource: 60,
   defeat: 620,
@@ -74,6 +77,14 @@ export type Step =
       heavy: boolean;
     }
   | { kind: 'dodge'; unit: UnitId; source: UnitId }
+  | {
+      kind: 'heal';
+      unit: UnitId;
+      amount: number;
+      unitHp: number;
+      /** Which rule paid for it, so the card can name what healed. */
+      source: UniquePowerId;
+    }
   | { kind: 'resource'; unit: UnitId; from: number; to: number; full: boolean }
   | { kind: 'effectOn'; unit: UnitId; effect: EffectDef }
   | { kind: 'effectOff'; unit: UnitId; effectId: string }
@@ -180,6 +191,19 @@ export function choreograph(script: CombatScript): Beat[] {
         push(
           { kind: 'effectOn', unit: event.unit, effect: event.effect },
           opened ? TIMING.effect : TIMING.floorEffect,
+        );
+        break;
+
+      case 'heal':
+        push(
+          {
+            kind: 'heal',
+            unit: event.unit,
+            amount: event.amount,
+            unitHp: event.unitHp,
+            source: event.source,
+          },
+          TIMING.afterHeal,
         );
         break;
 

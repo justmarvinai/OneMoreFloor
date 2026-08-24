@@ -12,6 +12,9 @@
  */
 import type { ItemCardData, SlotItem, TooltipOptions, TooltipStat } from '@/ui/fui/index.ts';
 import { requireItemDef } from '@/content/items/index.ts';
+import { UNIQUE_MAGNITUDE } from '@/content/balance/uniques.ts';
+import { UNIQUE_POWERS, type UniquePowerId } from '@/content/items/uniques.ts';
+import { SET_SIZE, powerOf, setOf } from '@/domain/items/sets.ts';
 import { itemStats } from '@/domain/items/derive.ts';
 import { itemPower } from '@/domain/power/power.ts';
 import { sellValue } from '@/domain/items/upgrade.ts';
@@ -139,6 +142,14 @@ export interface ItemTooltipOptions {
    * compare against (a shop's sell list, the gacha reveal).
    */
   compareTo?: ItemInstance | null;
+  /**
+   * How many pieces of this item's set the hero already wears (Q45).
+   *
+   * Optional because most callers have no idea — a shop row is about a piece,
+   * not about a hero — and the card degrades to naming the set rather than
+   * inventing a count it cannot know.
+   */
+  wornOfSet?: number;
   /** Action line pinned to the bottom, e.g. "Click to inspect". */
   hint?: string;
 }
@@ -204,14 +215,51 @@ export function itemTooltip(item: ItemInstance, options: ItemTooltipOptions = {}
     { label: t('item.ascension', { stars: item.ascension, max: GEAR_ASCENSION_MAX }), value: '' },
   );
 
+  /**
+   * What makes this piece *this piece* (Q45).
+   *
+   * A unique's rule and a set's membership go under the numbers rather than
+   * above them, because the numbers are what the swap comparison is about — but
+   * they go in **bold as a stat row** rather than as flavour, because they are
+   * the reason to keep a piece whose numbers lose.
+   */
+  const power = powerOf(item);
+  if (power) {
+    stats.push({
+      label: t(UNIQUE_POWERS[power].nameKey),
+      value: t('item.uniqueLine'),
+      tone: 'good',
+    });
+  }
+
+  const set = setOf(item);
+  if (set) {
+    stats.push({
+      label: t(set.nameKey),
+      value:
+        options.wornOfSet === undefined
+          ? t('set.title')
+          : t('set.progress', { worn: options.wornOfSet, total: SET_SIZE }),
+      tone: 'good',
+    });
+  }
+
+  const flavour = power ? t(UNIQUE_POWERS[power].descKey, { percent: percentOf(power) }) : null;
+
   return {
     title: itemName(item),
     rarity: item.rarity,
     subtitle: t(`rarity.${item.rarity}` as StringKey),
     slotLabel,
     stats,
+    ...(flavour ? { flavor: flavour } : {}),
     ...(requires.length > 0 ? { requires } : {}),
     ...(options.showSellValue ? { price: sellValue(item) } : {}),
     ...(options.hint ? { hint: options.hint } : {}),
   };
+}
+
+/** A unique's magnitude as a whole percentage, for the sentence that says it. */
+function percentOf(power: UniquePowerId): number {
+  return Math.round(UNIQUE_MAGNITUDE[power] * 100);
 }

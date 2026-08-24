@@ -1521,6 +1521,71 @@ test('the workbench rescues material the hero has climbed past (Q43)', async ({ 
   await expect(page.locator('[data-testid="transmute-mat.iron-sigil"]')).toContainText(/[1-9]/);
 });
 
+test('a set piece says what set it is in, and the sheet says what it gives (Q45)', async ({
+  page,
+}) => {
+  // Genuinely long: set bases sit below an ordinary base's weight, so finding
+  // one means working through several shelves' worth of stock.
+  test.setTimeout(240_000);
+  await enterSelect(page);
+  await createHero(page, 'Grimhild', 'Warrior');
+
+  /**
+   * Bought rather than waited for, and bought until a set piece turns up: set
+   * bases sit below an ordinary base's weight on purpose, so a test that hopes
+   * for one on the first shelf is a test that fails.
+   */
+  const buyButtons = page
+    .locator('[data-testid="merchant"] .fui-itemcard')
+    .getByRole('button', { name: 'Buy', exact: true })
+    .and(page.locator('button:not([disabled])'));
+
+  const sets = page.locator('[data-testid="sets"]');
+  const marked = page.locator('.omf-character__side .fui-inv .fui-slot.omf-upgrade');
+
+  /**
+   * One action per pass, with a settle point after every navigation.
+   *
+   * Every purchase and every equip rebuilds the screen it happened on, so a
+   * tight loop of clicks races its own re-render and Playwright spends the whole
+   * budget retrying a detached node.
+   */
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await goToSection(page, 'Character');
+    await expect(page.locator('[data-testid="character"]')).toBeVisible();
+    if (await sets.isVisible().catch(() => false)) break;
+
+    // Wear anything the game says is worth wearing — a set piece is only on the
+    // sheet once it is on the hero.
+    if ((await marked.count()) > 0) {
+      await marked.first().click();
+      await expect(page.locator('[data-testid="gear-dialog"]')).toBeVisible();
+      await page.getByRole('button', { name: /^Equip$/ }).click();
+      await page.keyboard.press('Escape');
+      continue;
+    }
+
+    await goToSection(page, 'Equipment');
+    await expect(page.locator('[data-testid="merchant"]')).toBeVisible();
+    if ((await buyButtons.count()) === 0) {
+      await goToSection(page, 'Tower');
+      await climb(page, 4);
+      continue;
+    }
+    await buyButtons.first().click();
+  }
+
+  await goToSection(page, 'Character');
+  await expect(sets, 'no set piece was ever worn').toBeVisible();
+  // Three thresholds, said in full whether or not they are live.
+  await expect(sets).toContainText(/of 6 worn/i);
+  await expect(sets.locator('.omf-sets__bonus')).toHaveCount(3);
+  // A threshold that is not live says how far off it is rather than going quiet.
+  await expect(sets.locator('.omf-sets__bonus[data-active="false"]').first()).toContainText(
+    /to go/i,
+  );
+});
+
 test('an elite is visible from the bottom of the path, and always pays gear (Q44)', async ({
   page,
 }) => {

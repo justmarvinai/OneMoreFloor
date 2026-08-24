@@ -16,9 +16,11 @@ import {
   STAT_BUDGET_COST,
 } from '@/content/balance/items.ts';
 import type { Rng } from '@/app/rng.ts';
+import { UNIQUE_MIN_RARITY } from '@/content/balance/uniques.ts';
 import { budgetRangeFor, type Bracket } from '../power/brackets.ts';
 import type { StatId } from '../stats.ts';
 import { budgetOfStat, statPointsFor } from './derive.ts';
+import { rarityIndex } from './types.ts';
 import type { Affix, AffixPoolId, ItemDef, ItemInstance, Rarity } from './types.ts';
 
 /**
@@ -240,6 +242,30 @@ export function rerollAffixes(input: {
     affixes,
     budget: affixes.reduce((total, affix) => total + budgetOfStat(affix.stat, affix.value), 0),
   };
+}
+
+/**
+ * Pick the base an item source will roll (Q45).
+ *
+ * The one place three sources — floor drops, merchant shelves and the summoning
+ * rites — agree about *which* base, so a rule added here lands everywhere at
+ * once. Two rules live in it:
+ *
+ *  - **Weight.** A base may say it is rarer than its neighbours. Set pieces and
+ *    uniques do; everything else is one, and an unweighted pool behaves exactly
+ *    as the uniform pick it replaced.
+ *  - **The unique gate.** A unique is not in the pool until the *rarity roll has
+ *    already* reached `UNIQUE_MIN_RARITY`. Uniques therefore never promote a
+ *    rarity, which is what keeps the rate table printed in the summoning lobby
+ *    true to the last decimal (§16.2) while still making a named piece the top
+ *    of the ladder.
+ */
+export function pickBase(candidates: readonly ItemDef[], rarity: Rarity, rng: Rng): ItemDef | null {
+  const allowUnique = rarityIndex(rarity) >= rarityIndex(UNIQUE_MIN_RARITY);
+  const pool = candidates.filter((def) => def.unique === undefined || allowUnique);
+  if (pool.length === 0) return null;
+
+  return rng.weighted(pool.map((def) => ({ value: def, weight: def.weight ?? 1 })));
 }
 
 /** Base types eligible at a bracket, so a rusty dagger stops dropping on floor 400. */

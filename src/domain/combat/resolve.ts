@@ -20,6 +20,8 @@ import {
   SPEED,
   STRIKE_STRENGTH_COEFFICIENT,
 } from '@/content/balance/combat.ts';
+import { UNIQUE_MAGNITUDE } from '@/content/balance/uniques.ts';
+import type { UniquePowerId } from '@/content/items/uniques.ts';
 import { bandRelative, diminishing } from '@/content/balance/curves.ts';
 import { createRng } from '@/app/rng.ts';
 import { bandOf } from './bands.ts';
@@ -146,8 +148,21 @@ export function resolveCombat(input: ResolveInput): CombatScript {
 
   // --- helpers, closed over the fight's state -------------------------------
 
+  /**
+   * What a unique power is worth to this unit, or zero when they do not have it
+   * (Q45).
+   *
+   * One lookup for all five rules, so adding a sixth is a case in `UNIQUE_MAGNITUDE`
+   * and one call site rather than a new branch threaded through the whole engine.
+   */
+  function power(unit: Combatant, id: UniquePowerId): number {
+    return unit.powers?.includes(id) === true ? UNIQUE_MAGNITUDE[id] : 0;
+  }
+
   function gainResource(unit: Combatant, event: FillEvent): void {
-    const fraction = fillFor(unit, event);
+    // Quickening: the bar fills faster, which is the only thing in the game that
+    // changes how *often* a signature happens rather than how hard it hits.
+    const fraction = fillFor(unit, event) * (1 + power(unit, 'swiftCharge'));
     if (fraction <= 0 || unit.resource.pool <= 0) return;
 
     const from = unit.resource.current;
@@ -227,16 +242,21 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     const defender = effectiveStats(target);
 
     const crit = rng.chance(bandRelative(attacker.luck, band.critReference, CRIT.cap));
+    // Spirekeen: a bigger crit rather than a more frequent one, so it rewards
+    // Luck the hero already has instead of replacing the need for it.
+    const critMultiplier = CRIT.multiplier * (1 + power(actor, 'deadlyCrits'));
     const raw =
       attacker.strength *
       STRIKE_STRENGTH_COEFFICIENT *
       options.multiplier *
       rng.range(DAMAGE_VARIANCE.min, DAMAGE_VARIANCE.max) *
-      (crit ? CRIT.multiplier : 1);
+      (crit ? critMultiplier : 1);
 
     const effectiveDefense = defender.defense * (1 - options.defensePierce);
     const mitigated = raw * diminishing(effectiveDefense, band.defenseK);
-    const guarded = mitigated * (1 - damageReduction(target));
+    // Stoneward is a flat share off everything, stacking with the effect-based
+    // reductions rather than replacing them.
+    const guarded = mitigated * (1 - damageReduction(target)) * (1 - power(target, 'bulwark'));
 
     // Every blow does something: a hit that rounds to zero reads as a bug.
     const amount = Math.max(1, Math.round(guarded));
@@ -254,6 +274,47 @@ export function resolveCombat(input: ResolveInput): CombatScript {
     gainResource(actor, 'dealtHit');
     if (crit) gainResource(actor, 'crit');
     if (target.hp > 0) gainResource(target, 'tookHit');
+
+    // Emberdrinker heals the striker; Bramblehide answers back. Both are
+    // resolved from the blow that actually landed, so a dodged or mitigated hit
+    // pays exactly what it was worth.
+    heal(actor, amount * power(actor, 'lifesteal'), 'lifesteal');
+    reflect(target, actor, amount * power(target, 'thorns'));
+  }
+
+  /** Return health to a unit, capped at its pool and never below one point. */
+  function heal(unit: Combatant, amount: number, source: UniquePowerId): void {
+    if (amount <= 0 || unit.hp <= 0 || unit.hp >= unit.maxHp) return;
+
+    const given = Math.max(1, Math.round(amount));
+    const before = unit.hp;
+    unit.hp = Math.min(unit.maxHp, unit.hp + given);
+    if (unit.hp === before) return;
+
+    events.push({ type: 'heal', unit: unit.id, amount: unit.hp - before, unitHp: unit.hp, source });
+  }
+
+  /**
+   * Damage sent back to whoever dealt it.
+   *
+   * Written as its own step rather than a recursive `strike`, deliberately: two
+   * units both wearing Bramblehide would otherwise reflect at each other until
+   * the stack ran out.
+   */
+  function reflect(from: Combatant, to: Combatant, amount: number): void {
+    if (amount <= 0 || from.hp <= 0 || to.hp <= 0) return;
+
+    const sent = Math.max(1, Math.round(amount));
+    to.hp = Math.max(0, to.hp - sent);
+    events.push({
+      type: 'hit',
+      source: from.id,
+      target: to.id,
+      amount: sent,
+      crit: false,
+      targetHp: to.hp,
+    });
+    if (to.hp <= 0) events.push({ type: 'defeated', unit: to.id });
   }
 }
 
